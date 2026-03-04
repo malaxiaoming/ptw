@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import {
   canTransition,
+  getTransition,
   getAvailableTransitions,
   type PermitStatus,
+  type PermitAction,
 } from '@/lib/permits/state-machine'
 
 describe('canTransition', () => {
@@ -99,5 +101,33 @@ describe('getAvailableTransitions', () => {
 
   it('returns nothing for revoked', () => {
     expect(getAvailableTransitions('revoked')).toEqual([])
+  })
+})
+
+describe('getTransition', () => {
+  it('returns the full transition object for a valid transition', () => {
+    const t = getTransition('submitted', 'return')
+    expect(t).toEqual({
+      from: 'submitted',
+      action: 'return',
+      to: 'draft',
+      role: 'verifier',
+      requiresComment: true,
+    })
+  })
+
+  it('returns undefined for an invalid transition', () => {
+    expect(getTransition('draft', 'approve')).toBeUndefined()
+  })
+
+  it('returns correct role for key transitions', () => {
+    expect(getTransition('draft', 'submit')?.role).toBe('applicant')
+    expect(getTransition('approved', 'activate')?.role).toBe('system')
+    expect(getTransition('active', 'revoke')?.role).toBe('approver')
+  })
+
+  it('flags requiresComment correctly', () => {
+    expect(getTransition('submitted', 'return')?.requiresComment).toBe(true)
+    expect(getTransition('submitted', 'verify')?.requiresComment).toBe(false)
   })
 })

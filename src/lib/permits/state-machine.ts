@@ -23,7 +23,7 @@ export type PermitAction =
 
 export type TransitionRequiredRole = 'applicant' | 'verifier' | 'approver' | 'system'
 
-interface Transition {
+export interface Transition {
   from: PermitStatus
   action: PermitAction
   to: PermitStatus
