@@ -52,7 +52,7 @@ export function PersonnelPicker({ requirements, personnel, onChange, disabled }:
 
   function selectFromRegistry(index: number, workerId: string) {
     if (!workerId) {
-      updatePerson(index, { worker_id: undefined })
+      updatePerson(index, { worker_id: undefined, name: '', cert_number: '' })
       return
     }
     const worker = workers.find((w) => w.id === workerId)

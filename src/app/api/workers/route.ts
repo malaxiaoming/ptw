@@ -18,7 +18,10 @@ export async function GET(request: NextRequest) {
     .order('name')
 
   if (search) {
-    query = query.or(`name.ilike.%${search}%,cert_number.ilike.%${search}%,company.ilike.%${search}%`)
+    const safeSearch = search.replace(/[,)(]/g, '')
+    if (safeSearch) {
+      query = query.or(`name.ilike.%${safeSearch}%,cert_number.ilike.%${safeSearch}%,company.ilike.%${safeSearch}%`)
+    }
   }
 
   const { data, error: dbError } = await query

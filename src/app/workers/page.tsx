@@ -66,7 +66,12 @@ export default function WorkersPage() {
   }
 
   async function handleDeactivate(id: string) {
-    await fetch(`/api/workers/${id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/workers/${id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      setError(json.error ?? 'Failed to deactivate worker')
+      return
+    }
     await fetchWorkers()
   }
 
