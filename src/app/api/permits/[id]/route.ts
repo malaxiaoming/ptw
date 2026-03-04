@@ -59,11 +59,16 @@ export async function PATCH(
   // Only allow editing draft permits by the applicant
   const { data: permit } = await supabase
     .from('permits')
-    .select('status, applicant_id')
+    .select('status, applicant_id, project_id')
     .eq('id', id)
     .single()
 
   if (!permit) return error('Permit not found', 404)
+
+  // Verify user belongs to the permit's project
+  const roles = await getUserRolesForProject(user.id, permit.project_id)
+  if (roles.length === 0) return error('Permit not found', 404)
+
   if (permit.status !== 'draft') return error('Only draft permits can be edited', 400)
   if (permit.applicant_id !== user.id) return error('You can only edit your own permits', 403)
 
