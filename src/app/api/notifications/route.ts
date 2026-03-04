@@ -24,6 +24,10 @@ export async function GET() {
 
   if (notificationsResult.error) return error(notificationsResult.error.message, 500)
 
+  if (countResult.error) {
+    console.error('[GET /api/notifications] Failed to get unread count:', countResult.error.message)
+  }
+
   return success({
     notifications: notificationsResult.data,
     unread_count: countResult.count ?? 0,

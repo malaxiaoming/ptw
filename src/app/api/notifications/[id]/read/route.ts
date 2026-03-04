@@ -14,11 +14,13 @@ export async function POST(
   const supabase = await createServerSupabaseClient()
 
   if (id === 'all') {
-    await supabase
+    const { error: dbError } = await supabase
       .from('notifications')
       .update({ is_read: true })
       .eq('user_id', user.id)
       .eq('is_read', false)
+
+    if (dbError) return error(dbError.message, 500)
   } else {
     const { error: dbError } = await supabase
       .from('notifications')

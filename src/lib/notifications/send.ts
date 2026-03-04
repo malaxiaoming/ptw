@@ -41,11 +41,16 @@ export async function sendPermitNotifications(params: SendNotificationParams) {
   }
 
   if (target.targetRoles) {
-    const { data: roleUsers } = await supabase
+    const { data: roleUsers, error: roleError } = await supabase
       .from('user_project_roles')
       .select('user_id')
       .eq('project_id', projectId)
       .in('role', target.targetRoles)
+
+    if (roleError) {
+      console.error('[sendPermitNotifications] Failed to fetch role users:', roleError.message)
+      // Non-fatal: fall through with empty roleUsers
+    }
 
     recipientIds = [...recipientIds, ...(roleUsers ?? []).map((r) => r.user_id)]
   }
@@ -64,7 +69,11 @@ export async function sendPermitNotifications(params: SendNotificationParams) {
     message: template.message,
   }))
 
-  await supabase.from('notifications').insert(notifications)
+  const { error: insertError } = await supabase.from('notifications').insert(notifications)
+  if (insertError) {
+    console.error('[sendPermitNotifications] Failed to insert notifications:', insertError.message)
+    // Non-fatal: state transition has already occurred; log but don't throw
+  }
 
   // TODO: Send email notifications via Resend (future enhancement)
 }

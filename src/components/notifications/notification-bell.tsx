@@ -54,13 +54,15 @@ export function NotificationBell() {
   }, [open])
 
   async function markAllRead() {
-    await fetch('/api/notifications/all/read', { method: 'POST' })
+    const res = await fetch('/api/notifications/all/read', { method: 'POST' })
+    if (!res.ok) return
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })))
     setUnreadCount(0)
   }
 
   async function markOneRead(id: string) {
-    await fetch(`/api/notifications/${id}/read`, { method: 'POST' })
+    const res = await fetch(`/api/notifications/${id}/read`, { method: 'POST' })
+    if (!res.ok) return
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
     )
