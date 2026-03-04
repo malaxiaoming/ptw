@@ -1,17 +1,8 @@
 import { NextRequest } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/get-user'
+import { isOrgAdmin } from '@/lib/auth/check-admin'
 import { success, error } from '@/lib/api/response'
-
-async function checkAdminAccess(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>, userId: string): Promise<boolean> {
-  const { data: adminRoles } = await supabase
-    .from('user_project_roles')
-    .select('role')
-    .eq('user_id', userId)
-    .eq('role', 'admin')
-
-  return Boolean(adminRoles && adminRoles.length > 0)
-}
 
 export async function GET(
   _request: NextRequest,
@@ -23,8 +14,13 @@ export async function GET(
   const { id } = await params
   const supabase = await createServerSupabaseClient()
 
-  const isAdmin = await checkAdminAccess(supabase, user.id)
-  if (!isAdmin) return error('Admin access required', 403)
+  let adminAccess: boolean
+  try {
+    adminAccess = await isOrgAdmin(supabase, user.id, user.organization_id!)
+  } catch {
+    return error('Service unavailable', 503)
+  }
+  if (!adminAccess) return error('Admin access required', 403)
 
   const { data, error: dbError } = await supabase
     .from('user_project_roles')
@@ -50,8 +46,13 @@ export async function POST(
   const { id } = await params
   const supabase = await createServerSupabaseClient()
 
-  const isAdmin = await checkAdminAccess(supabase, user.id)
-  if (!isAdmin) return error('Admin access required', 403)
+  let adminAccess: boolean
+  try {
+    adminAccess = await isOrgAdmin(supabase, user.id, user.organization_id!)
+  } catch {
+    return error('Service unavailable', 503)
+  }
+  if (!adminAccess) return error('Admin access required', 403)
 
   let body: Record<string, unknown>
   try {
@@ -72,6 +73,17 @@ export async function POST(
     return error('Invalid role', 400)
   }
 
+  // Verify the target user is in the same org
+  const { data: targetUser } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('id', body.user_id)
+    .single()
+
+  if (!targetUser || targetUser.organization_id !== user.organization_id) {
+    return error('User not found in your organization', 403)
+  }
+
   // Upsert semantics: insert, on conflict do nothing
   const { data, error: dbError } = await supabase
     .from('user_project_roles')
@@ -80,11 +92,11 @@ export async function POST(
       { onConflict: 'user_id,project_id,role', ignoreDuplicates: true }
     )
     .select('id, user_id, role')
-    .single()
+    .maybeSingle()  // returns null on duplicate (no-op upsert)
 
   if (dbError) return error(dbError.message, 500)
-
-  return success(data, 201)
+  // data is null when duplicate (already assigned) - that's OK
+  return success(data ?? { user_id: body.user_id, role: body.role, project_id: id }, 201)
 }
 
 export async function DELETE(
@@ -97,8 +109,13 @@ export async function DELETE(
   const { id } = await params
   const supabase = await createServerSupabaseClient()
 
-  const isAdmin = await checkAdminAccess(supabase, user.id)
-  if (!isAdmin) return error('Admin access required', 403)
+  let adminAccess: boolean
+  try {
+    adminAccess = await isOrgAdmin(supabase, user.id, user.organization_id!)
+  } catch {
+    return error('Service unavailable', 503)
+  }
+  if (!adminAccess) return error('Admin access required', 403)
 
   let body: Record<string, unknown>
   try {
@@ -112,6 +129,11 @@ export async function DELETE(
   }
   if (!body.role || typeof body.role !== 'string') {
     return error('role is required', 400)
+  }
+
+  const validRoles = ['applicant', 'verifier', 'approver', 'admin']
+  if (!validRoles.includes(body.role as string)) {
+    return error('Invalid role', 400)
   }
 
   const { error: dbError } = await supabase

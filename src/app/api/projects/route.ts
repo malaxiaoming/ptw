@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/get-user'
+import { isOrgAdmin } from '@/lib/auth/check-admin'
 import { success, error } from '@/lib/api/response'
 
 export async function GET() {
@@ -46,17 +47,15 @@ export async function POST(request: NextRequest) {
     return error('User has no organization', 403)
   }
 
-  // Admin check: user must have admin role in at least one project
+  // Admin check: user must have admin role in at least one project in their org
   const supabase = await createServerSupabaseClient()
-  const { data: adminRoles } = await supabase
-    .from('user_project_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .eq('role', 'admin')
-
-  if (!adminRoles || adminRoles.length === 0) {
-    return error('Admin access required', 403)
+  let adminAccess: boolean
+  try {
+    adminAccess = await isOrgAdmin(supabase, user.id, user.organization_id!)
+  } catch {
+    return error('Service unavailable', 503)
   }
+  if (!adminAccess) return error('Admin access required', 403)
 
   let body: Record<string, unknown>
   try {

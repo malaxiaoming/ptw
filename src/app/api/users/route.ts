@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/get-user'
+import { isOrgAdmin } from '@/lib/auth/check-admin'
 import { success, error } from '@/lib/api/response'
 
 export async function GET() {
@@ -12,16 +13,14 @@ export async function GET() {
 
   const supabase = await createServerSupabaseClient()
 
-  // Admin check
-  const { data: adminRoles } = await supabase
-    .from('user_project_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .eq('role', 'admin')
-
-  if (!adminRoles || adminRoles.length === 0) {
-    return error('Admin access required', 403)
+  // Org-scoped admin check
+  let adminAccess: boolean
+  try {
+    adminAccess = await isOrgAdmin(supabase, user.id, user.organization_id)
+  } catch {
+    return error('Service unavailable', 503)
   }
+  if (!adminAccess) return error('Admin access required', 403)
 
   const { data, error: dbError } = await supabase
     .from('user_profiles')

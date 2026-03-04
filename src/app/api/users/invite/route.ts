@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/get-user'
+import { isOrgAdmin } from '@/lib/auth/check-admin'
 import { success, error } from '@/lib/api/response'
 
 export async function POST(request: NextRequest) {
@@ -13,16 +14,14 @@ export async function POST(request: NextRequest) {
 
   const supabase = await createServerSupabaseClient()
 
-  // Admin check
-  const { data: adminRoles } = await supabase
-    .from('user_project_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .eq('role', 'admin')
-
-  if (!adminRoles || adminRoles.length === 0) {
-    return error('Admin access required', 403)
+  // Org-scoped admin check
+  let adminAccess: boolean
+  try {
+    adminAccess = await isOrgAdmin(supabase, user.id, user.organization_id)
+  } catch {
+    return error('Service unavailable', 503)
   }
+  if (!adminAccess) return error('Admin access required', 403)
 
   let body: Record<string, unknown>
   try {
@@ -42,7 +41,12 @@ export async function POST(request: NextRequest) {
   const serviceClient = await createServiceRoleClient()
   const { data: authData, error: inviteError } = await serviceClient.auth.admin.inviteUserByEmail(body.email)
 
-  if (inviteError) return error(inviteError.message, 500)
+  if (inviteError) {
+    if (inviteError.message.includes('already registered')) {
+      return error('A user with this email already exists', 409)
+    }
+    return error('Failed to send invitation', 500)
+  }
 
   // Create user_profiles record
   const newUserId = authData.user.id
@@ -58,7 +62,11 @@ export async function POST(request: NextRequest) {
     .select('id, email, phone, name, organization_id, created_at')
     .single()
 
-  if (profileError) return error(profileError.message, 500)
+  if (profileError) {
+    // Rollback: delete the auth user to prevent orphan
+    await serviceClient.auth.admin.deleteUser(newUserId)
+    return error('Failed to create user profile', 500)
+  }
 
   return success(profile, 201)
 }

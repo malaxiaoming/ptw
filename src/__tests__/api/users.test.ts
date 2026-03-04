@@ -32,6 +32,21 @@ function makeRequest(url: string, options?: ConstructorParameters<typeof NextReq
   return new NextRequest(url, options)
 }
 
+/**
+ * Build the admin-check chain for isOrgAdmin:
+ * .select(...).eq(...).eq(...).eq(...).limit(1) → resolves with data
+ */
+function makeIsOrgAdminChain(hasAdmin: boolean) {
+  const adminData = hasAdmin
+    ? [{ role: 'admin', projects: { organization_id: 'org-1' } }]
+    : []
+  return {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockResolvedValue({ data: adminData, error: null }),
+  }
+}
+
 // ─── GET /api/users ──────────────────────────────────────────────────────────
 
 describe('GET /api/users', () => {
@@ -56,19 +71,8 @@ describe('GET /api/users', () => {
   it('returns 403 if user is not admin', async () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
 
-    const adminCheckChain = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-    }
-    let eqCount = 0
-    adminCheckChain.eq.mockImplementation(() => {
-      eqCount++
-      if (eqCount === 2) return Promise.resolve({ data: [], error: null })
-      return adminCheckChain
-    })
-
     mockCreateClient.mockResolvedValue({
-      from: vi.fn().mockReturnValue(adminCheckChain),
+      from: vi.fn().mockReturnValue(makeIsOrgAdminChain(false)),
     } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
 
     const res = await getUsers()
@@ -85,16 +89,7 @@ describe('GET /api/users', () => {
       { id: 'user-2', email: 'bob@example.com', phone: '91234567', name: 'Bob', organization_id: 'org-1', created_at: '2024-01-02T00:00:00Z' },
     ]
 
-    const adminCheckChain = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-    }
-    let eqCount = 0
-    adminCheckChain.eq.mockImplementation(() => {
-      eqCount++
-      if (eqCount === 2) return Promise.resolve({ data: [{ role: 'admin' }], error: null })
-      return adminCheckChain
-    })
+    const adminCheckChain = makeIsOrgAdminChain(true)
 
     const usersChain = {
       select: vi.fn().mockReturnThis(),
@@ -120,16 +115,7 @@ describe('GET /api/users', () => {
   it('returns 500 on database error', async () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
 
-    const adminCheckChain = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-    }
-    let eqCount = 0
-    adminCheckChain.eq.mockImplementation(() => {
-      eqCount++
-      if (eqCount === 2) return Promise.resolve({ data: [{ role: 'admin' }], error: null })
-      return adminCheckChain
-    })
+    const adminCheckChain = makeIsOrgAdminChain(true)
 
     const usersChain = {
       select: vi.fn().mockReturnThis(),
@@ -186,19 +172,8 @@ describe('POST /api/users/invite', () => {
   it('returns 403 if user is not admin', async () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
 
-    const adminCheckChain = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-    }
-    let eqCount = 0
-    adminCheckChain.eq.mockImplementation(() => {
-      eqCount++
-      if (eqCount === 2) return Promise.resolve({ data: [], error: null })
-      return adminCheckChain
-    })
-
     mockCreateClient.mockResolvedValue({
-      from: vi.fn().mockReturnValue(adminCheckChain),
+      from: vi.fn().mockReturnValue(makeIsOrgAdminChain(false)),
     } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
 
     const req = makeRequest('http://localhost/api/users/invite', {
@@ -215,19 +190,8 @@ describe('POST /api/users/invite', () => {
   it('returns 400 if email is missing', async () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
 
-    const adminCheckChain = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-    }
-    let eqCount = 0
-    adminCheckChain.eq.mockImplementation(() => {
-      eqCount++
-      if (eqCount === 2) return Promise.resolve({ data: [{ role: 'admin' }], error: null })
-      return adminCheckChain
-    })
-
     mockCreateClient.mockResolvedValue({
-      from: vi.fn().mockReturnValue(adminCheckChain),
+      from: vi.fn().mockReturnValue(makeIsOrgAdminChain(true)),
     } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
 
     const req = makeRequest('http://localhost/api/users/invite', {
@@ -244,19 +208,8 @@ describe('POST /api/users/invite', () => {
   it('returns 400 if name is missing', async () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
 
-    const adminCheckChain = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-    }
-    let eqCount = 0
-    adminCheckChain.eq.mockImplementation(() => {
-      eqCount++
-      if (eqCount === 2) return Promise.resolve({ data: [{ role: 'admin' }], error: null })
-      return adminCheckChain
-    })
-
     mockCreateClient.mockResolvedValue({
-      from: vi.fn().mockReturnValue(adminCheckChain),
+      from: vi.fn().mockReturnValue(makeIsOrgAdminChain(true)),
     } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
 
     const req = makeRequest('http://localhost/api/users/invite', {
@@ -273,19 +226,8 @@ describe('POST /api/users/invite', () => {
   it('returns 400 if JSON is malformed', async () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
 
-    const adminCheckChain = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-    }
-    let eqCount = 0
-    adminCheckChain.eq.mockImplementation(() => {
-      eqCount++
-      if (eqCount === 2) return Promise.resolve({ data: [{ role: 'admin' }], error: null })
-      return adminCheckChain
-    })
-
     mockCreateClient.mockResolvedValue({
-      from: vi.fn().mockReturnValue(adminCheckChain),
+      from: vi.fn().mockReturnValue(makeIsOrgAdminChain(true)),
     } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
 
     const req = makeRequest('http://localhost/api/users/invite', {
@@ -311,20 +253,8 @@ describe('POST /api/users/invite', () => {
       created_at: '2024-01-01T00:00:00Z',
     }
 
-    // Mock anon client for admin check
-    const adminCheckChain = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-    }
-    let eqCount = 0
-    adminCheckChain.eq.mockImplementation(() => {
-      eqCount++
-      if (eqCount === 2) return Promise.resolve({ data: [{ role: 'admin' }], error: null })
-      return adminCheckChain
-    })
-
     mockCreateClient.mockResolvedValue({
-      from: vi.fn().mockReturnValue(adminCheckChain),
+      from: vi.fn().mockReturnValue(makeIsOrgAdminChain(true)),
     } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
 
     // Mock service role client for inviteUserByEmail and profile insert
@@ -341,6 +271,7 @@ describe('POST /api/users/invite', () => {
             data: { user: { id: 'new-auth-id' } },
             error: null,
           }),
+          deleteUser: vi.fn().mockResolvedValue({ error: null }),
         },
       },
       from: vi.fn().mockReturnValue(insertChain),
@@ -370,22 +301,12 @@ describe('POST /api/users/invite', () => {
     )
   })
 
-  it('returns 500 if inviteUserByEmail fails', async () => {
+  // Fix 4: error mapping for "already registered"
+  it('returns 409 if inviteUserByEmail fails with "already registered"', async () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
 
-    const adminCheckChain = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-    }
-    let eqCount = 0
-    adminCheckChain.eq.mockImplementation(() => {
-      eqCount++
-      if (eqCount === 2) return Promise.resolve({ data: [{ role: 'admin' }], error: null })
-      return adminCheckChain
-    })
-
     mockCreateClient.mockResolvedValue({
-      from: vi.fn().mockReturnValue(adminCheckChain),
+      from: vi.fn().mockReturnValue(makeIsOrgAdminChain(true)),
     } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
 
     const serviceClient = {
@@ -408,7 +329,83 @@ describe('POST /api/users/invite', () => {
     })
     const res = await inviteUser(req)
     const body = await res.json()
+    expect(res.status).toBe(409)
+    expect(body.error).toBe('A user with this email already exists')
+  })
+
+  it('returns 500 if inviteUserByEmail fails with a generic error', async () => {
+    mockGetCurrentUser.mockResolvedValue(mockUser)
+
+    mockCreateClient.mockResolvedValue({
+      from: vi.fn().mockReturnValue(makeIsOrgAdminChain(true)),
+    } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
+
+    const serviceClient = {
+      auth: {
+        admin: {
+          inviteUserByEmail: vi.fn().mockResolvedValue({
+            data: null,
+            error: { message: 'Internal server error' },
+          }),
+        },
+      },
+    }
+
+    mockCreateServiceClient.mockResolvedValue(serviceClient as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
+
+    const req = makeRequest('http://localhost/api/users/invite', {
+      method: 'POST',
+      body: JSON.stringify({ email: 'new@test.com', name: 'New User' }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const res = await inviteUser(req)
+    const body = await res.json()
     expect(res.status).toBe(500)
-    expect(body.error).toBe('User already registered')
+    expect(body.error).toBe('Failed to send invitation')
+  })
+
+  // Fix 4: rollback test — profile insert fails after auth user created
+  it('returns 500 and rolls back auth user if profile insert fails', async () => {
+    mockGetCurrentUser.mockResolvedValue(mockUser)
+
+    mockCreateClient.mockResolvedValue({
+      from: vi.fn().mockReturnValue(makeIsOrgAdminChain(true)),
+    } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
+
+    const insertChain = {
+      insert: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: null, error: { message: 'Insert failed' } }),
+    }
+
+    const deleteUserMock = vi.fn().mockResolvedValue({ error: null })
+
+    const serviceClient = {
+      auth: {
+        admin: {
+          inviteUserByEmail: vi.fn().mockResolvedValue({
+            data: { user: { id: 'new-auth-id' } },
+            error: null,
+          }),
+          deleteUser: deleteUserMock,
+        },
+      },
+      from: vi.fn().mockReturnValue(insertChain),
+    }
+
+    mockCreateServiceClient.mockResolvedValue(serviceClient as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
+
+    const req = makeRequest('http://localhost/api/users/invite', {
+      method: 'POST',
+      body: JSON.stringify({ email: 'new@test.com', name: 'New User' }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const res = await inviteUser(req)
+    const body = await res.json()
+
+    expect(res.status).toBe(500)
+    expect(body.error).toBe('Failed to create user profile')
+    // Rollback: deleteUser should have been called with the new auth user's ID
+    expect(deleteUserMock).toHaveBeenCalledWith('new-auth-id')
   })
 })

@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/get-user'
+import { isOrgAdmin } from '@/lib/auth/check-admin'
 import { success, error } from '@/lib/api/response'
 
 export async function GET(
@@ -13,28 +14,14 @@ export async function GET(
   const { id } = await params
   const supabase = await createServerSupabaseClient()
 
-  // Check user has admin role in this project
-  const { data: adminRole } = await supabase
-    .from('user_project_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .eq('project_id', id)
-    .eq('role', 'admin')
-    .maybeSingle()
-
-  if (!adminRole) {
-    // Also allow if user is org-level admin (admin in any project)
-    const { data: anyAdminRole } = await supabase
-      .from('user_project_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('role', 'admin')
-      .limit(1)
-
-    if (!anyAdminRole || anyAdminRole.length === 0) {
-      return error('Admin access required', 403)
-    }
+  // Single org-scoped admin check
+  let adminAccess: boolean
+  try {
+    adminAccess = await isOrgAdmin(supabase, user.id, user.organization_id!)
+  } catch {
+    return error('Service unavailable', 503)
   }
+  if (!adminAccess) return error('Admin access required', 403)
 
   const { data, error: dbError } = await supabase
     .from('projects')
@@ -46,6 +33,7 @@ export async function GET(
       )
     `)
     .eq('id', id)
+    .eq('organization_id', user.organization_id!)
     .single()
 
   if (dbError || !data) return error('Project not found', 404)
@@ -63,22 +51,29 @@ export async function PATCH(
   const { id } = await params
   const supabase = await createServerSupabaseClient()
 
-  // Admin check
-  const { data: adminRoles } = await supabase
-    .from('user_project_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .eq('role', 'admin')
-
-  if (!adminRoles || adminRoles.length === 0) {
-    return error('Admin access required', 403)
+  // Org-scoped admin check
+  let adminAccess: boolean
+  try {
+    adminAccess = await isOrgAdmin(supabase, user.id, user.organization_id!)
+  } catch {
+    return error('Service unavailable', 503)
   }
+  if (!adminAccess) return error('Admin access required', 403)
 
   let body: Record<string, unknown>
   try {
     body = await request.json()
   } catch {
     return error('Invalid JSON', 400)
+  }
+
+  // Validate status enum
+  const validStatuses = ['active', 'archived']
+  if (body.status !== undefined && !validStatuses.includes(body.status as string)) {
+    return error(`status must be one of: ${validStatuses.join(', ')}`, 400)
+  }
+  if (body.name !== undefined && (!body.name || typeof body.name !== 'string' || (body.name as string).trim() === '')) {
+    return error('name cannot be empty', 400)
   }
 
   const allowedFields = ['name', 'location', 'status']
@@ -95,6 +90,7 @@ export async function PATCH(
     .from('projects')
     .update(updates)
     .eq('id', id)
+    .eq('organization_id', user.organization_id!)
     .select('id, name, location, status, created_at')
     .single()
 
