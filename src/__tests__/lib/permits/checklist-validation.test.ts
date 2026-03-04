@@ -117,4 +117,38 @@ describe('validateChecklist', () => {
     expect(result.valid).toBe(false)
     expect(result.errors).toContain('Work type is required')
   })
+
+  it('fails when required date field is empty', () => {
+    const dateTemplate: ChecklistTemplate = {
+      sections: [
+        {
+          title: 'Schedule',
+          fields: [
+            { id: 'start_date', type: 'date', label: 'Start date', required: true },
+          ],
+        },
+      ],
+      personnel: [],
+    }
+    const result = validateChecklist(dateTemplate, { start_date: '' }, [])
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain('Start date is required')
+  })
+
+  it('fails when photo count exceeds maximum', () => {
+    const photoTemplate: ChecklistTemplate = {
+      sections: [
+        {
+          title: 'Photos',
+          fields: [
+            { id: 'site_photo', type: 'photo', label: 'Site photo', required: true, max: 2 },
+          ],
+        },
+      ],
+      personnel: [],
+    }
+    const result = validateChecklist(photoTemplate, { site_photo: ['a', 'b', 'c'] }, [])
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain('Site photo can have at most 2 photos')
+  })
 })
