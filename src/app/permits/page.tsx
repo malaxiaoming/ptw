@@ -10,9 +10,16 @@ interface Project {
   name: string
 }
 
+interface PermitType {
+  id: string
+  name: string
+  code: string
+}
+
 interface Permit {
   id: string
   permit_number: string
+  permit_type_id: string
   status: PermitStatus | string
   work_location: string
   work_description: string
@@ -45,11 +52,13 @@ const STATUS_LABELS: Record<PermitStatus, string> = {
 export default function PermitsPage() {
   const [permits, setPermits] = useState<Permit[]>([])
   const [projects, setProjects] = useState<Project[]>([])
+  const [permitTypes, setPermitTypes] = useState<PermitType[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   // Filters
   const [projectFilter, setProjectFilter] = useState('')
+  const [typeFilter, setTypeFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
 
   const loadPermits = useCallback(async () => {
@@ -70,25 +79,34 @@ export default function PermitsPage() {
 
         // Extract unique projects from loaded permits for the project filter
         const projectMap = new Map<string, Project>()
+        const typeMap = new Map<string, PermitType>()
         for (const p of data) {
           if (p.project) {
             projectMap.set(p.project_id, { id: p.project_id, name: p.project.name })
+          }
+          if (p.permit_types) {
+            typeMap.set(p.permit_type_id, { id: p.permit_type_id, name: p.permit_types.name, code: p.permit_types.code })
           }
         }
         if (!projectFilter) {
           setProjects(Array.from(projectMap.values()))
         }
+        setPermitTypes(Array.from(typeMap.values()))
       }
     } catch {
       setError('Failed to load permits')
     } finally {
       setLoading(false)
     }
-  }, [projectFilter, statusFilter])
+  }, [projectFilter, statusFilter, typeFilter])
 
   useEffect(() => {
     loadPermits()
   }, [loadPermits])
+
+  const displayedPermits = typeFilter
+    ? permits.filter((p) => p.permit_type_id === typeFilter)
+    : permits
 
   return (
     <div className="space-y-6">
@@ -123,6 +141,23 @@ export default function PermitsPage() {
           </div>
 
           <div className="flex-1 min-w-[160px]">
+            <label htmlFor="type-filter" className="block text-xs font-medium text-gray-700 mb-1">
+              Permit Type
+            </label>
+            <select
+              id="type-filter"
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Types</option>
+              {permitTypes.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex-1 min-w-[160px]">
             <label htmlFor="status-filter" className="block text-xs font-medium text-gray-700 mb-1">
               Status
             </label>
@@ -139,11 +174,11 @@ export default function PermitsPage() {
             </select>
           </div>
 
-          {(projectFilter || statusFilter) && (
+          {(projectFilter || typeFilter || statusFilter) && (
             <div className="flex items-end">
               <button
                 type="button"
-                onClick={() => { setProjectFilter(''); setStatusFilter('') }}
+                onClick={() => { setProjectFilter(''); setTypeFilter(''); setStatusFilter('') }}
                 className="px-3 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
               >
                 Clear
@@ -158,7 +193,7 @@ export default function PermitsPage() {
         <div className="text-center py-12 text-gray-500">Loading permits...</div>
       ) : error ? (
         <div className="text-center py-12 text-red-600">{error}</div>
-      ) : permits.length === 0 ? (
+      ) : displayedPermits.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 mb-4">No permits found.</p>
           <Link
@@ -170,8 +205,8 @@ export default function PermitsPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          <p className="text-sm text-gray-500">{permits.length} permit{permits.length !== 1 ? 's' : ''}</p>
-          {permits.map((permit) => (
+          <p className="text-sm text-gray-500">{displayedPermits.length} permit{displayedPermits.length !== 1 ? 's' : ''}</p>
+          {displayedPermits.map((permit) => (
             <PermitCard key={permit.id} permit={permit} />
           ))}
         </div>

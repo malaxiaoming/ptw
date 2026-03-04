@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
   const supabase = await createServerSupabaseClient()
   const projectId = request.nextUrl.searchParams.get('project_id')
   const status = request.nextUrl.searchParams.get('status')
+  const permitTypeId = request.nextUrl.searchParams.get('permit_type_id')
 
   // Fetch projects user has access to first
   const { data: userRoles } = await supabase
@@ -43,6 +44,7 @@ export async function GET(request: NextRequest) {
     .order('created_at', { ascending: false })
 
   if (status) query = query.eq('status', status)
+  if (permitTypeId) query = query.eq('permit_type_id', permitTypeId)
 
   const { data, error: dbError } = await query
   if (dbError) return error(dbError.message, 500)
