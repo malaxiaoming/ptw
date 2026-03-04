@@ -10,6 +10,7 @@ export async function POST(
 ) {
   const user = await getCurrentUser()
   if (!user) return error('Unauthorized', 401)
+  if (!user.organization_id) return error('User has no organization', 403)
 
   const { id } = await params
   const supabase = await createServerSupabaseClient()
@@ -39,8 +40,13 @@ export async function POST(
     return error('File size exceeds 10MB limit', 400)
   }
 
+  // Sanitize filename to prevent path traversal
+  const safeName = file.name
+    .replace(/.*[/\\]/, '')             // strip any directory prefix
+    .replace(/[^a-zA-Z0-9._-]/g, '_')  // allow only safe characters
+
   // Upload to Supabase Storage using service role (private bucket)
-  const filePath = `${user.organization_id}/${permit.project_id}/${id}/${Date.now()}-${file.name}`
+  const filePath = `${user.organization_id}/${permit.project_id}/${id}/${Date.now()}-${safeName}`
   const serviceClient = await createServiceRoleClient()
 
   const { error: uploadError } = await serviceClient.storage
@@ -62,7 +68,11 @@ export async function POST(
     .select('id, permit_id, file_url, file_name, file_type, uploaded_by, created_at')
     .single()
 
-  if (dbError) return error(dbError.message, 500)
+  if (dbError) {
+    // Clean up orphaned file from storage
+    await serviceClient.storage.from('permit-attachments').remove([filePath])
+    return error(dbError.message, 500)
+  }
 
   return success(data, 201)
 }

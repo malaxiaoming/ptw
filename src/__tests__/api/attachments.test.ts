@@ -244,6 +244,56 @@ describe('POST /api/permits/[id]/attachments', () => {
     expect(res.status).toBe(201)
     expect(body.data).toEqual(newAttachment)
   })
+
+  it('removes uploaded file from storage when DB insert fails', async () => {
+    mockGetCurrentUser.mockResolvedValue(mockUser)
+
+    // First call: permits lookup; second call: permit_attachments insert (fails)
+    let callCount = 0
+    const fromMock = vi.fn().mockImplementation(() => {
+      callCount++
+      if (callCount === 1) {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: mockPermit, error: null }),
+        }
+      } else {
+        return {
+          insert: vi.fn().mockReturnThis(),
+          select: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: null, error: { message: 'DB insert failed' } }),
+        }
+      }
+    })
+    mockCreateClient.mockResolvedValue({ from: fromMock } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
+    mockGetUserRoles.mockResolvedValue(['applicant'])
+
+    const removeMock = vi.fn().mockResolvedValue({ error: null })
+    mockCreateServiceClient.mockResolvedValue({
+      storage: {
+        from: vi.fn().mockReturnValue({
+          upload: vi.fn().mockResolvedValue({ error: null }),
+          remove: removeMock,
+        }),
+      },
+    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
+
+    const file = makeJpegFile('photo.jpg', 1024)
+    const req = makeUploadRequest('permit-1', file)
+    const res = await POST(req, makeParams('permit-1'))
+    const body = await res.json()
+
+    expect(res.status).toBe(500)
+    expect(body.error).toBe('DB insert failed')
+    // Verify storage cleanup was called with an array containing the orphaned file path
+    expect(removeMock).toHaveBeenCalledOnce()
+    const [removedPaths] = removeMock.mock.calls[0]
+    expect(Array.isArray(removedPaths)).toBe(true)
+    expect(removedPaths).toHaveLength(1)
+    // Path should be scoped under org/project/permit
+    expect(removedPaths[0]).toMatch(/^org-1\/project-1\/permit-1\/\d+-/)
+  })
 })
 
 describe('GET /api/permits/[id]/attachments', () => {
