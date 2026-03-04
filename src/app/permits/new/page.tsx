@@ -46,14 +46,7 @@ export default function NewPermitPage() {
   // Load user's accessible projects
   useEffect(() => {
     setLoadingProjects(true)
-    fetch('/api/permits')
-      .then((r) => r.json())
-      .then((json) => {
-        // Extract unique projects from permits the user can access
-        // We also need to check a dedicated project endpoint, but
-        // for now derive from user_project_roles via permits API
-        return fetch('/api/projects')
-      })
+    fetch('/api/projects')
       .then((r) => r.json())
       .then((json) => {
         setProjects(json.data ?? [])

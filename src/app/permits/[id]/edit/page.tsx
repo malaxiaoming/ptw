@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ChecklistForm } from '@/components/permits/checklist-form'
 import { PersonnelPicker } from '@/components/permits/personnel-picker'
 import type { ChecklistTemplate, PersonnelEntry } from '@/lib/permits/checklist-validation'
+import { createClient } from '@/lib/supabase/client'
 
 interface Permit {
   id: string
@@ -28,6 +29,7 @@ export default function EditPermitPage({ params }: { params: Promise<{ id: strin
   const router = useRouter()
 
   const [permit, setPermit] = useState<Permit | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -43,7 +45,11 @@ export default function EditPermitPage({ params }: { params: Promise<{ id: strin
 
   const loadPermit = useCallback(async () => {
     try {
-      const res = await fetch(`/api/permits/${id}`)
+      const supabase = createClient()
+      const [res, { data: { user } }] = await Promise.all([
+        fetch(`/api/permits/${id}`),
+        supabase.auth.getUser(),
+      ])
       const json = await res.json()
       if (!res.ok) {
         setError(json.error ?? 'Failed to load permit')
@@ -51,6 +57,7 @@ export default function EditPermitPage({ params }: { params: Promise<{ id: strin
       }
       const data: Permit = json.data
       setPermit(data)
+      setCurrentUserId(user?.id ?? null)
 
       // Initialise form state from current permit values
       setWorkLocation(data.work_location ?? '')
@@ -144,6 +151,22 @@ export default function EditPermitPage({ params }: { params: Promise<{ id: strin
         <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
           <p className="text-sm text-yellow-800">
             Only draft permits can be edited. This permit is in <strong>{permit.status}</strong> status.
+          </p>
+        </div>
+        <Link href={`/permits/${id}`} className="text-sm text-blue-600 hover:underline">
+          &larr; Back to Permit
+        </Link>
+      </div>
+    )
+  }
+
+  if (currentUserId !== permit.applicant_id) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold text-gray-900">Edit Permit</h1>
+        <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-sm text-red-800">
+            You are not authorized to edit this permit.
           </p>
         </div>
         <Link href={`/permits/${id}`} className="text-sm text-blue-600 hover:underline">

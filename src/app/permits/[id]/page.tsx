@@ -138,19 +138,24 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
 
   async function handleAction(action: PermitAction, comments?: string) {
     setActionError(null)
-    const res = await fetch(`/api/permits/${id}/transition`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, comments }),
-    })
-    const json = await res.json()
-    if (!res.ok) {
-      throw new Error(json.error ?? 'Action failed')
+    try {
+      const res = await fetch(`/api/permits/${id}/transition`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, comments }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setActionError(json.error ?? 'Action failed')
+        return
+      }
+      // Refresh permit data after action
+      await loadPermit()
+      // Re-load user roles too since status may change what's available
+      await loadCurrentUser()
+    } catch {
+      setActionError('Action failed')
     }
-    // Refresh permit data after action
-    await loadPermit()
-    // Re-load user roles too since status may change what's available
-    await loadCurrentUser()
   }
 
   if (loading) {
@@ -282,7 +287,7 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
                 <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Work Location</dt>
                 <dd className="mt-1 text-sm text-gray-900">{permit.work_location}</dd>
               </div>
-              {permit.gps_lat && permit.gps_lng && (
+              {permit.gps_lat != null && permit.gps_lng != null && (
                 <div>
                   <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">GPS Coordinates</dt>
                   <dd className="mt-1 text-sm text-gray-900">{permit.gps_lat}, {permit.gps_lng}</dd>

@@ -104,6 +104,10 @@ export default function PermitsPage() {
     loadPermits()
   }, [loadPermits])
 
+  useEffect(() => {
+    setTypeFilter('')
+  }, [projectFilter])
+
   const displayedPermits = typeFilter
     ? permits.filter((p) => p.permit_type_id === typeFilter)
     : permits

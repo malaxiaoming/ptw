@@ -3,11 +3,13 @@
 import { useState, useEffect, useCallback, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
 
 interface Permit {
   id: string
   permit_number: string
   status: string
+  applicant_id: string
   work_location: string
   permit_types?: { name: string } | null
 }
@@ -17,6 +19,7 @@ export default function ClosePermitPage({ params }: { params: Promise<{ id: stri
   const router = useRouter()
 
   const [permit, setPermit] = useState<Permit | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -24,13 +27,18 @@ export default function ClosePermitPage({ params }: { params: Promise<{ id: stri
 
   const loadPermit = useCallback(async () => {
     try {
-      const res = await fetch(`/api/permits/${id}`)
+      const supabase = createClient()
+      const [res, { data: { user } }] = await Promise.all([
+        fetch(`/api/permits/${id}`),
+        supabase.auth.getUser(),
+      ])
       const json = await res.json()
       if (!res.ok) {
         setError(json.error ?? 'Failed to load permit')
         return
       }
       setPermit(json.data)
+      setCurrentUserId(user?.id ?? null)
     } catch {
       setError('Failed to load permit')
     }
@@ -99,6 +107,22 @@ export default function ClosePermitPage({ params }: { params: Promise<{ id: stri
           <p className="text-sm text-yellow-800">
             Closure can only be submitted for active permits. This permit is in{' '}
             <strong>{permit.status}</strong> status.
+          </p>
+        </div>
+        <Link href={`/permits/${id}`} className="text-sm text-blue-600 hover:underline">
+          &larr; Back to Permit
+        </Link>
+      </div>
+    )
+  }
+
+  if (permit && currentUserId !== permit.applicant_id) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold text-gray-900">Submit Closure Report</h1>
+        <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-sm text-red-800">
+            You are not authorized to submit a closure for this permit.
           </p>
         </div>
         <Link href={`/permits/${id}`} className="text-sm text-blue-600 hover:underline">
