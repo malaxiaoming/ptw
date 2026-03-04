@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { login } from './actions'
+import { isRedirectError } from 'next/dist/client/components/redirect-error'
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
@@ -10,11 +12,20 @@ export default function LoginPage() {
   async function handleSubmit(formData: FormData) {
     setLoading(true)
     setError(null)
-    const result = await login(formData)
-    if (result?.error) {
-      setError(result.error)
+    try {
+      const result = await login(formData)
+      if (result?.error) {
+        setError(result.error)
+        setLoading(false)
+      }
+      // If no error, redirect() in the server action navigates away — no state cleanup needed
+    } catch (err) {
+      if (isRedirectError(err)) {
+        throw err  // let Next.js handle the redirect
+      }
+      setError('An unexpected error occurred. Please try again.')
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (
@@ -31,6 +42,7 @@ export default function LoginPage() {
               name="identifier"
               type="text"
               required
+              autoComplete="username"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="email@example.com or +65XXXXXXXX"
             />
@@ -44,6 +56,7 @@ export default function LoginPage() {
               name="password"
               type="password"
               required
+              autoComplete="current-password"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -60,9 +73,9 @@ export default function LoginPage() {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
           <div className="mt-4 text-center">
-            <a href="/forgot-password" className="text-sm text-blue-600 hover:underline">
+            <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline">
               Forgot password?
-            </a>
+            </Link>
           </div>
         </form>
       </div>

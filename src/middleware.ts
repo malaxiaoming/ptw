@@ -25,9 +25,11 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
+  const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password']
+  const isPublicPath = PUBLIC_PATHS.includes(request.nextUrl.pathname)
   const isLoginPage = request.nextUrl.pathname === '/login'
 
-  if (!user && !isLoginPage) {
+  if (!user && !isPublicPath) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
@@ -43,5 +45,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/auth).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/auth|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$).*)'],
 }

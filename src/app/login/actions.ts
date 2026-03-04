@@ -4,8 +4,12 @@ import { redirect } from 'next/navigation'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export async function login(formData: FormData) {
-  const identifier = formData.get('identifier') as string
-  const password = formData.get('password') as string
+  const identifier = formData.get('identifier') as string | null
+  const password = formData.get('password') as string | null
+
+  if (!identifier || !password) {
+    return { error: 'Email/phone and password are required.' }
+  }
 
   const supabase = await createServerSupabaseClient()
 
