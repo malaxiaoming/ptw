@@ -1,6 +1,7 @@
 -- Seed default organization
 insert into organizations (id, name) values
-  ('00000000-0000-0000-0000-000000000001', 'Default Organization');
+  ('00000000-0000-0000-0000-000000000001', 'Default Organization')
+on conflict (id) do nothing;
 
 -- Seed 7 permit types
 insert into permit_types (organization_id, name, code, checklist_template) values
@@ -163,4 +164,5 @@ insert into permit_types (organization_id, name, code, checklist_template) value
     { "role": "operator", "label": "Piling Rig Operator", "min": 1, "max": 2, "fields": ["name", "cert_number"] },
     { "role": "worker", "label": "Workers", "min": 1, "max": 15, "fields": ["name", "trade"] }
   ]
-}');
+}')
+on conflict (organization_id, code) do nothing;
