@@ -58,6 +58,10 @@ describe('canTransition', () => {
   it('denies rejected -> any transition', () => {
     expect(canTransition('rejected', 'approve')).toBe(false)
   })
+
+  it('denies revoked -> any transition', () => {
+    expect(canTransition('revoked', 'submit')).toBe(false)
+  })
 })
 
 describe('getAvailableTransitions', () => {
@@ -71,6 +75,18 @@ describe('getAvailableTransitions', () => {
 
   it('returns approve and reject for verified', () => {
     expect(getAvailableTransitions('verified')).toEqual(['approve', 'reject'])
+  })
+
+  it('returns activate for approved', () => {
+    expect(getAvailableTransitions('approved')).toEqual(['activate'])
+  })
+
+  it('returns submit_closure and revoke for active', () => {
+    expect(getAvailableTransitions('active')).toEqual(['submit_closure', 'revoke'])
+  })
+
+  it('returns verify_closure and return_closure for closure_submitted', () => {
+    expect(getAvailableTransitions('closure_submitted')).toEqual(['verify_closure', 'return_closure'])
   })
 
   it('returns nothing for closed', () => {
