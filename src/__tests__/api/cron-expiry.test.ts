@@ -78,6 +78,21 @@ describe('POST /api/cron/expiry-check', () => {
     expect(mockSendPermitNotifications).not.toHaveBeenCalled()
   })
 
+  it('returns 500 when DB query fails', async () => {
+    const chain = makeSupabaseChain({ data: null, error: { message: 'connection refused' } })
+    mockCreateServiceClient.mockResolvedValue({
+      from: vi.fn().mockReturnValue(chain),
+    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
+
+    const req = makeRequest('Bearer test-secret')
+    const res = await POST(req)
+    const body = await res.json()
+
+    expect(res.status).toBe(500)
+    expect(body.error).toBe('Internal server error')
+    expect(mockSendPermitNotifications).not.toHaveBeenCalled()
+  })
+
   it('returns 200 with { checked: N } when N permits are expiring and calls sendPermitNotifications for each', async () => {
     const expiringPermits = [
       {
