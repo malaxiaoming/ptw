@@ -1,0 +1,99 @@
+import { NextRequest } from 'next/server'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/auth/get-user'
+import { success, error } from '@/lib/api/response'
+
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const user = await getCurrentUser()
+  if (!user) return error('Unauthorized', 401)
+
+  const { id } = await params
+  const supabase = await createServerSupabaseClient()
+  const { data, error: dbError } = await supabase
+    .from('workers')
+    .select('id, name, phone, company, trade, cert_number, cert_expiry, is_active, created_at')
+    .eq('id', id)
+    .eq('organization_id', user.organization_id)
+    .single()
+
+  if (dbError || !data) return error('Worker not found', 404)
+
+  return success(data)
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const user = await getCurrentUser()
+  if (!user) return error('Unauthorized', 401)
+
+  const { id } = await params
+
+  let body: Record<string, unknown>
+  try {
+    body = await request.json()
+  } catch {
+    return error('Invalid JSON', 400)
+  }
+
+  const supabase = await createServerSupabaseClient()
+
+  // Verify ownership
+  const { data: existing } = await supabase
+    .from('workers')
+    .select('id')
+    .eq('id', id)
+    .eq('organization_id', user.organization_id)
+    .single()
+
+  if (!existing) return error('Worker not found', 404)
+
+  const updates: Record<string, unknown> = {}
+  if (typeof body.name === 'string') updates.name = body.name
+  if (typeof body.phone === 'string') updates.phone = body.phone
+  if (typeof body.company === 'string') updates.company = body.company
+  if (typeof body.trade === 'string') updates.trade = body.trade
+  if (typeof body.cert_number === 'string') updates.cert_number = body.cert_number
+  if (typeof body.cert_expiry === 'string') updates.cert_expiry = body.cert_expiry
+  if (typeof body.is_active === 'boolean') updates.is_active = body.is_active
+
+  const { data, error: dbError } = await supabase
+    .from('workers')
+    .update(updates)
+    .eq('id', id)
+    .eq('organization_id', user.organization_id)
+    .select('id, name, phone, company, trade, cert_number, cert_expiry, is_active, created_at')
+    .single()
+
+  if (dbError) return error(dbError.message, 500)
+
+  return success(data)
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const user = await getCurrentUser()
+  if (!user) return error('Unauthorized', 401)
+
+  const { id } = await params
+  const supabase = await createServerSupabaseClient()
+
+  // Soft delete
+  const { data, error: dbError } = await supabase
+    .from('workers')
+    .update({ is_active: false })
+    .eq('id', id)
+    .eq('organization_id', user.organization_id)
+    .select('id')
+    .single()
+
+  if (dbError || !data) return error('Worker not found', 404)
+
+  return success({ message: 'Worker deactivated' })
+}
