@@ -12,12 +12,13 @@ export async function GET(
   if (!user) return error('Unauthorized', 401)
 
   const { id } = await params
+  if (!user.organization_id) return error('User has no organization', 403)
   const supabase = await createServerSupabaseClient()
 
   // Single org-scoped admin check
   let adminAccess: boolean
   try {
-    adminAccess = await isOrgAdmin(supabase, user.id, user.organization_id!)
+    adminAccess = await isOrgAdmin(supabase, user.id, user.organization_id)
   } catch {
     return error('Service unavailable', 503)
   }
@@ -33,7 +34,7 @@ export async function GET(
       )
     `)
     .eq('id', id)
-    .eq('organization_id', user.organization_id!)
+    .eq('organization_id', user.organization_id)
     .single()
 
   if (dbError || !data) return error('Project not found', 404)
@@ -49,12 +50,13 @@ export async function PATCH(
   if (!user) return error('Unauthorized', 401)
 
   const { id } = await params
+  if (!user.organization_id) return error('User has no organization', 403)
   const supabase = await createServerSupabaseClient()
 
   // Org-scoped admin check
   let adminAccess: boolean
   try {
-    adminAccess = await isOrgAdmin(supabase, user.id, user.organization_id!)
+    adminAccess = await isOrgAdmin(supabase, user.id, user.organization_id)
   } catch {
     return error('Service unavailable', 503)
   }
@@ -90,7 +92,7 @@ export async function PATCH(
     .from('projects')
     .update(updates)
     .eq('id', id)
-    .eq('organization_id', user.organization_id!)
+    .eq('organization_id', user.organization_id)
     .select('id, name, location, status, created_at')
     .single()
 
