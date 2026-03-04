@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export interface UserProfile {
@@ -9,7 +10,7 @@ export interface UserProfile {
   created_at: string
 }
 
-export async function getCurrentUser(): Promise<UserProfile | null> {
+export const getCurrentUser = cache(async (): Promise<UserProfile | null> => {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -26,4 +27,4 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
   }
 
   return profile as UserProfile | null
-}
+})

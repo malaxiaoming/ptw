@@ -1,21 +1,10 @@
 import Link from 'next/link'
 import { getCurrentUser } from '@/lib/auth/get-user'
+import { NAV_ITEMS, ADMIN_NAV_ITEMS } from '@/lib/nav-items'
+import { NotificationBell } from '@/components/notifications/notification-bell'
 
 // Sidebar is used on protected pages only (login page uses its own layout)
 // Since it's a server component we can read the user directly
-
-const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: 'grid' },
-  { href: '/permits', label: 'Permits', icon: 'document' },
-  { href: '/projects', label: 'Projects', icon: 'folder' },
-  { href: '/workers', label: 'Workers', icon: 'users' },
-  { href: '/notifications', label: 'Notifications', icon: 'bell' },
-  { href: '/settings', label: 'Settings', icon: 'cog' },
-]
-
-const ADMIN_NAV_ITEMS = [
-  { href: '/users', label: 'Users', icon: 'user-group' },
-]
 
 export async function Sidebar() {
   const user = await getCurrentUser()
@@ -26,7 +15,10 @@ export async function Sidebar() {
   // (access control is enforced at the page/API level)
 
   return (
-    <aside className="hidden md:flex flex-col w-60 min-h-screen bg-gray-900 text-white fixed left-0 top-0 bottom-0 z-40">
+    <aside
+      className="hidden md:flex flex-col w-60 min-h-screen bg-gray-900 text-white fixed left-0 top-0 bottom-0 z-40"
+      aria-label="Sidebar"
+    >
       {/* Logo/Brand */}
       <div className="px-6 py-5 border-b border-gray-700">
         <h1 className="text-lg font-bold text-white">PTW System</h1>
@@ -34,7 +26,7 @@ export async function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto" aria-label="Main navigation">
         {NAV_ITEMS.map((item) => (
           <SidebarLink key={item.href} href={item.href} label={item.label} icon={item.icon} />
         ))}
@@ -48,11 +40,16 @@ export async function Sidebar() {
         </div>
       </nav>
 
-      {/* User info at bottom */}
+      {/* User info + notification bell at bottom */}
       {user && (
         <div className="px-4 py-3 border-t border-gray-700">
-          <p className="text-sm font-medium text-white truncate">{user.name ?? user.email}</p>
-          <p className="text-xs text-gray-400 truncate">{user.email}</p>
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-white truncate">{user.name ?? user.email}</p>
+              <p className="text-xs text-gray-400 truncate">{user.email}</p>
+            </div>
+            <NotificationBell />
+          </div>
         </div>
       )}
     </aside>
@@ -61,7 +58,6 @@ export async function Sidebar() {
 
 // Simple nav link — uses active state detection via pathname
 // Since this is a server component we can't use usePathname, so we render plain links
-// Active state is handled in the client-side SidebarLink wrapper below
 function SidebarLink({ href, label, icon }: { href: string; label: string; icon: string }) {
   return (
     <Link

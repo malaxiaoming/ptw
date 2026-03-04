@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Header } from '@/components/layout/header'
-import { NotificationBell } from '@/components/notifications/notification-bell'
 import { getCurrentUser } from '@/lib/auth/get-user'
 
 const geistSans = Geist({
@@ -45,15 +44,11 @@ export default async function RootLayout({
         {/* Mobile header (visible on small screens) */}
         <Header />
 
-        {/* Sidebar (visible on md+ screens) */}
+        {/* Sidebar (visible on md+ screens, includes NotificationBell) */}
         <Sidebar />
 
         {/* Main content area */}
         <main className="md:ml-60 min-h-screen">
-          {/* Desktop top bar */}
-          <div className="hidden md:flex items-center justify-end px-6 py-3 border-b border-gray-200 bg-white sticky top-0 z-20">
-            <NotificationBell />
-          </div>
           {/* Mobile header spacer */}
           <div className="h-14 md:hidden" />
           <div className="px-4 sm:px-6 lg:px-8 py-6">

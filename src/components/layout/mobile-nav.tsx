@@ -1,20 +1,18 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-
-const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard' },
-  { href: '/permits', label: 'Permits' },
-  { href: '/projects', label: 'Projects' },
-  { href: '/workers', label: 'Workers' },
-  { href: '/users', label: 'Users' },
-  { href: '/notifications', label: 'Notifications' },
-  { href: '/settings', label: 'Settings' },
-]
+import { ALL_NAV_ITEMS } from '@/lib/nav-items'
 
 export function MobileMenuButton() {
   const [open, setOpen] = useState(false)
+  const pathname = usePathname()
+
+  // Close drawer on navigation (back/forward button)
+  useEffect(() => {
+    setOpen(false)
+  }, [pathname])
 
   return (
     <>
@@ -32,13 +30,16 @@ export function MobileMenuButton() {
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/50 z-40"
+            className="fixed inset-0 bg-black/50 z-50"
             onClick={() => setOpen(false)}
             aria-hidden="true"
           />
 
           {/* Slide-in nav */}
-          <nav className="fixed top-0 left-0 bottom-0 w-72 bg-gray-900 text-white z-50 flex flex-col">
+          <nav
+            className="fixed top-0 left-0 bottom-0 w-72 bg-gray-900 text-white z-[60] flex flex-col"
+            aria-label="Main navigation"
+          >
             <div className="flex justify-between items-center px-4 py-4 border-b border-gray-700">
               <span className="font-bold text-white">PTW System</span>
               <button
@@ -52,7 +53,7 @@ export function MobileMenuButton() {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-              {NAV_ITEMS.map((item) => (
+              {ALL_NAV_ITEMS.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
