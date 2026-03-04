@@ -38,7 +38,7 @@ export interface ValidationResult {
 export function validateChecklist(
   template: ChecklistTemplate,
   data: Record<string, unknown>,
-  personnel: unknown[]
+  personnel: PersonnelEntry[]
 ): ValidationResult {
   const errors: string[] = []
 
@@ -56,6 +56,8 @@ export function validateChecklist(
       } else if (field.type === 'photo') {
         if (!Array.isArray(value) || value.length === 0) {
           errors.push(`${field.label} is required`)
+        } else if (field.max && value.length > field.max) {
+          errors.push(`${field.label} can have at most ${field.max} photos`)
         }
       } else {
         if (value === undefined || value === null || value === '') {
@@ -67,7 +69,7 @@ export function validateChecklist(
 
   // Validate personnel requirements
   for (const req of template.personnel) {
-    const matching = (personnel as PersonnelEntry[]).filter((p) => p.role === req.role)
+    const matching = personnel.filter((p) => p.role === req.role)
     if (matching.length < req.min) {
       errors.push(`At least ${req.min} ${req.label} required`)
     }

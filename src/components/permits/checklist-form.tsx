@@ -49,6 +49,7 @@ function ChecklistFieldInput({ field, value, onChange, disabled }: ChecklistFiel
       return (
         <label className="flex items-center gap-2">
           <input
+            id={field.id}
             type="checkbox"
             checked={Boolean(value)}
             onChange={(e) => onChange(e.target.checked)}
@@ -65,11 +66,12 @@ function ChecklistFieldInput({ field, value, onChange, disabled }: ChecklistFiel
     case 'text':
       return (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor={field.id} className="block text-sm font-medium text-gray-700 mb-1">
             {field.label}
             {field.required && <span className="text-red-500 ml-1">*</span>}
           </label>
           <input
+            id={field.id}
             type="text"
             value={String(value ?? '')}
             onChange={(e) => onChange(e.target.value)}
@@ -82,11 +84,12 @@ function ChecklistFieldInput({ field, value, onChange, disabled }: ChecklistFiel
     case 'date':
       return (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor={field.id} className="block text-sm font-medium text-gray-700 mb-1">
             {field.label}
             {field.required && <span className="text-red-500 ml-1">*</span>}
           </label>
           <input
+            id={field.id}
             type="date"
             value={String(value ?? '')}
             onChange={(e) => onChange(e.target.value)}
@@ -99,11 +102,12 @@ function ChecklistFieldInput({ field, value, onChange, disabled }: ChecklistFiel
     case 'select':
       return (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor={field.id} className="block text-sm font-medium text-gray-700 mb-1">
             {field.label}
             {field.required && <span className="text-red-500 ml-1">*</span>}
           </label>
           <select
+            id={field.id}
             value={String(value ?? '')}
             onChange={(e) => onChange(e.target.value)}
             disabled={disabled}
@@ -114,6 +118,20 @@ function ChecklistFieldInput({ field, value, onChange, disabled }: ChecklistFiel
               <option key={opt} value={opt}>{opt}</option>
             ))}
           </select>
+        </div>
+      )
+
+    case 'photo':
+      return (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {field.label}
+            {field.required && <span className="text-red-500 ml-1">*</span>}
+          </label>
+          <p className="text-sm text-gray-500 italic">
+            Photo upload is available on the Attachments tab.
+            {field.required && ' (Required)'}
+          </p>
         </div>
       )
 

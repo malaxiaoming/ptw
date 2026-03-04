@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { validateChecklist, type ChecklistTemplate } from '@/lib/permits/checklist-validation'
+import { validateChecklist, type ChecklistTemplate, type PersonnelEntry } from '@/lib/permits/checklist-validation'
 
 const template: ChecklistTemplate = {
   sections: [
@@ -50,9 +50,71 @@ describe('validateChecklist', () => {
 
   it('fails when minimum personnel not met', () => {
     const data = { harness: true, location: 'Level 5' }
-    const personnel: unknown[] = []
+    const personnel: PersonnelEntry[] = []
     const result = validateChecklist(template, data, personnel)
     expect(result.valid).toBe(false)
     expect(result.errors).toContain('At least 1 Workers required')
+  })
+
+  it('fails when required photo field is empty', () => {
+    const photoTemplate: ChecklistTemplate = {
+      sections: [
+        {
+          title: 'Photos',
+          fields: [
+            { id: 'site_photo', type: 'photo', label: 'Site photo', required: true },
+          ],
+        },
+      ],
+      personnel: [],
+    }
+    const result = validateChecklist(photoTemplate, {}, [])
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain('Site photo is required')
+  })
+
+  it('passes when required photo field has at least one photo', () => {
+    const photoTemplate: ChecklistTemplate = {
+      sections: [
+        {
+          title: 'Photos',
+          fields: [
+            { id: 'site_photo', type: 'photo', label: 'Site photo', required: true },
+          ],
+        },
+      ],
+      personnel: [],
+    }
+    const result = validateChecklist(photoTemplate, { site_photo: ['file-id-1'] }, [])
+    expect(result.valid).toBe(true)
+  })
+
+  it('fails when maximum personnel exceeded', () => {
+    const data = { harness: true, location: 'Level 5' }
+    const personnel = Array.from({ length: 11 }, (_, i) => ({
+      role: 'worker',
+      name: `Worker ${i + 1}`,
+      cert_number: `C00${i + 1}`,
+    }))
+    const result = validateChecklist(template, data, personnel)
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain('Maximum 10 Workers allowed')
+  })
+
+  it('fails when required select field is empty', () => {
+    const selectTemplate: ChecklistTemplate = {
+      sections: [
+        {
+          title: 'Work Type',
+          fields: [
+            { id: 'work_type', type: 'select', label: 'Work type', required: true, options: ['Electrical', 'Mechanical'] },
+          ],
+        },
+      ],
+      personnel: [],
+    }
+    const result = validateChecklist(selectTemplate, { work_type: '' }, [])
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain('Work type is required')
   })
 })
