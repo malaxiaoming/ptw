@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { canPerformAction, ROLE_PERMISSIONS } from '@/lib/auth/permissions'
+import { canPerformAction, canPerformActionWithRoles, ROLE_PERMISSIONS } from '@/lib/auth/permissions'
 
 describe('permissions', () => {
   it('allows applicant to create permit', () => {
@@ -32,5 +32,37 @@ describe('permissions', () => {
 
   it('denies verifier from managing users', () => {
     expect(canPerformAction('verifier', 'manage_users')).toBe(false)
+  })
+})
+
+describe('canPerformActionWithRoles', () => {
+  it('returns true when one of multiple roles has the action', () => {
+    expect(canPerformActionWithRoles(['applicant', 'verifier'], 'verify_permit')).toBe(true)
+  })
+
+  it('returns false when no role has the action', () => {
+    expect(canPerformActionWithRoles(['applicant', 'verifier'], 'approve_permit')).toBe(false)
+  })
+
+  it('returns false for empty roles array', () => {
+    expect(canPerformActionWithRoles([], 'create_permit')).toBe(false)
+  })
+})
+
+describe('critical permission denials', () => {
+  it('denies admin from workflow actions (approve_permit)', () => {
+    expect(canPerformAction('admin', 'approve_permit')).toBe(false)
+  })
+
+  it('denies applicant from verifying permit', () => {
+    expect(canPerformAction('applicant', 'verify_permit')).toBe(false)
+  })
+
+  it('denies verifier from approving permit', () => {
+    expect(canPerformAction('verifier', 'approve_permit')).toBe(false)
+  })
+
+  it('denies approver from creating permit', () => {
+    expect(canPerformAction('approver', 'create_permit')).toBe(false)
   })
 })
