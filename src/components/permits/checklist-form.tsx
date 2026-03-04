@@ -1,0 +1,123 @@
+'use client'
+
+import { type ChecklistTemplate, type ChecklistField } from '@/lib/permits/checklist-validation'
+
+interface ChecklistFormProps {
+  template: ChecklistTemplate
+  data: Record<string, unknown>
+  onChange: (data: Record<string, unknown>) => void
+  disabled?: boolean
+}
+
+export function ChecklistForm({ template, data, onChange, disabled }: ChecklistFormProps) {
+  function updateField(fieldId: string, value: unknown) {
+    onChange({ ...data, [fieldId]: value })
+  }
+
+  return (
+    <div className="space-y-6">
+      {template.sections.map((section) => (
+        <fieldset key={section.title} className="border border-gray-200 rounded-lg p-4">
+          <legend className="text-lg font-semibold px-2">{section.title}</legend>
+          <div className="space-y-4 mt-2">
+            {section.fields.map((field) => (
+              <ChecklistFieldInput
+                key={field.id}
+                field={field}
+                value={data[field.id]}
+                onChange={(value) => updateField(field.id, value)}
+                disabled={disabled}
+              />
+            ))}
+          </div>
+        </fieldset>
+      ))}
+    </div>
+  )
+}
+
+interface ChecklistFieldInputProps {
+  field: ChecklistField
+  value: unknown
+  onChange: (value: unknown) => void
+  disabled?: boolean
+}
+
+function ChecklistFieldInput({ field, value, onChange, disabled }: ChecklistFieldInputProps) {
+  switch (field.type) {
+    case 'checkbox':
+      return (
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={Boolean(value)}
+            onChange={(e) => onChange(e.target.checked)}
+            disabled={disabled}
+            className="h-4 w-4 rounded border-gray-300"
+          />
+          <span className="text-sm">
+            {field.label}
+            {field.required && <span className="text-red-500 ml-1">*</span>}
+          </span>
+        </label>
+      )
+
+    case 'text':
+      return (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {field.label}
+            {field.required && <span className="text-red-500 ml-1">*</span>}
+          </label>
+          <input
+            type="text"
+            value={String(value ?? '')}
+            onChange={(e) => onChange(e.target.value)}
+            disabled={disabled}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      )
+
+    case 'date':
+      return (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {field.label}
+            {field.required && <span className="text-red-500 ml-1">*</span>}
+          </label>
+          <input
+            type="date"
+            value={String(value ?? '')}
+            onChange={(e) => onChange(e.target.value)}
+            disabled={disabled}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      )
+
+    case 'select':
+      return (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {field.label}
+            {field.required && <span className="text-red-500 ml-1">*</span>}
+          </label>
+          <select
+            value={String(value ?? '')}
+            onChange={(e) => onChange(e.target.value)}
+            disabled={disabled}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Select...</option>
+            {field.options?.map((opt) => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
+        </div>
+      )
+
+    default:
+      return null
+  }
+}
