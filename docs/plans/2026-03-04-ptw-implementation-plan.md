@@ -2127,8 +2127,49 @@ git commit -m "feat: add worker registry CRUD and personnel picker component"
 ### Task 11: File Upload API + Component
 
 **Files:**
+- Create: `src/lib/utils/image-compression.ts`
 - Create: `src/app/api/permits/[id]/attachments/route.ts`
 - Create: `src/components/permits/file-upload.tsx`
+
+**Step 0: Install browser-image-compression for client-side resize**
+
+Run:
+```bash
+npm install browser-image-compression
+```
+
+Create `src/lib/utils/image-compression.ts`:
+```typescript
+import imageCompression from 'browser-image-compression'
+
+const COMPRESSION_OPTIONS = {
+  maxSizeMB: 0.5,
+  maxWidthOrHeight: 1920,
+  useWebWorker: true,
+  fileType: 'image/webp' as const,
+  initialQuality: 0.8,
+}
+
+export async function compressImage(file: File): Promise<File> {
+  // Skip non-image files (PDFs, DWGs)
+  if (!file.type.startsWith('image/')) {
+    return file
+  }
+
+  const compressed = await imageCompression(file, COMPRESSION_OPTIONS)
+
+  // Rename to .webp extension
+  const newName = file.name.replace(/\.[^.]+$/, '.webp')
+  return new File([compressed], newName, { type: 'image/webp' })
+}
+```
+
+This compresses phone photos (typically 3-10MB) down to ~200-400KB before upload by:
+- Resizing to max 1920px on longest edge (still clear for inspection/audit)
+- Converting to WebP format (60-70% smaller than JPEG)
+- 80% quality (visually indistinguishable)
+
+The compression runs in a Web Worker so it doesn't block the UI.
 
 **Step 1: Implement attachment API**
 
@@ -2163,9 +2204,9 @@ export async function POST(
   if (!file) return error('No file provided', 400)
 
   // Validate file type and size
-  const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf']
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
   if (!allowedTypes.includes(file.type)) {
-    return error('File type not allowed. Accepted: JPG, PNG, PDF', 400)
+    return error('File type not allowed. Accepted: JPG, PNG, WebP, PDF', 400)
   }
   if (file.size > 10 * 1024 * 1024) {
     return error('File size exceeds 10MB limit', 400)
@@ -2239,6 +2280,7 @@ Create `src/components/permits/file-upload.tsx`:
 'use client'
 
 import { useState, useRef } from 'react'
+import { compressImage } from '@/lib/utils/image-compression'
 
 interface Attachment {
   id: string
@@ -2262,11 +2304,14 @@ export function FileUpload({ permitId, attachments, onUploadComplete, disabled }
   const inputRef = useRef<HTMLInputElement>(null)
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const rawFile = e.target.files?.[0]
+    if (!rawFile) return
 
     setUploading(true)
     setError(null)
+
+    // Compress images client-side before upload (5MB phone photo → ~300KB WebP)
+    const file = await compressImage(rawFile)
 
     const formData = new FormData()
     formData.append('file', file)
@@ -2292,12 +2337,12 @@ export function FileUpload({ permitId, attachments, onUploadComplete, disabled }
       {!disabled && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Upload Attachment (JPG, PNG, PDF — max 10MB)
+            Upload Attachment (JPG, PNG, PDF — max 10MB, images auto-compressed)
           </label>
           <input
             ref={inputRef}
             type="file"
-            accept=".jpg,.jpeg,.png,.pdf"
+            accept=".jpg,.jpeg,.png,.webp,.pdf"
             onChange={handleUpload}
             disabled={uploading}
             className="text-sm"
