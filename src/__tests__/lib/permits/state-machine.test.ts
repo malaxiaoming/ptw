@@ -122,7 +122,7 @@ describe('getTransition', () => {
 
   it('returns correct role for key transitions', () => {
     expect(getTransition('draft', 'submit')?.role).toBe('applicant')
-    expect(getTransition('approved', 'activate')?.role).toBe('system')
+    expect(getTransition('approved', 'activate')?.role).toBe('approver')
     expect(getTransition('active', 'revoke')?.role).toBe('approver')
   })
 

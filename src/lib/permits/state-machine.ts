@@ -37,7 +37,7 @@ export const TRANSITIONS: Transition[] = [
   { from: 'submitted', action: 'return', to: 'draft', role: 'verifier', requiresComment: true },
   { from: 'verified', action: 'approve', to: 'approved', role: 'approver', requiresComment: false },
   { from: 'verified', action: 'reject', to: 'rejected', role: 'approver', requiresComment: true },
-  { from: 'approved', action: 'activate', to: 'active', role: 'system', requiresComment: false },
+  { from: 'approved', action: 'activate', to: 'active', role: 'approver', requiresComment: false },
   { from: 'active', action: 'submit_closure', to: 'closure_submitted', role: 'applicant', requiresComment: false },
   { from: 'active', action: 'revoke', to: 'revoked', role: 'approver', requiresComment: true },
   { from: 'closure_submitted', action: 'verify_closure', to: 'closed', role: 'verifier', requiresComment: false },

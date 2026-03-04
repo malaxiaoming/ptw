@@ -14,9 +14,20 @@ export async function POST(
   if (!user) return error('Unauthorized', 401)
 
   const { id } = await params
-  const body = await request.json()
+
+  let body: Record<string, unknown>
+  try {
+    body = await request.json()
+  } catch {
+    return error('Invalid request body', 400)
+  }
+
+  if (!body.action || typeof body.action !== 'string') {
+    return error('action is required', 400)
+  }
+
   const action = body.action as PermitAction
-  const comments = body.comments as string | undefined
+  const comments = typeof body.comments === 'string' ? body.comments : undefined
 
   const supabase = await createServerSupabaseClient()
 

@@ -13,6 +13,24 @@ export async function GET(request: NextRequest) {
   const projectId = request.nextUrl.searchParams.get('project_id')
   const status = request.nextUrl.searchParams.get('status')
 
+  // Fetch projects user has access to first
+  const { data: userRoles } = await supabase
+    .from('user_project_roles')
+    .select('project_id')
+    .eq('user_id', user.id)
+
+  const accessibleProjectIds = (userRoles ?? []).map((r) => r.project_id)
+
+  // If no project memberships, return empty list
+  if (accessibleProjectIds.length === 0) return success([])
+
+  // If filtering by a specific project, verify access
+  if (projectId && !accessibleProjectIds.includes(projectId)) {
+    return error('Project not found or access denied', 403)
+  }
+
+  const targetProjectIds = projectId ? [projectId] : accessibleProjectIds
+
   let query = supabase
     .from('permits')
     .select(`
@@ -21,19 +39,10 @@ export async function GET(request: NextRequest) {
       applicant:user_profiles!applicant_id(name),
       project:projects!project_id(name)
     `)
+    .in('project_id', targetProjectIds)
     .order('created_at', { ascending: false })
 
-  if (projectId) query = query.eq('project_id', projectId)
   if (status) query = query.eq('status', status)
-
-  // Filter to only projects user has access to
-  const { data: userRoles } = await supabase
-    .from('user_project_roles')
-    .select('project_id')
-    .eq('user_id', user.id)
-
-  const projectIds = (userRoles ?? []).map((r) => r.project_id)
-  query = query.in('project_id', projectIds)
 
   const { data, error: dbError } = await query
   if (dbError) return error(dbError.message, 500)
@@ -45,8 +54,23 @@ export async function POST(request: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return error('Unauthorized', 401)
 
-  const body = await request.json()
-  const { project_id, permit_type_id, work_location, work_description } = body
+  let body: Record<string, unknown>
+  try {
+    body = await request.json()
+  } catch {
+    return error('Invalid request body', 400)
+  }
+
+  const { project_id, permit_type_id, work_location, work_description } = body as {
+    project_id?: string
+    permit_type_id?: string
+    work_location?: string
+    work_description?: string
+  }
+
+  if (!project_id || !permit_type_id || !work_location || !work_description) {
+    return error('project_id, permit_type_id, work_location, and work_description are required', 400)
+  }
 
   const roles = await getUserRolesForProject(user.id, project_id)
   if (!canPerformActionWithRoles(roles, 'create_permit')) {
@@ -68,9 +92,8 @@ export async function POST(request: NextRequest) {
     .select()
     .single()
 
-  if (dbError) return error(dbError.message, 500)
+  if (dbError) return error('Failed to create permit', 500)
 
-  // Log creation
   await supabase.from('permit_activity_log').insert({
     permit_id: data.id,
     action: 'created',
