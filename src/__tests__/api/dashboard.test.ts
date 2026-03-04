@@ -303,6 +303,44 @@ describe('GET /api/dashboard/stats', () => {
     expect(body.data.expiring_soon[0].status).toBe('active')
   })
 
+  it('returns 200 with empty pending_actions when a pending query errors', async () => {
+    mockGetCurrentUser.mockResolvedValue(mockUser)
+
+    // User is an applicant on proj-1; the pending applicant query will return an error
+    const userRoles = [{ project_id: 'proj-1', role: 'applicant' }]
+
+    // from() order: roles, applicant-pending (error), allPermits, expiry, activity
+    let fromCallCount = 0
+
+    const rolesChain = makeRolesChain({ data: userRoles, error: null })
+    const pendingApplicantErrorChain = makeFullChain({ data: null, error: { message: 'pending query DB error' } })
+    const allPermitsChain = makeAllPermitsChain({ data: [], error: null })
+    const expiryChain = makeFullChain({ data: [], error: null })
+    const activityChain = makeFullChain({ data: [], error: null })
+
+    mockCreateClient.mockResolvedValue({
+      from: vi.fn().mockImplementation(() => {
+        fromCallCount++
+        if (fromCallCount === 1) return rolesChain
+        if (fromCallCount === 2) return pendingApplicantErrorChain  // applicant pending — errors
+        if (fromCallCount === 3) return allPermitsChain
+        if (fromCallCount === 4) return expiryChain
+        if (fromCallCount === 5) return activityChain
+        return makeFullChain({ data: [], error: null })
+      }),
+    } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
+
+    const res = await GET()
+    const body = await res.json()
+
+    // Error is logged but not fatal — API still returns 200 with empty pending_actions
+    expect(res.status).toBe(200)
+    expect(body.data.pending_actions).toEqual([])
+    expect(body.data.status_counts).toEqual({})
+    expect(body.data.expiring_soon).toEqual([])
+    expect(body.data.recent_activity).toEqual([])
+  })
+
   it('returns 500 on DB error when fetching all permits', async () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
 

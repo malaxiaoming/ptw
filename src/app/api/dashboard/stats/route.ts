@@ -118,6 +118,9 @@ export async function GET() {
   // Execute pending queries
   const pendingResults = await Promise.all(pendingQueries)
   const pendingPermits = pendingResults.flatMap((r) => {
+    if (r.error) {
+      console.error('[dashboard/stats] Failed to fetch pending permits:', (r.error as { message?: string }).message)
+    }
     return r.data ?? []
   })
 
