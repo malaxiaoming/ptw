@@ -63,4 +63,33 @@ describe('validateTransition', () => {
     expect(result.valid).toBe(true)
     expect(result.requiresComment).toBe(true)
   })
+
+  it('denies applicant from revoking their own permit', () => {
+    const permit = { ...basePermit, status: 'active' as const }
+    const result = validateTransition(permit, 'revoke', {
+      userId: 'user-1',
+      roles: ['approver'],
+    })
+    expect(result.valid).toBe(false)
+    expect(result.error).toContain('own permit')
+  })
+
+  it('requires comment when returning permit to draft', () => {
+    const permit = { ...basePermit, status: 'submitted' as const }
+    const result = validateTransition(permit, 'return', {
+      userId: 'user-2',
+      roles: ['verifier'],
+    })
+    expect(result.valid).toBe(true)
+    expect(result.requiresComment).toBe(true)
+  })
+
+  it('denies user with no roles', () => {
+    const result = validateTransition(basePermit, 'submit', {
+      userId: 'user-2',
+      roles: [],
+    })
+    expect(result.valid).toBe(false)
+    expect(result.error).toContain('permission')
+  })
 })
