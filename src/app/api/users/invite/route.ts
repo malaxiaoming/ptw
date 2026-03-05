@@ -39,7 +39,6 @@ export async function POST(request: NextRequest) {
   }
 
   // Use service role client to invite user
-  const serviceClient = await createServiceRoleClient()
   const { data: authData, error: inviteError } = await serviceClient.auth.admin.inviteUserByEmail(body.email)
 
   if (inviteError) {
