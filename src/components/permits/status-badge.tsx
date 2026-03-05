@@ -1,39 +1,25 @@
 import type { PermitStatus } from '@/lib/permits/state-machine'
-
-const STATUS_COLORS: Record<PermitStatus, string> = {
-  draft: 'bg-gray-100 text-gray-700',
-  submitted: 'bg-blue-100 text-blue-700',
-  verified: 'bg-indigo-100 text-indigo-700',
-  approved: 'bg-purple-100 text-purple-700',
-  active: 'bg-green-100 text-green-700',
-  closure_submitted: 'bg-yellow-100 text-yellow-700',
-  closed: 'bg-gray-100 text-gray-500',
-  rejected: 'bg-red-100 text-red-700',
-  revoked: 'bg-red-100 text-red-700',
-}
-
-const STATUS_LABELS: Record<PermitStatus, string> = {
-  draft: 'Draft',
-  submitted: 'Submitted',
-  verified: 'Verified',
-  approved: 'Approved',
-  active: 'Active',
-  closure_submitted: 'Closure Submitted',
-  closed: 'Closed',
-  rejected: 'Rejected',
-  revoked: 'Revoked',
-}
+import { STATUS_CONFIG } from '@/lib/permits/status-display'
 
 interface StatusBadgeProps {
   status: PermitStatus | string
+  size?: 'sm' | 'md'
 }
 
-export function StatusBadge({ status }: StatusBadgeProps) {
-  const colorClass = STATUS_COLORS[status as PermitStatus] ?? 'bg-gray-100 text-gray-600'
-  const label = STATUS_LABELS[status as PermitStatus] ?? status
+export function StatusBadge({ status, size = 'md' }: StatusBadgeProps) {
+  const config = STATUS_CONFIG[status as PermitStatus]
+  const bgClass = config?.bgClass ?? 'bg-gray-100'
+  const textClass = config?.textClass ?? 'text-gray-600'
+  const dotColor = config?.dotColor ?? 'bg-gray-400'
+  const label = config?.label ?? status
+
+  const sizeClasses = size === 'sm'
+    ? 'px-2 py-0.5 text-xs'
+    : 'px-2.5 py-0.5 text-xs'
 
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorClass}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full font-medium ${bgClass} ${textClass} ${sizeClasses}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${dotColor}`} />
       {label}
     </span>
   )

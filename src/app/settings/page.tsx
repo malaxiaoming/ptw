@@ -1,13 +1,18 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useToast } from '@/components/ui/toast'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export default function SettingsPage() {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const { toast } = useToast()
 
   useEffect(() => {
     fetch('/api/profile')
@@ -23,7 +28,6 @@ export default function SettingsPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    setMessage(null)
     const res = await fetch('/api/profile', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -32,54 +36,53 @@ export default function SettingsPage() {
     const json = await res.json()
     setSaving(false)
     if (res.ok) {
-      setMessage({ type: 'success', text: 'Profile updated.' })
+      toast('Profile updated.', 'success')
     } else {
-      setMessage({ type: 'error', text: json.error ?? 'Failed to save.' })
+      toast(json.error ?? 'Failed to save.', 'error')
     }
   }
 
-  if (loading) return <div className="text-center py-12 text-gray-500">Loading...</div>
+  if (loading) {
+    return (
+      <div className="max-w-lg space-y-6 animate-fade-in">
+        <Skeleton className="h-8 w-32" />
+        <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
+          <Skeleton className="h-5 w-36" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="max-w-lg space-y-6">
+    <div className="max-w-lg space-y-6 animate-fade-in">
       <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h2 className="text-base font-semibold text-gray-900 mb-4">Personal Profile</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-            <input
+      <Card>
+        <CardContent>
+          <h2 className="text-base font-semibold text-gray-900 mb-4">Personal Profile</h2>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              label="Name"
               type="text"
               required
               value={name}
               onChange={e => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-            <input
+            <Input
+              label="Phone"
               type="text"
               value={phone}
               onChange={e => setPhone(e.target.value)}
               placeholder="+65XXXXXXXX"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-          </div>
-          {message && (
-            <div className={`p-3 rounded-md text-sm ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-              {message.text}
-            </div>
-          )}
-          <button
-            type="submit"
-            disabled={saving}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-          >
-            {saving ? 'Saving...' : 'Save Changes'}
-          </button>
-        </form>
-      </div>
+            <Button type="submit" loading={saving}>
+              Save Changes
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   )
 }

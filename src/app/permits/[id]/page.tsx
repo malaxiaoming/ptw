@@ -3,11 +3,15 @@
 import { useState, useEffect, useCallback, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { FileText, CheckSquare, Users, Paperclip, Activity } from 'lucide-react'
 import { StatusBadge } from '@/components/permits/status-badge'
 import { ActionBar } from '@/components/permits/action-bar'
 import { ChecklistForm } from '@/components/permits/checklist-form'
 import { PersonnelPicker } from '@/components/permits/personnel-picker'
 import { FileUpload } from '@/components/permits/file-upload'
+import { Button } from '@/components/ui/button'
+import { DetailSkeleton } from '@/components/ui/skeleton'
+import { useToast } from '@/components/ui/toast'
 import type { PermitStatus, PermitAction } from '@/lib/permits/state-machine'
 import type { Role } from '@/lib/auth/permissions'
 import type { ChecklistTemplate, PersonnelEntry } from '@/lib/permits/checklist-validation'
@@ -73,9 +77,18 @@ interface CurrentUser {
   roles: Role[]
 }
 
+const TAB_ICONS: Record<Tab, React.ElementType> = {
+  details: FileText,
+  checklist: CheckSquare,
+  personnel: Users,
+  attachments: Paperclip,
+  activity: Activity,
+}
+
 export default function PermitDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
+  const { toast } = useToast()
 
   const [permit, setPermit] = useState<Permit | null>(null)
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
@@ -100,7 +113,6 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
 
   const loadCurrentUser = useCallback(async () => {
     try {
-      // Fetch current user info + their roles for this permit's project
       const [userRes, rolesRes] = await Promise.all([
         fetch('/api/me'),
         permit ? fetch(`/api/projects/${permit.project_id}/my-roles`) : Promise.resolve(null),
@@ -121,7 +133,7 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
         }
       }
     } catch {
-      // Non-fatal — action bar will simply not show if we can't load user
+      // Non-fatal
     }
   }, [permit])
 
@@ -147,24 +159,20 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
       const json = await res.json()
       if (!res.ok) {
         setActionError(json.error ?? 'Action failed')
+        toast(json.error ?? 'Action failed', 'error')
         return
       }
-      // Refresh permit data after action
+      toast(`Permit ${action.replace(/_/g, ' ')} successful`, 'success')
       await loadPermit()
-      // Re-load user roles too since status may change what's available
       await loadCurrentUser()
     } catch {
       setActionError('Action failed')
+      toast('Action failed', 'error')
     }
   }
 
   if (loading) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Permit Details</h1>
-        <p className="text-gray-500">Loading...</p>
-      </div>
-    )
+    return <DetailSkeleton />
   }
 
   if (error || !permit) {
@@ -172,7 +180,7 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
       <div className="space-y-6">
         <h1 className="text-2xl font-bold text-gray-900">Permit Details</h1>
         <p className="text-red-600">{error ?? 'Permit not found'}</p>
-        <Link href="/permits" className="text-sm text-blue-600 hover:underline">
+        <Link href="/permits" className="text-sm text-primary-600 hover:underline">
           &larr; Back to Permits
         </Link>
       </div>
@@ -191,7 +199,7 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
   const isApplicant = currentUser?.id === permit.applicant_id
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -210,11 +218,8 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
         </div>
 
         {isDraft && isApplicant && (
-          <Link
-            href={`/permits/${id}/edit`}
-            className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
-          >
-            Edit
+          <Link href={`/permits/${id}/edit`}>
+            <Button variant="outline" size="md">Edit</Button>
           </Link>
         )}
       </div>
@@ -238,27 +243,30 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
       {/* Tabs */}
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex gap-0 overflow-x-auto">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
-                activeTab === tab.id
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+          {tabs.map((tab) => {
+            const Icon = TAB_ICONS[tab.id]
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
+                  activeTab === tab.id
+                    ? 'border-primary-600 text-primary-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {tab.label}
+              </button>
+            )
+          })}
         </nav>
       </div>
 
       {/* Tab content */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
 
-        {/* Details Tab */}
         {activeTab === 'details' && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-gray-900">Permit Details</h2>
@@ -377,7 +385,6 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
           </div>
         )}
 
-        {/* Checklist Tab */}
         {activeTab === 'checklist' && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-gray-900">Checklist</h2>
@@ -385,7 +392,7 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
               <ChecklistForm
                 template={permit.permit_types.checklist_template}
                 data={permit.checklist_data ?? {}}
-                onChange={() => {/* read-only */}}
+                onChange={() => {}}
                 disabled
               />
             ) : (
@@ -394,7 +401,6 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
           </div>
         )}
 
-        {/* Personnel Tab */}
         {activeTab === 'personnel' && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-gray-900">Personnel</h2>
@@ -402,7 +408,7 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
               <PersonnelPicker
                 requirements={permit.permit_types.checklist_template.personnel}
                 personnel={permit.personnel ?? []}
-                onChange={() => {/* read-only */}}
+                onChange={() => {}}
                 disabled
               />
             ) : (
@@ -411,7 +417,6 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
           </div>
         )}
 
-        {/* Attachments Tab */}
         {activeTab === 'attachments' && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-gray-900">Attachments</h2>
@@ -424,7 +429,6 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
           </div>
         )}
 
-        {/* Activity Log Tab */}
         {activeTab === 'activity' && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-gray-900">Activity Log</h2>
@@ -434,7 +438,7 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
               <ol className="relative border-l border-gray-200 space-y-4 pl-4">
                 {[...(permit.permit_activity_log ?? [])].reverse().map((entry) => (
                   <li key={entry.id} className="ml-2">
-                    <div className="absolute -left-1.5 w-3 h-3 bg-blue-200 rounded-full border border-white" />
+                    <div className="absolute -left-1.5 w-3 h-3 bg-primary-200 rounded-full border border-white" />
                     <div>
                       <p className="text-sm font-medium text-gray-900">
                         {entry.action.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
@@ -457,7 +461,7 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
         )}
       </div>
 
-      {/* Bottom action bar (repeat) */}
+      {/* Bottom action bar */}
       {currentUser && (
         <ActionBar
           permit={{ id: permit.id, status: permit.status, applicant_id: permit.applicant_id, project_id: permit.project_id }}

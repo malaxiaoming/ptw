@@ -4,31 +4,13 @@ import { useState } from 'react'
 import { getAvailableTransitions, type PermitAction, type PermitStatus } from '@/lib/permits/state-machine'
 import { validateTransition, type PermitContext } from '@/lib/permits/transition'
 import type { Role } from '@/lib/auth/permissions'
+import { ACTION_CONFIG, type ActionVariant } from '@/lib/permits/status-display'
 
-const ACTION_LABELS: Record<PermitAction, string> = {
-  submit: 'Submit for Verification',
-  verify: 'Verify',
-  return: 'Return to Applicant',
-  approve: 'Approve',
-  reject: 'Reject',
-  activate: 'Activate',
-  submit_closure: 'Submit Closure Report',
-  revoke: 'Revoke',
-  verify_closure: 'Confirm Closure',
-  return_closure: 'Return Closure for Revision',
-}
-
-const ACTION_STYLES: Partial<Record<PermitAction, string>> = {
-  submit: 'bg-blue-600 hover:bg-blue-700 text-white',
-  verify: 'bg-green-600 hover:bg-green-700 text-white',
-  approve: 'bg-green-600 hover:bg-green-700 text-white',
-  activate: 'bg-green-600 hover:bg-green-700 text-white',
-  verify_closure: 'bg-green-600 hover:bg-green-700 text-white',
-  submit_closure: 'bg-blue-600 hover:bg-blue-700 text-white',
-  return: 'bg-yellow-500 hover:bg-yellow-600 text-white',
-  return_closure: 'bg-yellow-500 hover:bg-yellow-600 text-white',
-  reject: 'bg-red-600 hover:bg-red-700 text-white',
-  revoke: 'bg-red-600 hover:bg-red-700 text-white',
+const VARIANT_STYLES: Record<ActionVariant, string> = {
+  primary: 'bg-primary-600 hover:bg-primary-700 text-white',
+  success: 'bg-green-600 hover:bg-green-700 text-white',
+  warning: 'bg-amber-500 hover:bg-amber-600 text-white',
+  danger: 'bg-red-600 hover:bg-red-700 text-white',
 }
 
 interface ActionBarProps {
@@ -93,7 +75,7 @@ export function ActionBar({ permit, userRoles, userId, onAction }: ActionBarProp
       {pendingAction ? (
         <div className="space-y-3">
           <p className="text-sm text-gray-700">
-            <span className="font-medium">{ACTION_LABELS[pendingAction]}</span>
+            <span className="font-medium">{ACTION_CONFIG[pendingAction].label}</span>
             {' — please provide a comment:'}
           </p>
           <textarea
@@ -131,9 +113,9 @@ export function ActionBar({ permit, userRoles, userId, onAction }: ActionBarProp
               type="button"
               onClick={() => handleActionClick(action, result.requiresComment ?? false)}
               disabled={loading}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${ACTION_STYLES[action] ?? 'bg-gray-600 hover:bg-gray-700 text-white'}`}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${VARIANT_STYLES[ACTION_CONFIG[action].variant]}`}
             >
-              {ACTION_LABELS[action]}
+              {ACTION_CONFIG[action].label}
             </button>
           ))}
         </div>
