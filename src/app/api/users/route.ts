@@ -18,7 +18,9 @@ export async function GET() {
   let adminAccess: boolean
   try {
     adminAccess = await isOrgAdmin(serviceClient, user.id, user.organization_id)
-  } catch {
+    console.log('[users] isOrgAdmin result:', adminAccess, 'userId:', user.id, 'orgId:', user.organization_id)
+  } catch (e) {
+    console.log('[users] isOrgAdmin error:', e)
     return error('Service unavailable', 503)
   }
   if (!adminAccess) return error('Admin access required', 403)
