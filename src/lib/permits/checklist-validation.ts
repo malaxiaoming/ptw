@@ -28,7 +28,7 @@ export interface ChecklistTemplate {
 export interface PersonnelEntry {
   role: string
   worker_id?: string
-  name?: string
+  name: string
   [key: string]: unknown
 }
 

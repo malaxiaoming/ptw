@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { type PersonnelRequirement } from '@/lib/permits/checklist-validation'
+import { type PersonnelRequirement, type PersonnelEntry } from '@/lib/permits/checklist-validation'
 
 interface Worker {
   id: string
@@ -10,13 +10,6 @@ interface Worker {
   trade: string | null
   cert_number: string | null
   cert_expiry: string | null
-}
-
-interface PersonnelEntry {
-  role: string
-  worker_id?: string
-  name: string
-  [key: string]: unknown
 }
 
 interface PersonnelPickerProps {
