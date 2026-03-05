@@ -13,11 +13,12 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = await createServerSupabaseClient()
+  const serviceClient = await createServiceRoleClient()
 
-  // Org-scoped admin check
+  // Org-scoped admin check (service role bypasses RLS)
   let adminAccess: boolean
   try {
-    adminAccess = await isOrgAdmin(supabase, user.id, user.organization_id)
+    adminAccess = await isOrgAdmin(serviceClient, user.id, user.organization_id)
   } catch {
     return error('Service unavailable', 503)
   }

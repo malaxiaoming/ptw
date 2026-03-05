@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/get-user'
 import { isOrgAdmin } from '@/lib/auth/check-admin'
 import { success, error } from '@/lib/api/response'
@@ -49,9 +49,10 @@ export async function POST(request: NextRequest) {
 
   // Admin check: user must have admin role in at least one project in their org
   const supabase = await createServerSupabaseClient()
+  const serviceClient = await createServiceRoleClient()
   let adminAccess: boolean
   try {
-    adminAccess = await isOrgAdmin(supabase, user.id, user.organization_id!)
+    adminAccess = await isOrgAdmin(serviceClient, user.id, user.organization_id!)
   } catch {
     return error('Service unavailable', 503)
   }
