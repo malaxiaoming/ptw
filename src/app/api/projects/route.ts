@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/get-user'
 import { isOrgAdmin } from '@/lib/auth/check-admin'
 import { success, error } from '@/lib/api/response'
@@ -12,10 +12,10 @@ export async function GET() {
     return success([])
   }
 
-  const supabase = await createServerSupabaseClient()
+  const serviceClient = await createServiceRoleClient()
 
   // Return projects the user has any role in (accessible projects)
-  const { data: roleRows, error: rolesError } = await supabase
+  const { data: roleRows, error: rolesError } = await serviceClient
     .from('user_project_roles')
     .select('project_id')
     .eq('user_id', user.id)
@@ -28,7 +28,7 @@ export async function GET() {
     return success([])
   }
 
-  const { data, error: dbError } = await supabase
+  const { data, error: dbError } = await serviceClient
     .from('projects')
     .select('id, name, location, status, created_at')
     .in('id', projectIds)
@@ -48,7 +48,6 @@ export async function POST(request: NextRequest) {
   }
 
   // Admin check: user must have admin role in at least one project in their org
-  const supabase = await createServerSupabaseClient()
   const serviceClient = await createServiceRoleClient()
   let adminAccess: boolean
   try {
