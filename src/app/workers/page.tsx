@@ -3,6 +3,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { WorkerForm } from '@/components/workers/worker-form'
 import { WorkerList } from '@/components/workers/worker-list'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { useToast } from '@/components/ui/toast'
+import { TableSkeleton } from '@/components/ui/skeleton'
 
 interface Worker {
   id: string
@@ -21,6 +25,7 @@ export default function WorkersPage() {
   const [error, setError] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [editingWorker, setEditingWorker] = useState<Worker | null>(null)
+  const { toast } = useToast()
 
   const fetchWorkers = useCallback(async () => {
     setLoading(true)
@@ -49,6 +54,7 @@ export default function WorkersPage() {
     const json = await res.json()
     if (!res.ok) throw new Error(json.error ?? 'Failed to create worker')
     setShowForm(false)
+    toast('Worker added successfully.', 'success')
     await fetchWorkers()
   }
 
@@ -62,6 +68,7 @@ export default function WorkersPage() {
     const json = await res.json()
     if (!res.ok) throw new Error(json.error ?? 'Failed to update worker')
     setEditingWorker(null)
+    toast('Worker updated.', 'success')
     await fetchWorkers()
   }
 
@@ -69,22 +76,20 @@ export default function WorkersPage() {
     const res = await fetch(`/api/workers/${id}`, { method: 'DELETE' })
     if (!res.ok) {
       const json = await res.json().catch(() => ({}))
-      setError(json.error ?? 'Failed to deactivate worker')
+      toast(json.error ?? 'Failed to deactivate worker', 'error')
       return
     }
+    toast('Worker deactivated.', 'success')
     await fetchWorkers()
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
+    <div className="max-w-5xl mx-auto px-4 py-8 animate-fade-in">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Worker Registry</h1>
-        <button
-          onClick={() => { setShowForm(true); setEditingWorker(null) }}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
-        >
+        <Button onClick={() => { setShowForm(true); setEditingWorker(null) }}>
           Add Worker
-        </button>
+        </Button>
       </div>
 
       {(showForm || editingWorker) && (
@@ -107,19 +112,19 @@ export default function WorkersPage() {
       )}
 
       <div className="mb-4">
-        <input
+        <Input
           type="search"
           placeholder="Search by name, cert number, or company..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="max-w-md"
         />
       </div>
 
       {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
 
       {loading ? (
-        <p className="text-gray-500 text-sm">Loading workers...</p>
+        <TableSkeleton rows={4} />
       ) : (
         <WorkerList
           workers={workers}

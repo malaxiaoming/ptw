@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useToast } from '@/components/ui/toast'
+import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/input'
+import { TableSkeleton } from '@/components/ui/skeleton'
 
 const ROLES = ['applicant', 'verifier', 'approver', 'admin'] as const
 type Role = typeof ROLES[number]
@@ -35,10 +39,9 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [accessDenied, setAccessDenied] = useState(false)
+  const { toast } = useToast()
 
-  // Per-user add-role form state
   const [addingRole, setAddingRole] = useState<{ userId: string; projectId: string; role: Role } | null>(null)
-  const [roleError, setRoleError] = useState<string | null>(null)
 
   async function load() {
     setLoading(true)
@@ -74,7 +77,6 @@ export default function UsersPage() {
 
   async function handleAddRole(userId: string) {
     if (!addingRole || addingRole.userId !== userId) return
-    setRoleError(null)
     const res = await fetch(`/api/projects/${addingRole.projectId}/roles`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -82,9 +84,10 @@ export default function UsersPage() {
     })
     if (!res.ok) {
       const json = await res.json()
-      setRoleError(json.error ?? 'Failed to assign role')
+      toast(json.error ?? 'Failed to assign role', 'error')
       return
     }
+    toast('Role assigned successfully.', 'success')
     setAddingRole(null)
     await load()
   }
@@ -95,10 +98,13 @@ export default function UsersPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: userId, role }),
     })
-    if (res.ok) await load()
+    if (res.ok) {
+      toast('Role removed.', 'success')
+      await load()
+    }
   }
 
-  if (loading) return <div className="text-center py-12 text-gray-500">Loading users...</div>
+  if (loading) return <TableSkeleton rows={4} />
 
   if (accessDenied) {
     return (
@@ -110,15 +116,12 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Users</h1>
         {isAdmin && (
-          <Link
-            href="/users/invite"
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-          >
-            + Invite User
+          <Link href="/users/invite">
+            <Button>+ Invite User</Button>
           </Link>
         )}
       </div>
@@ -149,7 +152,7 @@ export default function UsersPage() {
                     className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded-full"
                   >
                     <span className="font-medium">{r.projects?.name}</span>
-                    <span className="text-gray-400">·</span>
+                    <span className="text-gray-400">&middot;</span>
                     <span>{r.role}</span>
                     {isAdmin && (
                       <button
@@ -157,7 +160,7 @@ export default function UsersPage() {
                         className="ml-1 text-gray-400 hover:text-red-500"
                         aria-label="Remove role"
                       >
-                        ×
+                        &times;
                       </button>
                     )}
                   </span>
@@ -169,42 +172,42 @@ export default function UsersPage() {
                 <div>
                   {addingRole?.userId === u.id ? (
                     <div className="flex flex-wrap items-center gap-2">
-                      <select
+                      <Select
                         value={addingRole.projectId}
                         onChange={e => setAddingRole({ ...addingRole, projectId: e.target.value })}
-                        className="text-sm border border-gray-300 rounded px-2 py-1"
+                        className="text-sm"
                       >
                         <option value="">Project...</option>
                         {projects.map(p => (
                           <option key={p.id} value={p.id}>{p.name}</option>
                         ))}
-                      </select>
-                      <select
+                      </Select>
+                      <Select
                         value={addingRole.role}
                         onChange={e => setAddingRole({ ...addingRole, role: e.target.value as Role })}
-                        className="text-sm border border-gray-300 rounded px-2 py-1"
+                        className="text-sm"
                       >
                         {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                      </select>
-                      <button
+                      </Select>
+                      <Button
+                        size="sm"
                         onClick={() => handleAddRole(u.id)}
                         disabled={!addingRole.projectId}
-                        className="text-sm px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                       >
                         Assign
-                      </button>
-                      <button
-                        onClick={() => { setAddingRole(null); setRoleError(null) }}
-                        className="text-sm text-gray-500 hover:text-gray-700"
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setAddingRole(null)}
                       >
                         Cancel
-                      </button>
-                      {roleError && <p className="text-xs text-red-600">{roleError}</p>}
+                      </Button>
                     </div>
                   ) : (
                     <button
                       onClick={() => setAddingRole({ userId: u.id, projectId: '', role: 'applicant' })}
-                      className="text-xs text-blue-600 hover:underline"
+                      className="text-xs text-primary-600 hover:underline"
                     >
                       + Add role
                     </button>

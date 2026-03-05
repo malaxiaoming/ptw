@@ -1,14 +1,23 @@
-export const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: 'grid' },
-  { href: '/permits', label: 'Permits', icon: 'document' },
-  { href: '/projects', label: 'Projects', icon: 'folder' },
-  { href: '/workers', label: 'Workers', icon: 'users' },
-  { href: '/notifications', label: 'Notifications', icon: 'bell' },
-  { href: '/settings', label: 'Settings', icon: 'cog' },
-] as const
+import { LayoutGrid, FileText, FolderOpen, HardHat, Bell, Settings, Users } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 
-export const ADMIN_NAV_ITEMS = [
-  { href: '/users', label: 'Users', icon: 'user-group' },
-] as const
+export interface NavItem {
+  href: string
+  label: string
+  icon: LucideIcon
+}
 
-export const ALL_NAV_ITEMS = [...NAV_ITEMS, ...ADMIN_NAV_ITEMS] as const
+export const NAV_ITEMS: NavItem[] = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
+  { href: '/permits', label: 'Permits', icon: FileText },
+  { href: '/projects', label: 'Projects', icon: FolderOpen },
+  { href: '/workers', label: 'Workers', icon: HardHat },
+  { href: '/notifications', label: 'Notifications', icon: Bell },
+  { href: '/settings', label: 'Settings', icon: Settings },
+]
+
+export const ADMIN_NAV_ITEMS: NavItem[] = [
+  { href: '/users', label: 'Users', icon: Users },
+]
+
+export const ALL_NAV_ITEMS: NavItem[] = [...NAV_ITEMS, ...ADMIN_NAV_ITEMS]

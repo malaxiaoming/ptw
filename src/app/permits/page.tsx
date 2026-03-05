@@ -3,7 +3,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { PermitCard } from '@/components/permits/permit-card'
+import { FileText } from 'lucide-react'
 import type { PermitStatus } from '@/lib/permits/state-machine'
+import { STATUS_CONFIG, ALL_STATUSES } from '@/lib/permits/status-display'
+import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/input'
+import { PermitCardSkeleton } from '@/components/ui/skeleton'
 
 interface Project {
   id: string
@@ -32,23 +37,6 @@ interface Permit {
   project_id: string
 }
 
-const ALL_STATUSES: PermitStatus[] = [
-  'draft', 'submitted', 'verified', 'approved', 'active',
-  'closure_submitted', 'closed', 'rejected', 'revoked',
-]
-
-const STATUS_LABELS: Record<PermitStatus, string> = {
-  draft: 'Draft',
-  submitted: 'Submitted',
-  verified: 'Verified',
-  approved: 'Approved',
-  active: 'Active',
-  closure_submitted: 'Closure Submitted',
-  closed: 'Closed',
-  rejected: 'Rejected',
-  revoked: 'Revoked',
-}
-
 export default function PermitsPage() {
   const [permits, setPermits] = useState<Permit[]>([])
   const [projects, setProjects] = useState<Project[]>([])
@@ -56,7 +44,6 @@ export default function PermitsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Filters
   const [projectFilter, setProjectFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -77,7 +64,6 @@ export default function PermitsPage() {
         const data: Permit[] = json.data ?? []
         setPermits(data)
 
-        // Extract unique projects from loaded permits for the project filter
         const projectMap = new Map<string, Project>()
         const typeMap = new Map<string, PermitType>()
         for (const p of data) {
@@ -113,14 +99,11 @@ export default function PermitsPage() {
     : permits
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Permits</h1>
-        <Link
-          href="/permits/new"
-          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-        >
-          + New Permit
+        <Link href="/permits/new">
+          <Button size="md">+ New Permit</Button>
         </Link>
       </div>
 
@@ -128,65 +111,56 @@ export default function PermitsPage() {
       <div className="bg-white border border-gray-200 rounded-lg p-4">
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-[160px]">
-            <label htmlFor="project-filter" className="block text-xs font-medium text-gray-700 mb-1">
-              Project
-            </label>
-            <select
+            <Select
+              label="Project"
               id="project-filter"
               value={projectFilter}
               onChange={(e) => setProjectFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All Projects</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div className="flex-1 min-w-[160px]">
-            <label htmlFor="type-filter" className="block text-xs font-medium text-gray-700 mb-1">
-              Permit Type
-            </label>
-            <select
+            <Select
+              label="Permit Type"
               id="type-filter"
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All Types</option>
               {permitTypes.map((t) => (
                 <option key={t.id} value={t.id}>{t.name}</option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div className="flex-1 min-w-[160px]">
-            <label htmlFor="status-filter" className="block text-xs font-medium text-gray-700 mb-1">
-              Status
-            </label>
-            <select
+            <Select
+              label="Status"
               id="status-filter"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All Statuses</option>
               {ALL_STATUSES.map((s) => (
-                <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
               ))}
-            </select>
+            </Select>
           </div>
 
           {(projectFilter || typeFilter || statusFilter) && (
             <div className="flex items-end">
-              <button
-                type="button"
+              <Button
+                variant="outline"
+                size="md"
                 onClick={() => { setProjectFilter(''); setTypeFilter(''); setStatusFilter('') }}
-                className="px-3 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
               >
                 Clear
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -194,17 +168,19 @@ export default function PermitsPage() {
 
       {/* Content */}
       {loading ? (
-        <div className="text-center py-12 text-gray-500">Loading permits...</div>
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <PermitCardSkeleton key={i} />
+          ))}
+        </div>
       ) : error ? (
         <div className="text-center py-12 text-red-600">{error}</div>
       ) : displayedPermits.length === 0 ? (
-        <div className="text-center py-12">
+        <div className="text-center py-16">
+          <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500 mb-4">No permits found.</p>
-          <Link
-            href="/permits/new"
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
-          >
-            Create your first permit
+          <Link href="/permits/new">
+            <Button>Create your first permit</Button>
           </Link>
         </div>
       ) : (
