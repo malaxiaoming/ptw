@@ -11,12 +11,11 @@ vi.mock('@/lib/supabase/server', () => ({
 }))
 
 import { getCurrentUser } from '@/lib/auth/get-user'
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/server'
 import { GET as getUsers } from '@/app/api/users/route'
 import { POST as inviteUser } from '@/app/api/users/invite/route'
 
 const mockGetCurrentUser = vi.mocked(getCurrentUser)
-const mockCreateClient = vi.mocked(createServerSupabaseClient)
 const mockCreateServiceClient = vi.mocked(createServiceRoleClient)
 
 const mockUser = {
@@ -113,19 +112,19 @@ describe('GET /api/users', () => {
       { id: 'user-2', email: 'bob@example.com', phone: '91234567', name: 'Bob', organization_id: 'org-1', created_at: '2024-01-02T00:00:00Z', user_project_roles: [] },
     ]
 
-    mockCreateServiceClient.mockResolvedValue({
-      from: makeIsOrgAdminServiceClient(true),
-    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
-
     const usersChain = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       order: vi.fn().mockResolvedValue({ data: users, error: null }),
     }
 
-    mockCreateClient.mockResolvedValue({
-      from: vi.fn().mockReturnValue(usersChain),
-    } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
+    const adminCheckFrom = makeIsOrgAdminServiceClient(true)
+    mockCreateServiceClient.mockResolvedValue({
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'user_profiles') return usersChain
+        return adminCheckFrom(table)
+      }),
+    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     const res = await getUsers()
     const body = await res.json()
@@ -137,19 +136,19 @@ describe('GET /api/users', () => {
   it('returns 500 on database error', async () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
 
-    mockCreateServiceClient.mockResolvedValue({
-      from: makeIsOrgAdminServiceClient(true),
-    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
-
     const usersChain = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       order: vi.fn().mockResolvedValue({ data: null, error: { message: 'DB failed' } }),
     }
 
-    mockCreateClient.mockResolvedValue({
-      from: vi.fn().mockReturnValue(usersChain),
-    } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
+    const adminCheckFrom = makeIsOrgAdminServiceClient(true)
+    mockCreateServiceClient.mockResolvedValue({
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'user_profiles') return usersChain
+        return adminCheckFrom(table)
+      }),
+    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     const res = await getUsers()
     const body = await res.json()

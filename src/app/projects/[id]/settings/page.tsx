@@ -90,7 +90,7 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ id: 
         setEditLocation(p.location ?? '')
         setEditStatus(p.status)
         setRoles(rolesJson.data ?? [])
-        setOrgUsers(usersJson.data ?? [])
+        setOrgUsers(usersJson.data?.users ?? [])
       } catch {
         setFetchError('Failed to load settings')
       } finally {
