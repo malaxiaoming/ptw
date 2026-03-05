@@ -18,9 +18,13 @@ export default function ResetPasswordPage() {
   )
 
   useEffect(() => {
-    // Supabase puts the recovery token in the URL hash — listen for the session
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
+    // Check if there's already a session (token processed from hash)
+    // and also listen in case the event fires after mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setReady(true)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
         setReady(true)
       }
     })
