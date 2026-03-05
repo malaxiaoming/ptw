@@ -4,6 +4,57 @@ import { getCurrentUser } from '@/lib/auth/get-user'
 import { isOrgAdmin } from '@/lib/auth/check-admin'
 import { success, error } from '@/lib/api/response'
 
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const user = await getCurrentUser()
+  if (!user) return error('Unauthorized', 401)
+
+  const { id } = await params
+  if (!user.organization_id) return error('User has no organization', 403)
+  const serviceClient = await createServiceRoleClient()
+
+  let adminAccess: boolean
+  try {
+    adminAccess = await isOrgAdmin(serviceClient, user.id, user.organization_id)
+  } catch {
+    return error('Service unavailable', 503)
+  }
+  if (!adminAccess) return error('Admin access required', 403)
+
+  // Check project belongs to user's org
+  const { data: project, error: projectError } = await serviceClient
+    .from('projects')
+    .select('id')
+    .eq('id', id)
+    .eq('organization_id', user.organization_id)
+    .single()
+
+  if (projectError || !project) return error('Project not found', 404)
+
+  // Check for permits
+  const { data: permits } = await serviceClient
+    .from('permits')
+    .select('id')
+    .eq('project_id', id)
+    .limit(1)
+
+  if (permits && permits.length > 0) {
+    return error('Cannot delete a project that has permits. Archive it instead.', 409)
+  }
+
+  const { error: deleteError } = await serviceClient
+    .from('projects')
+    .delete()
+    .eq('id', id)
+    .eq('organization_id', user.organization_id)
+
+  if (deleteError) return error(deleteError.message, 500)
+
+  return success({ ok: true })
+}
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, use } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 interface UserProfile {
@@ -41,6 +42,7 @@ const ROLE_LABELS: Record<Role, string> = {
 
 export default function ProjectSettingsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
+  const router = useRouter()
 
   const [project, setProject] = useState<Project | null>(null)
   const [roles, setRoles] = useState<RoleAssignment[]>([])
@@ -64,6 +66,12 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ id: 
 
   // Remove role state
   const [removingId, setRemovingId] = useState<string | null>(null)
+
+  // Delete project state
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -173,6 +181,24 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ id: 
       // silently ignore
     } finally {
       setRemovingId(null)
+    }
+  }
+
+  async function handleDeleteProject() {
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' })
+      const json = await res.json()
+      if (!res.ok) {
+        setDeleteError(json.error ?? 'Failed to delete project')
+      } else {
+        router.push('/projects')
+      }
+    } catch {
+      setDeleteError('Failed to delete project')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -344,6 +370,71 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ id: 
           </ul>
         )}
       </div>
+
+      {/* Danger Zone */}
+      <div className="border border-red-300 rounded-lg">
+        <div className="px-5 py-4 border-b border-red-200 bg-red-50 rounded-t-lg">
+          <h2 className="text-base font-semibold text-red-900">Danger Zone</h2>
+        </div>
+        <div className="px-5 py-4 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-900">Delete this project</p>
+            <p className="text-sm text-gray-500">Once you delete a project, there is no going back.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => { setShowDeleteModal(true); setDeleteConfirmText(''); setDeleteError(null) }}
+            className="px-4 py-2 border border-red-600 text-red-600 text-sm font-medium rounded-md hover:bg-red-50"
+          >
+            Delete project
+          </button>
+        </div>
+      </div>
+
+      {/* Delete confirmation modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete project</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              This action <strong>cannot be undone</strong>. This will permanently delete the project{' '}
+              <strong>{project.name}</strong> and all its role assignments.
+            </p>
+            {deleteError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-600">{deleteError}</p>
+              </div>
+            )}
+            <label className="block text-sm text-gray-700 mb-2">
+              Please type <strong>{project.name}</strong> to confirm
+            </label>
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500 mb-4"
+              placeholder="Project name"
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteProject}
+                disabled={deleteConfirmText !== project.name || deleting}
+                className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleting ? 'Deleting...' : 'Delete this project'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

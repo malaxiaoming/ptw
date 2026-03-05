@@ -13,7 +13,7 @@ vi.mock('@/lib/supabase/server', () => ({
 import { getCurrentUser } from '@/lib/auth/get-user'
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { GET as getProjects, POST as postProjects } from '@/app/api/projects/route'
-import { GET as getProject, PATCH as patchProject } from '@/app/api/projects/[id]/route'
+import { GET as getProject, PATCH as patchProject, DELETE as deleteProject } from '@/app/api/projects/[id]/route'
 import { GET as getRoles, POST as postRole, DELETE as deleteRole } from '@/app/api/projects/[id]/roles/route'
 
 const mockGetCurrentUser = vi.mocked(getCurrentUser)
@@ -688,6 +688,119 @@ describe('POST /api/projects/[id]/roles', () => {
     expect(body.data).toEqual(
       expect.objectContaining({ user_id: 'user-2', role: 'verifier', project_id: 'proj-1' })
     )
+  })
+})
+
+// ─── DELETE /api/projects/[id] ───────────────────────────────────────────────
+
+describe('DELETE /api/projects/[id]', () => {
+  beforeEach(() => { vi.clearAllMocks() })
+
+  it('returns 401 if not authenticated', async () => {
+    mockGetCurrentUser.mockResolvedValue(null)
+    const req = makeRequest('http://localhost/api/projects/proj-1', { method: 'DELETE' })
+    const res = await deleteProject(req, makeParams('proj-1'))
+    const body = await res.json()
+    expect(res.status).toBe(401)
+    expect(body.error).toBe('Unauthorized')
+  })
+
+  it('returns 403 if not org admin', async () => {
+    mockGetCurrentUser.mockResolvedValue(mockUser)
+
+    mockCreateServiceClient.mockResolvedValue({
+      from: makeIsOrgAdminServiceClient(false),
+    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
+
+    const req = makeRequest('http://localhost/api/projects/proj-1', { method: 'DELETE' })
+    const res = await deleteProject(req, makeParams('proj-1'))
+    const body = await res.json()
+    expect(res.status).toBe(403)
+    expect(body.error).toBe('Admin access required')
+  })
+
+  it('returns 409 if project has permits', async () => {
+    mockGetCurrentUser.mockResolvedValue(mockAdminUser)
+
+    // Build a service client that handles: admin check, project lookup, permits check
+    const adminFrom = makeIsOrgAdminServiceClient(true)
+    let fromCallCount = 0
+
+    const projectLookupChain = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: { id: 'proj-1' }, error: null }),
+    }
+
+    const permitsChain = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: [{ id: 'permit-1' }], error: null }),
+    }
+
+    mockCreateServiceClient.mockResolvedValue({
+      from: vi.fn().mockImplementation((table: string) => {
+        fromCallCount++
+        // First two calls are from isOrgAdmin (projects, user_project_roles)
+        if (fromCallCount <= 2) return adminFrom(table)
+        // Third call: project ownership check
+        if (fromCallCount === 3) return projectLookupChain
+        // Fourth call: permits check
+        return permitsChain
+      }),
+    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
+
+    const req = makeRequest('http://localhost/api/projects/proj-1', { method: 'DELETE' })
+    const res = await deleteProject(req, makeParams('proj-1'))
+    const body = await res.json()
+    expect(res.status).toBe(409)
+    expect(body.error).toContain('Cannot delete a project that has permits')
+  })
+
+  it('deletes project successfully and returns ok', async () => {
+    mockGetCurrentUser.mockResolvedValue(mockAdminUser)
+
+    const adminFrom = makeIsOrgAdminServiceClient(true)
+    let fromCallCount = 0
+
+    const projectLookupChain = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: { id: 'proj-1' }, error: null }),
+    }
+
+    const permitsChain = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+    }
+
+    const deleteChain = {
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+    }
+    let deleteEqCount = 0
+    deleteChain.eq.mockImplementation(() => {
+      deleteEqCount++
+      if (deleteEqCount === 2) return Promise.resolve({ error: null })
+      return deleteChain
+    })
+
+    mockCreateServiceClient.mockResolvedValue({
+      from: vi.fn().mockImplementation((table: string) => {
+        fromCallCount++
+        if (fromCallCount <= 2) return adminFrom(table)
+        if (fromCallCount === 3) return projectLookupChain
+        if (fromCallCount === 4) return permitsChain
+        return deleteChain
+      }),
+    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
+
+    const req = makeRequest('http://localhost/api/projects/proj-1', { method: 'DELETE' })
+    const res = await deleteProject(req, makeParams('proj-1'))
+    const body = await res.json()
+    expect(res.status).toBe(200)
+    expect(body.data).toEqual({ ok: true })
   })
 })
 
