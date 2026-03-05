@@ -82,5 +82,20 @@ export async function POST(request: NextRequest) {
 
   if (dbError) return error(dbError.message, 500)
 
+  // Assign creator as admin on the new project
+  const { error: roleError } = await serviceClient
+    .from('user_project_roles')
+    .insert({
+      user_id: user.id,
+      project_id: data.id,
+      role: 'admin',
+    })
+
+  if (roleError) {
+    // Clean up: delete the project if role assignment fails
+    await serviceClient.from('projects').delete().eq('id', data.id)
+    return error('Failed to assign admin role', 500)
+  }
+
   return success(data, 201)
 }
