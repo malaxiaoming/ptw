@@ -8,9 +8,19 @@
       "Bash(gh auth:*)",
       "Bash(npx create-next-app@latest:*)",
       "Bash(npm install:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
       "Bash(timeout 15 npm run:*)",
       "Bash(ls:*)",
-      "Bash(npx vitest:*)"
+      "Bash(npx vitest:*)",
+      "Bash(npm run:*)",
+      "Bash(npm test:*)",
+      "Bash(npm ls:*)",
+      "Bash(npx supabase:*)",
+      "Bash(npx tsc:*)",
+      "Bash(wc:*)",
+      "Bash(grep:*)",
+      "Bash(python:*)"
     ]
   }
 }

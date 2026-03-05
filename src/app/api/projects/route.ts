@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     return error('name is required', 400)
   }
 
-  const { data, error: dbError } = await supabase
+  const { data, error: dbError } = await serviceClient
     .from('projects')
     .insert({
       organization_id: user.organization_id,
