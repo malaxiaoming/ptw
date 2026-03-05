@@ -18,20 +18,21 @@ export async function GET() {
   let adminAccess: boolean
   try {
     adminAccess = await isOrgAdmin(serviceClient, user.id, user.organization_id)
-    console.log('[users] isOrgAdmin result:', adminAccess, 'userId:', user.id, 'orgId:', user.organization_id)
-  } catch (e) {
-    console.log('[users] isOrgAdmin error:', e)
+  } catch {
     return error('Service unavailable', 503)
   }
   if (!adminAccess) return error('Admin access required', 403)
 
   const { data, error: dbError } = await supabase
     .from('user_profiles')
-    .select('id, email, phone, name, organization_id, created_at')
+    .select(`
+      id, email, phone, name, organization_id, created_at,
+      user_project_roles(id, role, project_id, projects(id, name))
+    `)
     .eq('organization_id', user.organization_id)
     .order('name', { ascending: true })
 
   if (dbError) return error(dbError.message, 500)
 
-  return success(data)
+  return success({ users: data, isAdmin: true })
 }

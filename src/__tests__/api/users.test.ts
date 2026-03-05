@@ -33,18 +33,42 @@ function makeRequest(url: string, options?: ConstructorParameters<typeof NextReq
 }
 
 /**
- * Build the admin-check chain for isOrgAdmin:
- * .select(...).eq(...).eq(...).eq(...).limit(1) → resolves with data
+ * Build a service client mock that handles isOrgAdmin's two-step query:
+ *  1. from('projects').select('id').eq('organization_id', orgId) → project list
+ *  2. from('user_project_roles').select('id').eq(...).eq(...).in(...).limit(1) → admin check
+ *
+ * When hasAdmin=false, projects returns [] so isOrgAdmin short-circuits without
+ * hitting user_project_roles.
  */
-function makeIsOrgAdminChain(hasAdmin: boolean) {
-  const adminData = hasAdmin
-    ? [{ role: 'admin', projects: { organization_id: 'org-1' } }]
-    : []
-  return {
+function makeIsOrgAdminServiceClient(hasAdmin: boolean) {
+  const projectsChain = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockResolvedValue({
+      data: hasAdmin ? [{ id: 'proj-1' }] : [],
+      error: null,
+    }),
+  }
+
+  const rolesChain = {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockResolvedValue({ data: adminData, error: null }),
+    in: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockResolvedValue({
+      data: hasAdmin ? [{ id: 'role-1' }] : [],
+      error: null,
+    }),
   }
+
+  return vi.fn().mockImplementation((table: string) => {
+    if (table === 'projects') return projectsChain
+    if (table === 'user_project_roles') return rolesChain
+    // Fallback for other tables (e.g. user_profiles in invite route)
+    return {
+      insert: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: null, error: { message: 'unexpected call' } }),
+    }
+  })
 }
 
 // ─── GET /api/users ──────────────────────────────────────────────────────────
@@ -71,9 +95,9 @@ describe('GET /api/users', () => {
   it('returns 403 if user is not admin', async () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
 
-    mockCreateClient.mockResolvedValue({
-      from: vi.fn().mockReturnValue(makeIsOrgAdminChain(false)),
-    } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
+    mockCreateServiceClient.mockResolvedValue({
+      from: makeIsOrgAdminServiceClient(false),
+    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     const res = await getUsers()
     const body = await res.json()
@@ -85,11 +109,13 @@ describe('GET /api/users', () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
 
     const users = [
-      { id: 'user-1', email: 'admin@example.com', phone: null, name: 'Admin User', organization_id: 'org-1', created_at: '2024-01-01T00:00:00Z' },
-      { id: 'user-2', email: 'bob@example.com', phone: '91234567', name: 'Bob', organization_id: 'org-1', created_at: '2024-01-02T00:00:00Z' },
+      { id: 'user-1', email: 'admin@example.com', phone: null, name: 'Admin User', organization_id: 'org-1', created_at: '2024-01-01T00:00:00Z', user_project_roles: [] },
+      { id: 'user-2', email: 'bob@example.com', phone: '91234567', name: 'Bob', organization_id: 'org-1', created_at: '2024-01-02T00:00:00Z', user_project_roles: [] },
     ]
 
-    const adminCheckChain = makeIsOrgAdminChain(true)
+    mockCreateServiceClient.mockResolvedValue({
+      from: makeIsOrgAdminServiceClient(true),
+    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     const usersChain = {
       select: vi.fn().mockReturnThis(),
@@ -97,25 +123,23 @@ describe('GET /api/users', () => {
       order: vi.fn().mockResolvedValue({ data: users, error: null }),
     }
 
-    let fromCount = 0
     mockCreateClient.mockResolvedValue({
-      from: vi.fn().mockImplementation(() => {
-        fromCount++
-        return fromCount === 1 ? adminCheckChain : usersChain
-      }),
+      from: vi.fn().mockReturnValue(usersChain),
     } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
 
     const res = await getUsers()
     const body = await res.json()
     expect(res.status).toBe(200)
-    expect(body.data).toEqual(users)
+    expect(body.data).toEqual({ users, isAdmin: true })
     expect(usersChain.eq).toHaveBeenCalledWith('organization_id', 'org-1')
   })
 
   it('returns 500 on database error', async () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
 
-    const adminCheckChain = makeIsOrgAdminChain(true)
+    mockCreateServiceClient.mockResolvedValue({
+      from: makeIsOrgAdminServiceClient(true),
+    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     const usersChain = {
       select: vi.fn().mockReturnThis(),
@@ -123,12 +147,8 @@ describe('GET /api/users', () => {
       order: vi.fn().mockResolvedValue({ data: null, error: { message: 'DB failed' } }),
     }
 
-    let fromCount = 0
     mockCreateClient.mockResolvedValue({
-      from: vi.fn().mockImplementation(() => {
-        fromCount++
-        return fromCount === 1 ? adminCheckChain : usersChain
-      }),
+      from: vi.fn().mockReturnValue(usersChain),
     } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
 
     const res = await getUsers()
@@ -172,9 +192,10 @@ describe('POST /api/users/invite', () => {
   it('returns 403 if user is not admin', async () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
 
-    mockCreateClient.mockResolvedValue({
-      from: vi.fn().mockReturnValue(makeIsOrgAdminChain(false)),
-    } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
+    mockCreateServiceClient.mockResolvedValue({
+      from: makeIsOrgAdminServiceClient(false),
+      auth: { admin: { inviteUserByEmail: vi.fn(), deleteUser: vi.fn() } },
+    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     const req = makeRequest('http://localhost/api/users/invite', {
       method: 'POST',
@@ -190,9 +211,10 @@ describe('POST /api/users/invite', () => {
   it('returns 400 if email is missing', async () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
 
-    mockCreateClient.mockResolvedValue({
-      from: vi.fn().mockReturnValue(makeIsOrgAdminChain(true)),
-    } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
+    mockCreateServiceClient.mockResolvedValue({
+      from: makeIsOrgAdminServiceClient(true),
+      auth: { admin: { inviteUserByEmail: vi.fn(), deleteUser: vi.fn() } },
+    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     const req = makeRequest('http://localhost/api/users/invite', {
       method: 'POST',
@@ -208,9 +230,10 @@ describe('POST /api/users/invite', () => {
   it('returns 400 if name is missing', async () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
 
-    mockCreateClient.mockResolvedValue({
-      from: vi.fn().mockReturnValue(makeIsOrgAdminChain(true)),
-    } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
+    mockCreateServiceClient.mockResolvedValue({
+      from: makeIsOrgAdminServiceClient(true),
+      auth: { admin: { inviteUserByEmail: vi.fn(), deleteUser: vi.fn() } },
+    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     const req = makeRequest('http://localhost/api/users/invite', {
       method: 'POST',
@@ -226,9 +249,10 @@ describe('POST /api/users/invite', () => {
   it('returns 400 if JSON is malformed', async () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
 
-    mockCreateClient.mockResolvedValue({
-      from: vi.fn().mockReturnValue(makeIsOrgAdminChain(true)),
-    } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
+    mockCreateServiceClient.mockResolvedValue({
+      from: makeIsOrgAdminServiceClient(true),
+      auth: { admin: { inviteUserByEmail: vi.fn(), deleteUser: vi.fn() } },
+    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     const req = makeRequest('http://localhost/api/users/invite', {
       method: 'POST',
@@ -253,31 +277,28 @@ describe('POST /api/users/invite', () => {
       created_at: '2024-01-01T00:00:00Z',
     }
 
-    mockCreateClient.mockResolvedValue({
-      from: vi.fn().mockReturnValue(makeIsOrgAdminChain(true)),
-    } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
-
-    // Mock service role client for inviteUserByEmail and profile insert
     const insertChain = {
       insert: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: newProfile, error: null }),
     }
 
-    const serviceClient = {
-      auth: {
-        admin: {
-          inviteUserByEmail: vi.fn().mockResolvedValue({
-            data: { user: { id: 'new-auth-id' } },
-            error: null,
-          }),
-          deleteUser: vi.fn().mockResolvedValue({ error: null }),
-        },
-      },
-      from: vi.fn().mockReturnValue(insertChain),
-    }
+    const inviteUserByEmail = vi.fn().mockResolvedValue({
+      data: { user: { id: 'new-auth-id' } },
+      error: null,
+    })
 
-    mockCreateServiceClient.mockResolvedValue(serviceClient as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
+    const deleteUser = vi.fn().mockResolvedValue({ error: null })
+
+    const adminCheckFrom = makeIsOrgAdminServiceClient(true)
+
+    mockCreateServiceClient.mockResolvedValue({
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'user_profiles') return insertChain
+        return adminCheckFrom(table)
+      }),
+      auth: { admin: { inviteUserByEmail, deleteUser } },
+    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     const req = makeRequest('http://localhost/api/users/invite', {
       method: 'POST',
@@ -289,7 +310,7 @@ describe('POST /api/users/invite', () => {
 
     expect(res.status).toBe(201)
     expect(body.data).toEqual(newProfile)
-    expect(serviceClient.auth.admin.inviteUserByEmail).toHaveBeenCalledWith('new@test.com')
+    expect(inviteUserByEmail).toHaveBeenCalledWith('new@test.com')
     expect(insertChain.insert).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'new-auth-id',
@@ -301,15 +322,11 @@ describe('POST /api/users/invite', () => {
     )
   })
 
-  // Fix 4: error mapping for "already registered"
   it('returns 409 if inviteUserByEmail fails with "already registered"', async () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
 
-    mockCreateClient.mockResolvedValue({
-      from: vi.fn().mockReturnValue(makeIsOrgAdminChain(true)),
-    } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
-
-    const serviceClient = {
+    mockCreateServiceClient.mockResolvedValue({
+      from: makeIsOrgAdminServiceClient(true),
       auth: {
         admin: {
           inviteUserByEmail: vi.fn().mockResolvedValue({
@@ -318,9 +335,7 @@ describe('POST /api/users/invite', () => {
           }),
         },
       },
-    }
-
-    mockCreateServiceClient.mockResolvedValue(serviceClient as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
+    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     const req = makeRequest('http://localhost/api/users/invite', {
       method: 'POST',
@@ -336,11 +351,8 @@ describe('POST /api/users/invite', () => {
   it('returns 500 if inviteUserByEmail fails with a generic error', async () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
 
-    mockCreateClient.mockResolvedValue({
-      from: vi.fn().mockReturnValue(makeIsOrgAdminChain(true)),
-    } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
-
-    const serviceClient = {
+    mockCreateServiceClient.mockResolvedValue({
+      from: makeIsOrgAdminServiceClient(true),
       auth: {
         admin: {
           inviteUserByEmail: vi.fn().mockResolvedValue({
@@ -349,9 +361,7 @@ describe('POST /api/users/invite', () => {
           }),
         },
       },
-    }
-
-    mockCreateServiceClient.mockResolvedValue(serviceClient as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
+    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     const req = makeRequest('http://localhost/api/users/invite', {
       method: 'POST',
@@ -364,13 +374,8 @@ describe('POST /api/users/invite', () => {
     expect(body.error).toBe('Failed to send invitation')
   })
 
-  // Fix 4: rollback test — profile insert fails after auth user created
   it('returns 500 and rolls back auth user if profile insert fails', async () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
-
-    mockCreateClient.mockResolvedValue({
-      from: vi.fn().mockReturnValue(makeIsOrgAdminChain(true)),
-    } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
 
     const insertChain = {
       insert: vi.fn().mockReturnThis(),
@@ -380,7 +385,13 @@ describe('POST /api/users/invite', () => {
 
     const deleteUserMock = vi.fn().mockResolvedValue({ error: null })
 
-    const serviceClient = {
+    const adminCheckFrom = makeIsOrgAdminServiceClient(true)
+
+    mockCreateServiceClient.mockResolvedValue({
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'user_profiles') return insertChain
+        return adminCheckFrom(table)
+      }),
       auth: {
         admin: {
           inviteUserByEmail: vi.fn().mockResolvedValue({
@@ -390,10 +401,7 @@ describe('POST /api/users/invite', () => {
           deleteUser: deleteUserMock,
         },
       },
-      from: vi.fn().mockReturnValue(insertChain),
-    }
-
-    mockCreateServiceClient.mockResolvedValue(serviceClient as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
+    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     const req = makeRequest('http://localhost/api/users/invite', {
       method: 'POST',
@@ -405,7 +413,6 @@ describe('POST /api/users/invite', () => {
 
     expect(res.status).toBe(500)
     expect(body.error).toBe('Failed to create user profile')
-    // Rollback: deleteUser should have been called with the new auth user's ID
     expect(deleteUserMock).toHaveBeenCalledWith('new-auth-id')
   })
 })

@@ -4,6 +4,11 @@ vi.mock('@/app/login/actions', () => ({
   login: vi.fn(),
 }))
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),
+  useSearchParams: () => ({ get: vi.fn() }),
+}))
+
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
 import LoginPage from '@/app/login/page'
