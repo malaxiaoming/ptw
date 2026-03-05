@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/get-user'
 import { isOrgAdmin } from '@/lib/auth/check-admin'
 import { success, error } from '@/lib/api/response'
@@ -13,7 +13,6 @@ export async function GET(
 
   const { id } = await params
   if (!user.organization_id) return error('User has no organization', 403)
-  const supabase = await createServerSupabaseClient()
   const serviceClient = await createServiceRoleClient()
 
   // Single org-scoped admin check (service role bypasses RLS)
@@ -25,7 +24,7 @@ export async function GET(
   }
   if (!adminAccess) return error('Admin access required', 403)
 
-  const { data, error: dbError } = await supabase
+  const { data, error: dbError } = await serviceClient
     .from('projects')
     .select(`
       id, name, location, status, created_at,
@@ -52,7 +51,6 @@ export async function PATCH(
 
   const { id } = await params
   if (!user.organization_id) return error('User has no organization', 403)
-  const supabase = await createServerSupabaseClient()
   const serviceClient = await createServiceRoleClient()
 
   // Org-scoped admin check (service role bypasses RLS)
@@ -90,7 +88,7 @@ export async function PATCH(
     return error('No valid fields to update', 400)
   }
 
-  const { data, error: dbError } = await supabase
+  const { data, error: dbError } = await serviceClient
     .from('projects')
     .update(updates)
     .eq('id', id)
