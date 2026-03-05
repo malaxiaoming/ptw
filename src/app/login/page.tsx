@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { login } from './actions'
 import { isRedirectError } from 'next/dist/client/components/redirect-error'
@@ -8,6 +9,13 @@ import { isRedirectError } from 'next/dist/client/components/redirect-error'
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const router = useRouter()
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash.includes('type=recovery')) {
+      router.replace('/reset-password' + window.location.hash)
+    }
+  }, [router])
 
   async function handleSubmit(formData: FormData) {
     setLoading(true)
