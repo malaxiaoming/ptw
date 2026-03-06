@@ -164,7 +164,7 @@ describe('POST /api/users/invite', () => {
 
     mockCreateServiceClient.mockResolvedValue({
       from: vi.fn(),
-      auth: { admin: { createUser: vi.fn(), deleteUser: vi.fn() } },
+      auth: { admin: { inviteUserByEmail: vi.fn(), deleteUser: vi.fn() } },
     } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     const req = makeRequest('http://localhost/api/users/invite', {
@@ -183,7 +183,7 @@ describe('POST /api/users/invite', () => {
 
     mockCreateServiceClient.mockResolvedValue({
       from: vi.fn(),
-      auth: { admin: { createUser: vi.fn(), deleteUser: vi.fn() } },
+      auth: { admin: { inviteUserByEmail: vi.fn(), deleteUser: vi.fn() } },
     } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     const req = makeRequest('http://localhost/api/users/invite', {
@@ -202,7 +202,7 @@ describe('POST /api/users/invite', () => {
 
     mockCreateServiceClient.mockResolvedValue({
       from: vi.fn(),
-      auth: { admin: { createUser: vi.fn(), deleteUser: vi.fn() } },
+      auth: { admin: { inviteUserByEmail: vi.fn(), deleteUser: vi.fn() } },
     } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     const req = makeRequest('http://localhost/api/users/invite', {
@@ -234,7 +234,7 @@ describe('POST /api/users/invite', () => {
       single: vi.fn().mockResolvedValue({ data: newProfile, error: null }),
     }
 
-    const createUser = vi.fn().mockResolvedValue({
+    const inviteUserByEmail = vi.fn().mockResolvedValue({
       data: { user: { id: 'new-auth-id' } },
       error: null,
     })
@@ -243,7 +243,7 @@ describe('POST /api/users/invite', () => {
 
     mockCreateServiceClient.mockResolvedValue({
       from: vi.fn().mockReturnValue(insertChain),
-      auth: { admin: { createUser, deleteUser } },
+      auth: { admin: { inviteUserByEmail, deleteUser } },
     } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     const req = makeRequest('http://localhost/api/users/invite', {
@@ -256,7 +256,7 @@ describe('POST /api/users/invite', () => {
 
     expect(res.status).toBe(201)
     expect(body.data).toEqual(newProfile)
-    expect(createUser).toHaveBeenCalledWith({ email: 'new@test.com', email_confirm: true })
+    expect(inviteUserByEmail).toHaveBeenCalledWith('new@test.com')
     expect(insertChain.insert).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'new-auth-id',
@@ -268,14 +268,14 @@ describe('POST /api/users/invite', () => {
     )
   })
 
-  it('returns 409 if createUser fails with "already registered"', async () => {
+  it('returns 409 if inviteUserByEmail fails with "already registered"', async () => {
     mockGetCurrentUser.mockResolvedValue(mockAdminUser)
 
     mockCreateServiceClient.mockResolvedValue({
       from: vi.fn(),
       auth: {
         admin: {
-          createUser: vi.fn().mockResolvedValue({
+          inviteUserByEmail: vi.fn().mockResolvedValue({
             data: null,
             error: { message: 'User already registered' },
           }),
@@ -294,14 +294,14 @@ describe('POST /api/users/invite', () => {
     expect(body.error).toBe('A user with this email already exists')
   })
 
-  it('returns 500 if createUser fails with a generic error', async () => {
+  it('returns 500 if inviteUserByEmail fails with a generic error', async () => {
     mockGetCurrentUser.mockResolvedValue(mockAdminUser)
 
     mockCreateServiceClient.mockResolvedValue({
       from: vi.fn(),
       auth: {
         admin: {
-          createUser: vi.fn().mockResolvedValue({
+          inviteUserByEmail: vi.fn().mockResolvedValue({
             data: null,
             error: { message: 'Internal server error' },
           }),
@@ -317,7 +317,7 @@ describe('POST /api/users/invite', () => {
     const res = await inviteUser(req)
     const body = await res.json()
     expect(res.status).toBe(500)
-    expect(body.error).toBe('Failed to create user: Internal server error')
+    expect(body.error).toBe('Failed to invite user: Internal server error')
   })
 
   it('returns 500 and rolls back auth user if profile insert fails', async () => {
@@ -335,7 +335,7 @@ describe('POST /api/users/invite', () => {
       from: vi.fn().mockReturnValue(insertChain),
       auth: {
         admin: {
-          createUser: vi.fn().mockResolvedValue({
+          inviteUserByEmail: vi.fn().mockResolvedValue({
             data: { user: { id: 'new-auth-id' } },
             error: null,
           }),
