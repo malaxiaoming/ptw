@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/get-user'
+import { isOrgAdmin } from '@/lib/auth/check-admin'
 import { getUserRolesForProject } from '@/lib/auth/get-user-roles'
 import { canPerformActionWithRoles } from '@/lib/auth/permissions'
 import { success, error } from '@/lib/api/response'
@@ -14,13 +15,25 @@ export async function GET(request: NextRequest) {
   const status = request.nextUrl.searchParams.get('status')
   const permitTypeId = request.nextUrl.searchParams.get('permit_type_id')
 
-  // Fetch projects user has access to first
-  const { data: userRoles } = await supabase
-    .from('user_project_roles')
-    .select('project_id')
-    .eq('user_id', user.id)
+  let accessibleProjectIds: string[]
 
-  const accessibleProjectIds = (userRoles ?? []).map((r) => r.project_id)
+  if (isOrgAdmin(user) && user.organization_id) {
+    // Admin sees all permits in their org's projects
+    const serviceClient = await createServiceRoleClient()
+    const { data: orgProjects } = await serviceClient
+      .from('projects')
+      .select('id')
+      .eq('organization_id', user.organization_id)
+    accessibleProjectIds = (orgProjects ?? []).map((p) => p.id)
+  } else {
+    // Non-admin: only projects with active roles
+    const { data: userRoles } = await supabase
+      .from('user_project_roles')
+      .select('project_id')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+    accessibleProjectIds = (userRoles ?? []).map((r) => r.project_id)
+  }
 
   // If no project memberships, return empty list
   if (accessibleProjectIds.length === 0) return success([])

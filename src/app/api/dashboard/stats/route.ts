@@ -13,6 +13,7 @@ export async function GET() {
     .from('user_project_roles')
     .select('project_id, role')
     .eq('user_id', user.id)
+    .eq('is_active', true)
 
   if (rolesError) return error(rolesError.message, 500)
 

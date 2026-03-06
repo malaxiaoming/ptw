@@ -11,22 +11,15 @@ export async function GET() {
     return success([])
   }
 
-  const serviceClient = await createServiceRoleClient()
+  if (!isOrgAdmin(user)) return error('Admin access required', 403)
 
-  // Org-scoped admin check (service role bypasses RLS)
-  let adminAccess: boolean
-  try {
-    adminAccess = await isOrgAdmin(serviceClient, user.id, user.organization_id)
-  } catch {
-    return error('Service unavailable', 503)
-  }
-  if (!adminAccess) return error('Admin access required', 403)
+  const serviceClient = await createServiceRoleClient()
 
   const { data, error: dbError } = await serviceClient
     .from('user_profiles')
     .select(`
-      id, email, phone, name, organization_id, created_at,
-      user_project_roles(id, role, project_id, projects(id, name))
+      id, email, phone, name, organization_id, is_admin, created_at,
+      user_project_roles(id, role, is_active, project_id, projects(id, name))
     `)
     .eq('organization_id', user.organization_id)
     .order('name', { ascending: true })

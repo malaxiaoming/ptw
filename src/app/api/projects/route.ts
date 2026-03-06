@@ -8,17 +8,26 @@ export async function GET() {
   const user = await getCurrentUser()
   if (!user) return error('Unauthorized', 401)
 
-  if (!user.organization_id) {
-    return success([])
-  }
-
   const serviceClient = await createServiceRoleClient()
 
-  // Return projects the user has any role in (accessible projects)
+  // Admin sees all org projects; non-admin sees only projects they have roles on
+  if (isOrgAdmin(user)) {
+    const { data, error: dbError } = await serviceClient
+      .from('projects')
+      .select('id, name, location, status, created_at')
+      .eq('organization_id', user.organization_id!)
+      .order('name', { ascending: true })
+
+    if (dbError) return error(dbError.message, 500)
+    return success(data)
+  }
+
+  // Non-admin: return projects user has active roles on
   const { data: roleRows, error: rolesError } = await serviceClient
     .from('user_project_roles')
     .select('project_id')
     .eq('user_id', user.id)
+    .eq('is_active', true)
 
   if (rolesError) return error(rolesError.message, 500)
 
@@ -47,15 +56,9 @@ export async function POST(request: NextRequest) {
     return error('User has no organization', 403)
   }
 
-  // Admin check: user must have admin role in at least one project in their org
+  if (!isOrgAdmin(user)) return error('Admin access required', 403)
+
   const serviceClient = await createServiceRoleClient()
-  let adminAccess: boolean
-  try {
-    adminAccess = await isOrgAdmin(serviceClient, user.id, user.organization_id!)
-  } catch {
-    return error('Service unavailable', 503)
-  }
-  if (!adminAccess) return error('Admin access required', 403)
 
   let body: Record<string, unknown>
   try {
@@ -80,21 +83,6 @@ export async function POST(request: NextRequest) {
     .single()
 
   if (dbError) return error(dbError.message, 500)
-
-  // Assign creator as admin on the new project
-  const { error: roleError } = await serviceClient
-    .from('user_project_roles')
-    .insert({
-      user_id: user.id,
-      project_id: data.id,
-      role: 'admin',
-    })
-
-  if (roleError) {
-    // Clean up: delete the project if role assignment fails
-    await serviceClient.from('projects').delete().eq('id', data.id)
-    return error('Failed to assign admin role', 500)
-  }
 
   return success(data, 201)
 }

@@ -23,6 +23,7 @@ const mockUser = {
   phone: null,
   name: 'Test User',
   organization_id: 'org-1',
+  is_admin: false,
   created_at: '2024-01-01T00:00:00Z',
 }
 
@@ -43,15 +44,21 @@ function makeFullChain(result: { data: unknown; error: unknown }) {
 }
 
 /**
- * Builds a roles query chain — resolves at the first .eq() call.
- * The route does:  .select('project_id, role').eq('user_id', user.id)
- * Since there is only one .eq() call, it resolves directly.
+ * Builds a roles query chain — resolves at the second .eq() call.
+ * The route does:  .select('project_id, role').eq('user_id', user.id).eq('is_active', true)
  */
 function makeRolesChain(result: { data: unknown; error: unknown }) {
-  return {
+  const chain = {
     select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockResolvedValue(result),
+    eq: vi.fn().mockReturnThis(),
   }
+  let eqCount = 0
+  chain.eq.mockImplementation(() => {
+    eqCount++
+    if (eqCount === 2) return Promise.resolve(result)
+    return chain
+  })
+  return chain
 }
 
 /**

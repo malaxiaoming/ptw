@@ -1,4 +1,4 @@
-export type Role = 'applicant' | 'verifier' | 'approver' | 'admin'
+export type Role = 'applicant' | 'verifier' | 'approver'
 
 export type Action =
   | 'create_permit'
@@ -13,10 +13,6 @@ export type Action =
   | 'verify_closure'
   | 'return_closure'
   | 'view_permits'
-  | 'manage_users'
-  | 'manage_projects'
-  | 'manage_permit_types'
-  | 'manage_workers'
   | 'view_dashboard'
 
 export const ROLE_PERMISSIONS: Record<Role, Action[]> = {
@@ -26,7 +22,6 @@ export const ROLE_PERMISSIONS: Record<Role, Action[]> = {
     'submit_permit',
     'submit_closure',
     'view_permits',
-    'manage_workers',
     'view_dashboard',
   ],
   verifier: [
@@ -41,14 +36,6 @@ export const ROLE_PERMISSIONS: Record<Role, Action[]> = {
     'approve_permit',
     'reject_permit',
     'revoke_permit',
-    'view_permits',
-    'view_dashboard',
-  ],
-  admin: [
-    'manage_users',
-    'manage_projects',
-    'manage_permit_types',
-    'manage_workers',
     'view_permits',
     'view_dashboard',
   ],
