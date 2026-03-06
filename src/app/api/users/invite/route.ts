@@ -31,7 +31,10 @@ export async function POST(request: NextRequest) {
   }
 
   // Send invite email via Supabase (uses configured SMTP — noreply@clawforge.online)
-  const { data: authData, error: inviteError } = await serviceClient.auth.admin.inviteUserByEmail(body.email)
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://ptw-iota.vercel.app'
+  const { data: authData, error: inviteError } = await serviceClient.auth.admin.inviteUserByEmail(body.email, {
+    redirectTo: `${siteUrl}/auth/callback`,
+  })
 
   if (inviteError) {
     const msg = inviteError.message ?? ''

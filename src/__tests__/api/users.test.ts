@@ -256,7 +256,9 @@ describe('POST /api/users/invite', () => {
 
     expect(res.status).toBe(201)
     expect(body.data).toEqual(newProfile)
-    expect(inviteUserByEmail).toHaveBeenCalledWith('new@test.com')
+    expect(inviteUserByEmail).toHaveBeenCalledWith('new@test.com', {
+      redirectTo: 'https://ptw-iota.vercel.app/auth/callback',
+    })
     expect(insertChain.insert).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'new-auth-id',
