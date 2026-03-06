@@ -34,10 +34,11 @@ export async function POST(request: NextRequest) {
   const { data: authData, error: inviteError } = await serviceClient.auth.admin.inviteUserByEmail(body.email)
 
   if (inviteError) {
-    if (inviteError.message.includes('already registered')) {
+    const msg = inviteError.message ?? ''
+    if (msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('already been registered')) {
       return error('A user with this email already exists', 409)
     }
-    return error('Failed to send invitation', 500)
+    return error(`Failed to send invitation: ${msg}`, 500)
   }
 
   // Create user_profiles record
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
   if (profileError) {
     // Rollback: delete the auth user to prevent orphan
     await serviceClient.auth.admin.deleteUser(newUserId)
-    return error('Failed to create user profile', 500)
+    return error(`Failed to create user profile: ${profileError.message}`, 500)
   }
 
   return success(profile, 201)
