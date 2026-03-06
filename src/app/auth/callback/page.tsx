@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import type { EmailOtpType } from '@supabase/supabase-js'
 
 export default function AuthCallbackPage() {
   const [error, setError] = useState<string | null>(null)
@@ -10,8 +11,23 @@ export default function AuthCallbackPage() {
   const supabase = createClient()
 
   useEffect(() => {
-    // Handle PKCE flow: if ?code= exists, exchange it server-side style
     const params = new URLSearchParams(window.location.search)
+
+    // 1. Handle OTP/invite flow: ?token_hash= present
+    const tokenHash = params.get('token_hash')
+    const type = params.get('type') as EmailOtpType | null
+    if (tokenHash) {
+      supabase.auth.verifyOtp({ token_hash: tokenHash, type: type || 'invite' }).then(({ error }) => {
+        if (error) {
+          router.replace('/login?error=auth_callback_error')
+        } else {
+          router.replace('/reset-password')
+        }
+      })
+      return
+    }
+
+    // 2. Handle PKCE flow: ?code= present
     const code = params.get('code')
     if (code) {
       supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
@@ -24,7 +40,7 @@ export default function AuthCallbackPage() {
       return
     }
 
-    // Handle implicit flow: hash fragment contains #error=...
+    // 3. Handle implicit flow error: #error=...
     const hash = window.location.hash.substring(1)
     if (hash) {
       const hashParams = new URLSearchParams(hash)
@@ -32,17 +48,29 @@ export default function AuthCallbackPage() {
         router.replace('/login?error=auth_callback_error')
         return
       }
+
+      // 4. Handle implicit flow token: #access_token=...
+      const accessToken = hashParams.get('access_token')
+      const refreshToken = hashParams.get('refresh_token')
+      if (accessToken && refreshToken) {
+        supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken }).then(({ error }) => {
+          if (error) {
+            router.replace('/login?error=auth_callback_error')
+          } else {
+            router.replace('/reset-password')
+          }
+        })
+        return
+      }
     }
 
-    // Implicit flow: @supabase/ssr auto-detects #access_token=... and calls setSession
-    // Listen for the auth state change event
+    // 5. Fallback: listen for auth state change + timeout
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         router.replace('/reset-password')
       }
     })
 
-    // Timeout: if no auth event fires within 5 seconds, redirect to login
     const timeout = setTimeout(() => {
       setError('Unable to process authentication. The link may have expired.')
       setTimeout(() => {
