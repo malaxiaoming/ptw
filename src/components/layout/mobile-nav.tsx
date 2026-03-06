@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Menu, X } from 'lucide-react'
 import { ALL_NAV_ITEMS } from '@/lib/nav-items'
+import { LogoutButton } from './logout-button'
 
 export function MobileMenuButton() {
   const [open, setOpen] = useState(false)
@@ -71,6 +72,9 @@ export function MobileMenuButton() {
               </Link>
             )
           })}
+        </div>
+        <div className="px-3 py-3 border-t border-gray-700">
+          <LogoutButton />
         </div>
       </nav>
     </>

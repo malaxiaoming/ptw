@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { getCurrentUser } from '@/lib/auth/get-user'
 import { NAV_ITEMS, ADMIN_NAV_ITEMS, type NavItem } from '@/lib/nav-items'
 import { NotificationBell } from '@/components/notifications/notification-bell'
+import { LogoutButton } from './logout-button'
 
 export async function Sidebar() {
   const user = await getCurrentUser()
@@ -42,6 +43,7 @@ export async function Sidebar() {
             </div>
             <NotificationBell />
           </div>
+          <LogoutButton className="flex items-center gap-3 px-0 py-2 mt-2 text-sm text-gray-400 hover:text-white transition-colors w-full" />
         </div>
       )}
     </aside>
