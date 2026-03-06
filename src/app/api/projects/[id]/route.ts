@@ -13,15 +13,9 @@ export async function DELETE(
 
   const { id } = await params
   if (!user.organization_id) return error('User has no organization', 403)
-  const serviceClient = await createServiceRoleClient()
+  if (!isOrgAdmin(user)) return error('Admin access required', 403)
 
-  let adminAccess: boolean
-  try {
-    adminAccess = await isOrgAdmin(serviceClient, user.id, user.organization_id)
-  } catch {
-    return error('Service unavailable', 503)
-  }
-  if (!adminAccess) return error('Admin access required', 403)
+  const serviceClient = await createServiceRoleClient()
 
   // Check project belongs to user's org
   const { data: project, error: projectError } = await serviceClient
@@ -64,23 +58,16 @@ export async function GET(
 
   const { id } = await params
   if (!user.organization_id) return error('User has no organization', 403)
-  const serviceClient = await createServiceRoleClient()
+  if (!isOrgAdmin(user)) return error('Admin access required', 403)
 
-  // Single org-scoped admin check (service role bypasses RLS)
-  let adminAccess: boolean
-  try {
-    adminAccess = await isOrgAdmin(serviceClient, user.id, user.organization_id)
-  } catch {
-    return error('Service unavailable', 503)
-  }
-  if (!adminAccess) return error('Admin access required', 403)
+  const serviceClient = await createServiceRoleClient()
 
   const { data, error: dbError } = await serviceClient
     .from('projects')
     .select(`
       id, name, location, status, created_at,
       user_project_roles(
-        id, user_id, role,
+        id, user_id, role, is_active,
         user_profiles(id, name, email)
       )
     `)
@@ -102,16 +89,9 @@ export async function PATCH(
 
   const { id } = await params
   if (!user.organization_id) return error('User has no organization', 403)
-  const serviceClient = await createServiceRoleClient()
+  if (!isOrgAdmin(user)) return error('Admin access required', 403)
 
-  // Org-scoped admin check (service role bypasses RLS)
-  let adminAccess: boolean
-  try {
-    adminAccess = await isOrgAdmin(serviceClient, user.id, user.organization_id)
-  } catch {
-    return error('Service unavailable', 503)
-  }
-  if (!adminAccess) return error('Admin access required', 403)
+  const serviceClient = await createServiceRoleClient()
 
   let body: Record<string, unknown>
   try {

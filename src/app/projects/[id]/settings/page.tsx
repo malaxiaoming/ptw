@@ -8,12 +8,14 @@ interface UserProfile {
   id: string
   name: string
   email: string | null
+  organization_id: string | null
 }
 
 interface RoleAssignment {
   id: string
   user_id: string
   role: string
+  is_active: boolean
   user_profiles: UserProfile | null
 }
 
@@ -30,14 +32,13 @@ interface OrgUser {
   email: string | null
 }
 
-const VALID_ROLES = ['applicant', 'verifier', 'approver', 'admin'] as const
+const VALID_ROLES = ['applicant', 'verifier', 'approver'] as const
 type Role = typeof VALID_ROLES[number]
 
 const ROLE_LABELS: Record<Role, string> = {
   applicant: 'Applicant',
   verifier: 'Verifier',
   approver: 'Approver',
-  admin: 'Admin',
 }
 
 export default function ProjectSettingsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -66,6 +67,9 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ id: 
 
   // Remove role state
   const [removingId, setRemovingId] = useState<string | null>(null)
+
+  // Toggle active state
+  const [togglingId, setTogglingId] = useState<string | null>(null)
 
   // Delete project state
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -165,6 +169,32 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ id: 
       setAddRoleError('Failed to add role')
     } finally {
       setAddingRole(false)
+    }
+  }
+
+  async function handleToggleActive(assignment: RoleAssignment) {
+    setTogglingId(assignment.id)
+    try {
+      const res = await fetch(`/api/projects/${id}/roles`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: assignment.user_id,
+          role: assignment.role,
+          is_active: !assignment.is_active,
+        }),
+      })
+      if (res.ok) {
+        setRoles((prev) =>
+          prev.map((r) =>
+            r.id === assignment.id ? { ...r, is_active: !r.is_active } : r
+          )
+        )
+      }
+    } catch {
+      // silently ignore
+    } finally {
+      setTogglingId(null)
     }
   }
 
@@ -345,7 +375,7 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ id: 
         ) : (
           <ul className="divide-y divide-gray-100">
             {roles.map((assignment) => (
-              <li key={assignment.id} className="px-5 py-3 flex items-center justify-between">
+              <li key={assignment.id} className={`px-5 py-3 flex items-center justify-between ${!assignment.is_active ? 'opacity-50' : ''}`}>
                 <div>
                   <p className="text-sm font-medium text-gray-900">
                     {assignment.user_profiles?.name ?? 'Unknown User'}
@@ -356,6 +386,22 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ id: 
                   <span className="text-xs font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
                     {ROLE_LABELS[assignment.role as Role] ?? assignment.role}
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleActive(assignment)}
+                    disabled={togglingId === assignment.id}
+                    className={`text-xs px-2 py-0.5 rounded ${
+                      assignment.is_active
+                        ? 'text-amber-700 bg-amber-50 hover:bg-amber-100'
+                        : 'text-green-700 bg-green-50 hover:bg-green-100'
+                    } disabled:opacity-50`}
+                  >
+                    {togglingId === assignment.id
+                      ? '...'
+                      : assignment.is_active
+                        ? 'Disable'
+                        : 'Enable'}
+                  </button>
                   <button
                     type="button"
                     onClick={() => handleRemoveRole(assignment)}

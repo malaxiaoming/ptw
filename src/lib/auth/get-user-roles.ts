@@ -17,6 +17,7 @@ export async function getUserRolesForProject(
     .select('role')
     .eq('user_id', userId)
     .eq('project_id', projectId)
+    .eq('is_active', true)
 
   if (error) {
     throw new Error(`Failed to fetch user roles: ${error.message}`)
