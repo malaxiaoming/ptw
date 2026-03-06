@@ -30,15 +30,18 @@ export async function POST(request: NextRequest) {
     return error('name is required', 400)
   }
 
-  // Use service role client to invite user
-  const { data: authData, error: inviteError } = await serviceClient.auth.admin.inviteUserByEmail(body.email)
+  // Create auth user directly (no invite email needed — user sets password via "Forgot Password")
+  const { data: authData, error: createError } = await serviceClient.auth.admin.createUser({
+    email: body.email,
+    email_confirm: true,
+  })
 
-  if (inviteError) {
-    const msg = inviteError.message ?? ''
-    if (msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('already been registered')) {
+  if (createError) {
+    const msg = createError.message ?? ''
+    if (msg.toLowerCase().includes('already') && msg.toLowerCase().includes('registered')) {
       return error('A user with this email already exists', 409)
     }
-    return error(`Failed to send invitation: ${msg}`, 500)
+    return error(`Failed to create user: ${msg}`, 500)
   }
 
   // Create user_profiles record
