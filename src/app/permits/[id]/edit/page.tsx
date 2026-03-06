@@ -258,6 +258,7 @@ export default function EditPermitPage({ params }: { params: Promise<{ id: strin
               template={permit.permit_types.checklist_template}
               data={checklistData}
               onChange={setChecklistData}
+              permitId={id}
             />
           </div>
         ) : null}

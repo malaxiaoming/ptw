@@ -1,15 +1,17 @@
 'use client'
 
 import { type ChecklistTemplate, type ChecklistField } from '@/lib/permits/checklist-validation'
+import { ChecklistPhotoField } from './checklist-photo-field'
 
 interface ChecklistFormProps {
   template: ChecklistTemplate
   data: Record<string, unknown>
   onChange: (data: Record<string, unknown>) => void
+  permitId?: string
   disabled?: boolean
 }
 
-export function ChecklistForm({ template, data, onChange, disabled }: ChecklistFormProps) {
+export function ChecklistForm({ template, data, onChange, permitId, disabled }: ChecklistFormProps) {
   function updateField(fieldId: string, value: unknown) {
     onChange({ ...data, [fieldId]: value })
   }
@@ -26,6 +28,7 @@ export function ChecklistForm({ template, data, onChange, disabled }: ChecklistF
                 field={field}
                 value={data[field.id]}
                 onChange={(value) => updateField(field.id, value)}
+                permitId={permitId}
                 disabled={disabled}
               />
             ))}
@@ -40,10 +43,11 @@ interface ChecklistFieldInputProps {
   field: ChecklistField
   value: unknown
   onChange: (value: unknown) => void
+  permitId?: string
   disabled?: boolean
 }
 
-function ChecklistFieldInput({ field, value, onChange, disabled }: ChecklistFieldInputProps) {
+function ChecklistFieldInput({ field, value, onChange, permitId, disabled }: ChecklistFieldInputProps) {
   switch (field.type) {
     case 'checkbox':
       return (
@@ -123,16 +127,13 @@ function ChecklistFieldInput({ field, value, onChange, disabled }: ChecklistFiel
 
     case 'photo':
       return (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            {field.label}
-            {field.required && <span className="text-red-500 ml-1">*</span>}
-          </label>
-          <p className="text-sm text-gray-500 italic">
-            Photo upload is available on the Attachments tab.
-            {field.required && ' (Required)'}
-          </p>
-        </div>
+        <ChecklistPhotoField
+          field={field}
+          value={value}
+          onChange={onChange}
+          permitId={permitId}
+          disabled={disabled}
+        />
       )
 
     default:

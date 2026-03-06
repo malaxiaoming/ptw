@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ChecklistForm } from '@/components/permits/checklist-form'
 import { PersonnelPicker } from '@/components/permits/personnel-picker'
 import type { ChecklistTemplate, PersonnelEntry } from '@/lib/permits/checklist-validation'
+import { compressImage } from '@/lib/utils/image-compression'
 
 interface Project {
   id: string
@@ -125,11 +126,35 @@ export default function NewPermitPage() {
 
       const newPermitId = createJson.data.id
 
+      // Upload any staged photo files and replace File[] with attachment ID[]
+      const finalChecklistData = { ...checklistData }
+      for (const [fieldId, fieldValue] of Object.entries(finalChecklistData)) {
+        if (!Array.isArray(fieldValue)) continue
+        const files = fieldValue.filter((v): v is File => v instanceof File)
+        if (files.length === 0) continue
+
+        const attachmentIds: string[] = fieldValue.filter((v): v is string => typeof v === 'string')
+        for (const file of files) {
+          const compressed = await compressImage(file)
+          const formData = new FormData()
+          formData.append('file', compressed)
+          const uploadRes = await fetch(`/api/permits/${newPermitId}/attachments`, {
+            method: 'POST',
+            body: formData,
+          })
+          const uploadJson = await uploadRes.json()
+          if (uploadRes.ok && uploadJson.data?.id) {
+            attachmentIds.push(uploadJson.data.id)
+          }
+        }
+        finalChecklistData[fieldId] = attachmentIds
+      }
+
       // Then patch with optional fields if they are set
       const patchBody: Record<string, unknown> = {}
       if (scheduledStart) patchBody.scheduled_start = scheduledStart
       if (scheduledEnd) patchBody.scheduled_end = scheduledEnd
-      if (Object.keys(checklistData).length > 0) patchBody.checklist_data = checklistData
+      if (Object.keys(finalChecklistData).length > 0) patchBody.checklist_data = finalChecklistData
       if (personnel.length > 0) patchBody.personnel = personnel
 
       if (Object.keys(patchBody).length > 0) {
@@ -403,7 +428,7 @@ export default function NewPermitPage() {
             disabled={submitting || !canProceedStep3()}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {submitting ? 'Creating...' : 'Create Permit'}
+            {submitting ? 'Creating permit...' : 'Create Permit'}
           </button>
         )}
       </div>
