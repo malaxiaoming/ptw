@@ -28,7 +28,7 @@ export async function GET() {
 
   if (dbError) return error(dbError.message, 500)
 
-  return success({ users: data, isAdmin: true })
+  return success({ users: data, isAdmin: true, currentUserId: user.id })
 }
 
 export async function PATCH(req: NextRequest) {

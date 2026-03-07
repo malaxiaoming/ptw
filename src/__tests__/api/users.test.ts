@@ -95,7 +95,7 @@ describe('GET /api/users', () => {
     const res = await getUsers()
     const body = await res.json()
     expect(res.status).toBe(200)
-    expect(body.data).toEqual({ users, isAdmin: true })
+    expect(body.data).toEqual({ users, isAdmin: true, currentUserId: 'admin-1' })
     expect(usersChain.eq).toHaveBeenCalledWith('organization_id', 'org-1')
   })
 

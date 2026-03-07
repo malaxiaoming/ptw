@@ -8,11 +8,18 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 
+interface ProjectRole {
+  role: string
+  is_active: boolean
+  projects: { id: string; name: string }
+}
+
 export default function SettingsPage() {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
   const [orgName, setOrgName] = useState('')
+  const [projectRoles, setProjectRoles] = useState<ProjectRole[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [savingOrg, setSavingOrg] = useState(false)
@@ -28,6 +35,7 @@ export default function SettingsPage() {
         setName(profileJson.data?.name ?? '')
         setPhone(profileJson.data?.phone ?? '')
         setIsAdmin(profileJson.data?.is_admin ?? false)
+        setProjectRoles(profileJson.data?.project_roles ?? [])
         setOrgName(orgJson.data?.name ?? '')
         setLoading(false)
       })
@@ -134,6 +142,21 @@ export default function SettingsPage() {
           </form>
         </CardContent>
       </Card>
+      {projectRoles.length > 0 && (
+        <Card>
+          <CardContent>
+            <h2 className="text-base font-semibold text-gray-900 mb-4">My Project Roles</h2>
+            <div className="space-y-2">
+              {projectRoles.map((r, i) => (
+                <div key={i} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md">
+                  <span className="text-sm font-medium text-gray-900">{r.projects?.name}</span>
+                  <span className="text-xs px-2 py-0.5 bg-primary-50 text-primary-700 rounded-full">{r.role}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

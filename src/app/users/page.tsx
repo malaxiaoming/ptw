@@ -37,6 +37,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<UserProfile[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [isAdmin, setIsAdmin] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [accessDenied, setAccessDenied] = useState(false)
@@ -63,6 +64,7 @@ export default function UsersPage() {
       } else {
         setUsers(usersJson.data?.users ?? [])
         setIsAdmin(usersJson.data?.isAdmin ?? false)
+        setCurrentUserId(usersJson.data?.currentUserId ?? null)
       }
 
       if (projectsRes.ok) {
@@ -173,7 +175,7 @@ export default function UsersPage() {
                   <p className="text-sm text-gray-500">{u.email}</p>
                   {u.phone && <p className="text-sm text-gray-500">{u.phone}</p>}
                 </div>
-                {isAdmin && (
+                {isAdmin && u.id !== currentUserId && (
                   <button
                     onClick={() => handleToggleActive(u.id, u.is_active !== false)}
                     disabled={togglingUserId === u.id}

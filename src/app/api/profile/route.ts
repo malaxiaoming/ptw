@@ -6,7 +6,15 @@ import { success, error } from '@/lib/api/response'
 export async function GET() {
   const user = await getCurrentUser()
   if (!user) return error('Unauthorized', 401)
-  return success(user)
+
+  const supabase = await createServerSupabaseClient()
+  const { data: roles } = await supabase
+    .from('user_project_roles')
+    .select('role, is_active, projects(id, name)')
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+
+  return success({ ...user, project_roles: roles ?? [] })
 }
 
 export async function PATCH(request: NextRequest) {
