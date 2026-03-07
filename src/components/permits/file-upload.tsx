@@ -23,6 +23,7 @@ export function FileUpload({ permitId, attachments, onUploadComplete, disabled }
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fetchedAttachments, setFetchedAttachments] = useState<Attachment[] | null>(null)
+  const [loadingAttachments, setLoadingAttachments] = useState(true)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const loadAttachments = useCallback(async () => {
@@ -34,6 +35,8 @@ export function FileUpload({ permitId, attachments, onUploadComplete, disabled }
       }
     } catch {
       // Fall back to prop attachments
+    } finally {
+      setLoadingAttachments(false)
     }
   }, [permitId])
 
@@ -97,7 +100,9 @@ export function FileUpload({ permitId, attachments, onUploadComplete, disabled }
         </div>
       )}
 
-      {(fetchedAttachments ?? attachments).length > 0 ? (
+      {loadingAttachments ? (
+        <p className="text-sm text-gray-400 italic">Loading attachments...</p>
+      ) : (fetchedAttachments ?? attachments).length > 0 ? (
         <ul className="divide-y divide-gray-200 border border-gray-200 rounded-md">
           {(fetchedAttachments ?? attachments).map((att) => (
             <li key={att.id} className="py-3 px-4 flex justify-between items-center">
