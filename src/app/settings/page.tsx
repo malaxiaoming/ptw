@@ -10,16 +10,23 @@ import { Skeleton } from '@/components/ui/skeleton'
 export default function SettingsPage() {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [orgName, setOrgName] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [savingOrg, setSavingOrg] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
-    fetch('/api/profile')
-      .then(r => r.json())
-      .then(json => {
-        setName(json.data?.name ?? '')
-        setPhone(json.data?.phone ?? '')
+    Promise.all([
+      fetch('/api/profile').then(r => r.json()),
+      fetch('/api/organizations').then(r => r.json()),
+    ])
+      .then(([profileJson, orgJson]) => {
+        setName(profileJson.data?.name ?? '')
+        setPhone(profileJson.data?.phone ?? '')
+        setIsAdmin(profileJson.data?.is_admin ?? false)
+        setOrgName(orgJson.data?.name ?? '')
         setLoading(false)
       })
       .catch(() => setLoading(false))
@@ -42,6 +49,23 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleOrgSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setSavingOrg(true)
+    const res = await fetch('/api/organizations', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: orgName }),
+    })
+    const json = await res.json()
+    setSavingOrg(false)
+    if (res.ok) {
+      toast('Organization updated.', 'success')
+    } else {
+      toast(json.error ?? 'Failed to save.', 'error')
+    }
+  }
+
   if (loading) {
     return (
       <div className="max-w-lg space-y-6 animate-fade-in">
@@ -51,6 +75,10 @@ export default function SettingsPage() {
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
+          <Skeleton className="h-5 w-36" />
+          <Skeleton className="h-10 w-full" />
         </div>
       </div>
     )
@@ -80,6 +108,26 @@ export default function SettingsPage() {
             <Button type="submit" loading={saving}>
               Save Changes
             </Button>
+          </form>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent>
+          <h2 className="text-base font-semibold text-gray-900 mb-4">Organization</h2>
+          <form onSubmit={handleOrgSubmit} className="space-y-4">
+            <Input
+              label="Organization Name"
+              type="text"
+              required
+              value={orgName}
+              onChange={e => setOrgName(e.target.value)}
+              disabled={!isAdmin}
+            />
+            {isAdmin && (
+              <Button type="submit" loading={savingOrg}>
+                Save Changes
+              </Button>
+            )}
           </form>
         </CardContent>
       </Card>
