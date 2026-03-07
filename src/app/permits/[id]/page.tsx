@@ -224,16 +224,6 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
         )}
       </div>
 
-      {/* Action Bar */}
-      {currentUser && (
-        <ActionBar
-          permit={{ id: permit.id, status: permit.status, applicant_id: permit.applicant_id, project_id: permit.project_id }}
-          userRoles={currentUser.roles}
-          userId={currentUser.id}
-          onAction={handleAction}
-        />
-      )}
-
       {actionError && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-md">
           <p className="text-sm text-red-600">{actionError}</p>
