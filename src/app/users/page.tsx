@@ -23,6 +23,7 @@ interface UserProfile {
   email: string | null
   phone: string | null
   organization_id: string | null
+  is_active: boolean
   created_at: string
   user_project_roles: ProjectRole[]
 }
@@ -42,6 +43,7 @@ export default function UsersPage() {
   const { toast } = useToast()
 
   const [addingRole, setAddingRole] = useState<{ userId: string; projectId: string; role: Role } | null>(null)
+  const [togglingUserId, setTogglingUserId] = useState<string | null>(null)
 
   async function load() {
     setLoading(true)
@@ -92,6 +94,28 @@ export default function UsersPage() {
     await load()
   }
 
+  async function handleToggleActive(userId: string, currentlyActive: boolean) {
+    setTogglingUserId(userId)
+    try {
+      const res = await fetch('/api/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, is_active: !currentlyActive }),
+      })
+      if (!res.ok) {
+        const json = await res.json()
+        toast(json.error ?? 'Failed to toggle user status', 'error')
+        return
+      }
+      toast(currentlyActive ? 'User disabled.' : 'User enabled.', 'success')
+      await load()
+    } catch {
+      toast('Failed to toggle user status', 'error')
+    } finally {
+      setTogglingUserId(null)
+    }
+  }
+
   async function handleRemoveRole(projectId: string, userId: string, role: Role) {
     const res = await fetch(`/api/projects/${projectId}/roles`, {
       method: 'DELETE',
@@ -137,11 +161,31 @@ export default function UsersPage() {
       ) : (
         <div className="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
           {users.map(u => (
-            <div key={u.id} className="px-5 py-4 space-y-3">
-              <div>
-                <p className="font-medium text-gray-900">{u.name}</p>
-                <p className="text-sm text-gray-500">{u.email}</p>
-                {u.phone && <p className="text-sm text-gray-500">{u.phone}</p>}
+            <div key={u.id} className={`px-5 py-4 space-y-3${u.is_active === false ? ' opacity-50' : ''}`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-gray-900">
+                    {u.name}
+                    {u.is_active === false && (
+                      <span className="ml-2 text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded">Disabled</span>
+                    )}
+                  </p>
+                  <p className="text-sm text-gray-500">{u.email}</p>
+                  {u.phone && <p className="text-sm text-gray-500">{u.phone}</p>}
+                </div>
+                {isAdmin && (
+                  <button
+                    onClick={() => handleToggleActive(u.id, u.is_active !== false)}
+                    disabled={togglingUserId === u.id}
+                    className={`text-xs px-3 py-1 rounded ${
+                      u.is_active !== false
+                        ? 'text-amber-700 bg-amber-50 hover:bg-amber-100'
+                        : 'text-green-700 bg-green-50 hover:bg-green-100'
+                    } disabled:opacity-50`}
+                  >
+                    {togglingUserId === u.id ? '...' : u.is_active !== false ? 'Disable' : 'Enable'}
+                  </button>
+                )}
               </div>
 
               {/* Roles */}

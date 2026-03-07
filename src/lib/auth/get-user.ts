@@ -9,6 +9,7 @@ export interface UserProfile {
   organization_id: string | null
   organization_name: string | null
   is_admin: boolean
+  is_active: boolean
   created_at: string
 }
 
@@ -20,7 +21,7 @@ export const getCurrentUser = cache(async (): Promise<UserProfile | null> => {
 
   const { data: profile, error } = await supabase
     .from('user_profiles')
-    .select('id, email, phone, name, organization_id, is_admin, created_at, organizations(name)')
+    .select('id, email, phone, name, organization_id, is_admin, is_active, created_at, organizations(name)')
     .eq('id', user.id)
     .single()
 
@@ -29,6 +30,9 @@ export const getCurrentUser = cache(async (): Promise<UserProfile | null> => {
   }
 
   if (!profile) return null
+
+  // Block disabled users — treat as unauthenticated
+  if (profile.is_active === false) return null
 
   const org = profile.organizations as unknown as { name: string } | null
   const { organizations: _, ...rest } = profile

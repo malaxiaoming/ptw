@@ -33,6 +33,7 @@ interface OrgUser {
   id: string
   name: string
   email: string | null
+  is_active?: boolean
 }
 
 const VALID_ROLES = ['applicant', 'verifier', 'approver'] as const
@@ -390,7 +391,7 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ id: 
               className="flex-1 min-w-[160px] px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Select user...</option>
-              {orgUsers.map((u) => (
+              {orgUsers.filter((u) => u.is_active !== false).map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.name} {u.email ? `(${u.email})` : ''}
                 </option>

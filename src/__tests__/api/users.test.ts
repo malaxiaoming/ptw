@@ -12,7 +12,7 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { getCurrentUser } from '@/lib/auth/get-user'
 import { createServiceRoleClient } from '@/lib/supabase/server'
-import { GET as getUsers } from '@/app/api/users/route'
+import { GET as getUsers, PATCH as patchUser } from '@/app/api/users/route'
 import { POST as inviteUser } from '@/app/api/users/invite/route'
 
 const mockGetCurrentUser = vi.mocked(getCurrentUser)
@@ -24,12 +24,15 @@ const mockNonAdminUser = {
   phone: null,
   name: 'Regular User',
   organization_id: 'org-1',
+  organization_name: null,
   is_admin: false,
+  is_active: true,
   created_at: '2024-01-01T00:00:00Z',
 }
 
 const mockAdminUser = {
   ...mockNonAdminUser,
+  id: 'admin-1',
   email: 'admin@example.com',
   name: 'Admin User',
   is_admin: true,
@@ -73,15 +76,17 @@ describe('GET /api/users', () => {
     mockGetCurrentUser.mockResolvedValue(mockAdminUser)
 
     const users = [
-      { id: 'user-1', email: 'admin@example.com', phone: null, name: 'Admin User', organization_id: 'org-1', is_admin: true, created_at: '2024-01-01T00:00:00Z', user_project_roles: [] },
-      { id: 'user-2', email: 'bob@example.com', phone: '91234567', name: 'Bob', organization_id: 'org-1', is_admin: false, created_at: '2024-01-02T00:00:00Z', user_project_roles: [] },
+      { id: 'user-1', email: 'admin@example.com', phone: null, name: 'Admin User', organization_id: 'org-1', is_admin: true, is_active: true, created_at: '2024-01-01T00:00:00Z', user_project_roles: [] },
+      { id: 'user-2', email: 'bob@example.com', phone: '91234567', name: 'Bob', organization_id: 'org-1', is_admin: false, is_active: true, created_at: '2024-01-02T00:00:00Z', user_project_roles: [] },
     ]
 
     const usersChain = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: users, error: null }),
+      order: vi.fn().mockReturnThis(),
     }
+    // Second .order() call resolves the promise
+    usersChain.order.mockReturnValueOnce(usersChain).mockResolvedValueOnce({ data: users, error: null })
 
     mockCreateServiceClient.mockResolvedValue({
       from: vi.fn().mockReturnValue(usersChain),
@@ -100,8 +105,9 @@ describe('GET /api/users', () => {
     const usersChain = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: null, error: { message: 'DB failed' } }),
+      order: vi.fn().mockReturnThis(),
     }
+    usersChain.order.mockReturnValueOnce(usersChain).mockResolvedValueOnce({ data: null, error: { message: 'DB failed' } })
 
     mockCreateServiceClient.mockResolvedValue({
       from: vi.fn().mockReturnValue(usersChain),
@@ -111,6 +117,123 @@ describe('GET /api/users', () => {
     const body = await res.json()
     expect(res.status).toBe(500)
     expect(body.error).toBe('DB failed')
+  })
+})
+
+// ─── PATCH /api/users ────────────────────────────────────────────────────────
+
+describe('PATCH /api/users', () => {
+  beforeEach(() => { vi.clearAllMocks() })
+
+  it('returns 401 if not authenticated', async () => {
+    mockGetCurrentUser.mockResolvedValue(null)
+    const req = makeRequest('http://localhost/api/users', {
+      method: 'PATCH',
+      body: JSON.stringify({ user_id: 'user-2', is_active: false }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const res = await patchUser(req)
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 403 if not admin', async () => {
+    mockGetCurrentUser.mockResolvedValue(mockNonAdminUser)
+    const req = makeRequest('http://localhost/api/users', {
+      method: 'PATCH',
+      body: JSON.stringify({ user_id: 'user-2', is_active: false }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const res = await patchUser(req)
+    expect(res.status).toBe(403)
+  })
+
+  it('returns 400 if user_id or is_active missing', async () => {
+    mockGetCurrentUser.mockResolvedValue(mockAdminUser)
+    const req = makeRequest('http://localhost/api/users', {
+      method: 'PATCH',
+      body: JSON.stringify({ user_id: 'user-2' }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const res = await patchUser(req)
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 if admin tries to disable themselves', async () => {
+    mockGetCurrentUser.mockResolvedValue(mockAdminUser)
+    const req = makeRequest('http://localhost/api/users', {
+      method: 'PATCH',
+      body: JSON.stringify({ user_id: mockAdminUser.id, is_active: false }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const res = await patchUser(req)
+    const body = await res.json()
+    expect(res.status).toBe(400)
+    expect(body.error).toBe('Cannot change your own active status')
+  })
+
+  it('returns 400 if target user is admin', async () => {
+    mockGetCurrentUser.mockResolvedValue(mockAdminUser)
+
+    const selectChain = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({
+        data: { id: 'other-admin', is_admin: true, organization_id: 'org-1' },
+        error: null,
+      }),
+    }
+
+    mockCreateServiceClient.mockResolvedValue({
+      from: vi.fn().mockReturnValue(selectChain),
+    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
+
+    const req = makeRequest('http://localhost/api/users', {
+      method: 'PATCH',
+      body: JSON.stringify({ user_id: 'other-admin', is_active: false }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const res = await patchUser(req)
+    const body = await res.json()
+    expect(res.status).toBe(400)
+    expect(body.error).toBe('Cannot disable another admin')
+  })
+
+  it('successfully toggles user active status', async () => {
+    mockGetCurrentUser.mockResolvedValue(mockAdminUser)
+
+    // First from() call: select to check target user
+    const selectChain = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({
+        data: { id: 'user-2', is_admin: false, organization_id: 'org-1' },
+        error: null,
+      }),
+    }
+
+    // Second from() call: update
+    const updateChain = {
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    }
+
+    const fromMock = vi.fn()
+      .mockReturnValueOnce(selectChain)
+      .mockReturnValueOnce(updateChain)
+
+    mockCreateServiceClient.mockResolvedValue({
+      from: fromMock,
+    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
+
+    const req = makeRequest('http://localhost/api/users', {
+      method: 'PATCH',
+      body: JSON.stringify({ user_id: 'user-2', is_active: false }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const res = await patchUser(req)
+    const body = await res.json()
+    expect(res.status).toBe(200)
+    expect(body.data).toEqual({ user_id: 'user-2', is_active: false })
   })
 })
 

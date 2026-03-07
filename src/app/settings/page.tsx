@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,6 +16,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [savingOrg, setSavingOrg] = useState(false)
+  const router = useRouter()
   const { toast } = useToast()
 
   useEffect(() => {
@@ -61,6 +63,7 @@ export default function SettingsPage() {
     setSavingOrg(false)
     if (res.ok) {
       toast('Organization updated.', 'success')
+      router.refresh()
     } else {
       toast(json.error ?? 'Failed to save.', 'error')
     }
