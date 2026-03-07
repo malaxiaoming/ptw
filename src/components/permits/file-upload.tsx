@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { compressImage } from '@/lib/utils/image-compression'
 
 interface Attachment {
@@ -22,7 +22,24 @@ interface FileUploadProps {
 export function FileUpload({ permitId, attachments, onUploadComplete, disabled }: FileUploadProps) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fetchedAttachments, setFetchedAttachments] = useState<Attachment[] | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  const loadAttachments = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/permits/${permitId}/attachments`)
+      if (res.ok) {
+        const json = await res.json()
+        setFetchedAttachments(json.data ?? [])
+      }
+    } catch {
+      // Fall back to prop attachments
+    }
+  }, [permitId])
+
+  useEffect(() => {
+    loadAttachments()
+  }, [loadAttachments])
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const rawFile = e.target.files?.[0]
@@ -47,6 +64,7 @@ export function FileUpload({ permitId, attachments, onUploadComplete, disabled }
       if (!res.ok) {
         setError(result.error ?? 'Upload failed')
       } else {
+        await loadAttachments()
         onUploadComplete()
       }
     } catch {
@@ -79,9 +97,9 @@ export function FileUpload({ permitId, attachments, onUploadComplete, disabled }
         </div>
       )}
 
-      {attachments.length > 0 ? (
+      {(fetchedAttachments ?? attachments).length > 0 ? (
         <ul className="divide-y divide-gray-200 border border-gray-200 rounded-md">
-          {attachments.map((att) => (
+          {(fetchedAttachments ?? attachments).map((att) => (
             <li key={att.id} className="py-3 px-4 flex justify-between items-center">
               <div>
                 <p className="text-sm font-medium text-gray-900">{att.file_name}</p>

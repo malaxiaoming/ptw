@@ -1,0 +1,16 @@
+import { NextRequest } from 'next/server'
+import { getCurrentUser } from '@/lib/auth/get-user'
+import { getUserRolesForProject } from '@/lib/auth/get-user-roles'
+import { success, error } from '@/lib/api/response'
+
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const user = await getCurrentUser()
+  if (!user) return error('Unauthorized', 401)
+
+  const { id } = await params
+  const roles = await getUserRolesForProject(user.id, id)
+  return success(roles)
+}
