@@ -22,20 +22,26 @@ export async function GET() {
     return success(data)
   }
 
-  // Non-admin: return projects user has active roles on
+  // Non-admin: return ALL projects user has roles on (active + disabled)
   const { data: roleRows, error: rolesError } = await serviceClient
     .from('user_project_roles')
-    .select('project_id')
+    .select('project_id, is_active')
     .eq('user_id', user.id)
-    .eq('is_active', true)
 
   if (rolesError) return error(rolesError.message, 500)
 
-  const projectIds = (roleRows ?? []).map((r: { project_id: string }) => r.project_id)
-
-  if (projectIds.length === 0) {
+  if (!roleRows || roleRows.length === 0) {
     return success([])
   }
+
+  // Build map: projectId -> true if ANY role is active
+  const activeMap = new Map<string, boolean>()
+  for (const r of roleRows as { project_id: string; is_active: boolean }[]) {
+    if (activeMap.get(r.project_id) === true) continue
+    activeMap.set(r.project_id, r.is_active)
+  }
+
+  const projectIds = [...activeMap.keys()]
 
   const { data, error: dbError } = await serviceClient
     .from('projects')
@@ -45,7 +51,13 @@ export async function GET() {
 
   if (dbError) return error(dbError.message, 500)
 
-  return success(data)
+  // Attach is_role_active flag to each project
+  const projectsWithFlag = (data ?? []).map((p: { id: string }) => ({
+    ...p,
+    is_role_active: activeMap.get(p.id) ?? false,
+  }))
+
+  return success(projectsWithFlag)
 }
 
 export async function POST(request: NextRequest) {

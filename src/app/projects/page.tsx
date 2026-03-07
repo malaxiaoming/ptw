@@ -12,6 +12,7 @@ interface Project {
   postal_code: string | null
   status: 'active' | 'archived'
   created_at: string
+  is_role_active?: boolean
 }
 
 export default function ProjectsPage() {
@@ -226,12 +227,10 @@ export default function ProjectsPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {projects.map((project) => (
-            <Link
-              key={project.id}
-              href={`/projects/${project.id}`}
-              className="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-sm transition-all"
-            >
+          {projects.map((project) => {
+            const disabled = project.is_role_active === false
+
+            const content = (
               <div className="flex items-center justify-between">
                 <div className="min-w-0">
                   <p className="font-medium text-gray-900 truncate">{project.name}</p>
@@ -242,18 +241,46 @@ export default function ProjectsPage() {
                     <p className="text-xs text-gray-400 mt-0.5 truncate">Ref: {project.reference_number}</p>
                   )}
                 </div>
-                <span
-                  className={`ml-4 flex-shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    project.status === 'active'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}
-                >
-                  {project.status}
-                </span>
+                <div className="ml-4 flex-shrink-0 flex items-center gap-2">
+                  {disabled && (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                      Disabled
+                    </span>
+                  )}
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      project.status === 'active'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {project.status}
+                  </span>
+                </div>
               </div>
-            </Link>
-          ))}
+            )
+
+            if (disabled) {
+              return (
+                <div
+                  key={project.id}
+                  className="block bg-white border border-gray-200 rounded-lg p-4 opacity-50 cursor-not-allowed"
+                >
+                  {content}
+                </div>
+              )
+            }
+
+            return (
+              <Link
+                key={project.id}
+                href={`/projects/${project.id}`}
+                className="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-sm transition-all"
+              >
+                {content}
+              </Link>
+            )
+          })}
         </div>
       )}
     </div>

@@ -198,10 +198,10 @@ describe('PATCH /api/users', () => {
     expect(body.error).toBe('Cannot disable another admin')
   })
 
-  it('successfully toggles user active status', async () => {
+  it('successfully toggles user active status (bulk project roles + profile)', async () => {
     mockGetCurrentUser.mockResolvedValue(mockAdminUser)
 
-    // First from() call: select to check target user
+    // 1st from(): select to check target user
     const selectChain = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -211,15 +211,30 @@ describe('PATCH /api/users', () => {
       }),
     }
 
-    // Second from() call: update
-    const updateChain = {
+    // 2nd from(): query org projects
+    const projectsChain = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ data: [{ id: 'proj-1' }, { id: 'proj-2' }], error: null }),
+    }
+
+    // 3rd from(): bulk update roles
+    const rolesUpdateChain = {
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({ error: null }),
+    }
+
+    // 4th from(): update user_profiles.is_active
+    const profileUpdateChain = {
       update: vi.fn().mockReturnThis(),
       eq: vi.fn().mockResolvedValue({ error: null }),
     }
 
     const fromMock = vi.fn()
       .mockReturnValueOnce(selectChain)
-      .mockReturnValueOnce(updateChain)
+      .mockReturnValueOnce(projectsChain)
+      .mockReturnValueOnce(rolesUpdateChain)
+      .mockReturnValueOnce(profileUpdateChain)
 
     mockCreateServiceClient.mockResolvedValue({
       from: fromMock,
@@ -234,6 +249,9 @@ describe('PATCH /api/users', () => {
     const body = await res.json()
     expect(res.status).toBe(200)
     expect(body.data).toEqual({ user_id: 'user-2', is_active: false })
+    expect(fromMock).toHaveBeenCalledWith('projects')
+    expect(fromMock).toHaveBeenCalledWith('user_project_roles')
+    expect(rolesUpdateChain.in).toHaveBeenCalledWith('project_id', ['proj-1', 'proj-2'])
   })
 })
 

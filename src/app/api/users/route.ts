@@ -65,6 +65,27 @@ export async function PATCH(req: NextRequest) {
   if (target.organization_id !== user.organization_id) return error('User not in your organization', 403)
   if (target.is_admin) return error('Cannot disable another admin', 400)
 
+  // Bulk-toggle all project roles for this user across the admin's org
+  const { data: orgProjects, error: projErr } = await serviceClient
+    .from('projects')
+    .select('id')
+    .eq('organization_id', user.organization_id!)
+
+  if (projErr) return error(projErr.message, 500)
+
+  const projectIds = (orgProjects ?? []).map((p: { id: string }) => p.id)
+
+  if (projectIds.length > 0) {
+    const { error: rolesErr } = await serviceClient
+      .from('user_project_roles')
+      .update({ is_active })
+      .eq('user_id', user_id)
+      .in('project_id', projectIds)
+
+    if (rolesErr) return error(rolesErr.message, 500)
+  }
+
+  // Also update user_profiles.is_active as a display indicator
   const { error: updateErr } = await serviceClient
     .from('user_profiles')
     .update({ is_active })

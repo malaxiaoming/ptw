@@ -85,15 +85,8 @@ describe('GET /api/projects', () => {
 
     const rolesChain = {
       select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ data: [], error: null }),
     }
-    // Terminal eq for is_active returns data
-    let eqCount = 0
-    rolesChain.eq.mockImplementation(() => {
-      eqCount++
-      if (eqCount === 2) return Promise.resolve({ data: [], error: null })
-      return rolesChain
-    })
 
     mockCreateServiceClient.mockResolvedValue({
       from: vi.fn().mockReturnValue(rolesChain),
@@ -105,7 +98,7 @@ describe('GET /api/projects', () => {
     expect(body.data).toEqual([])
   })
 
-  it('returns projects accessible to non-admin user', async () => {
+  it('returns projects accessible to non-admin user with is_role_active flag', async () => {
     mockGetCurrentUser.mockResolvedValue(mockNonAdminUser)
 
     const projects = [
@@ -114,14 +107,8 @@ describe('GET /api/projects', () => {
 
     const rolesChain = {
       select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ data: [{ project_id: 'proj-1', is_active: true }], error: null }),
     }
-    let rolesEqCount = 0
-    rolesChain.eq.mockImplementation(() => {
-      rolesEqCount++
-      if (rolesEqCount === 2) return Promise.resolve({ data: [{ project_id: 'proj-1' }], error: null })
-      return rolesChain
-    })
 
     const projectsChain = {
       select: vi.fn().mockReturnThis(),
@@ -140,7 +127,7 @@ describe('GET /api/projects', () => {
     const res = await getProjects()
     const body = await res.json()
     expect(res.status).toBe(200)
-    expect(body.data).toEqual(projects)
+    expect(body.data).toEqual([{ ...projects[0], is_role_active: true }])
     expect(projectsChain.in).toHaveBeenCalledWith('id', ['proj-1'])
   })
 
@@ -149,14 +136,8 @@ describe('GET /api/projects', () => {
 
     const rolesChain = {
       select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ data: null, error: { message: 'DB error' } }),
     }
-    let eqCount = 0
-    rolesChain.eq.mockImplementation(() => {
-      eqCount++
-      if (eqCount === 2) return Promise.resolve({ data: null, error: { message: 'DB error' } })
-      return rolesChain
-    })
 
     mockCreateServiceClient.mockResolvedValue({
       from: vi.fn().mockReturnValue(rolesChain),
