@@ -30,7 +30,7 @@ export const getCurrentUser = cache(async (): Promise<UserProfile | null> => {
 
   if (!profile) return null
 
-  const org = profile.organizations as { name: string } | null
+  const org = profile.organizations as unknown as { name: string } | null
   const { organizations: _, ...rest } = profile
   return { ...rest, organization_name: org?.name ?? null } as UserProfile
 })
