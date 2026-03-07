@@ -1,15 +1,33 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+
+interface Project {
+  id: string
+  name: string
+}
 
 export default function InviteUserPage() {
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [projectId, setProjectId] = useState('')
+  const [role, setRole] = useState('')
+  const [projects, setProjects] = useState<Project[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [invitedEmail, setInvitedEmail] = useState<string | null>(null)
+  const [assignedProject, setAssignedProject] = useState<{ name: string; role: string } | null>(null)
+
+  useEffect(() => {
+    fetch('/api/projects')
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.data) setProjects(json.data)
+      })
+      .catch(() => {})
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -25,6 +43,8 @@ export default function InviteUserPage() {
           email: email.trim(),
           name: name.trim(),
           phone: phone.trim() || undefined,
+          project_id: projectId || undefined,
+          role: role || undefined,
         }),
       })
       const json = await res.json()
@@ -32,6 +52,10 @@ export default function InviteUserPage() {
         setSubmitError(json.error ?? 'Failed to invite user')
       } else {
         setInvitedEmail(email.trim())
+        if (projectId && role) {
+          const proj = projects.find((p) => p.id === projectId)
+          setAssignedProject({ name: proj?.name ?? 'Unknown', role })
+        }
       }
     } catch {
       setSubmitError('Failed to invite user')
@@ -53,6 +77,11 @@ export default function InviteUserPage() {
           An invitation email has been sent to:
         </p>
         <p className="font-medium text-gray-900 mb-4">{invitedEmail}</p>
+        {assignedProject && (
+          <p className="text-sm text-gray-600 mb-4">
+            User has been assigned as <span className="font-semibold">{assignedProject.role}</span> on <span className="font-semibold">{assignedProject.name}</span>.
+          </p>
+        )}
         <p className="text-sm text-gray-500 mb-6">
           The user will receive a link to set up their password and access the system.
         </p>
@@ -61,9 +90,12 @@ export default function InviteUserPage() {
             type="button"
             onClick={() => {
               setInvitedEmail(null)
+              setAssignedProject(null)
               setEmail('')
               setName('')
               setPhone('')
+              setProjectId('')
+              setRole('')
             }}
             className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
           >
@@ -137,9 +169,55 @@ export default function InviteUserPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+
+          {/* Project Assignment (optional) */}
+          <div className="border-t border-gray-200 pt-4 mt-4">
+            <p className="text-sm font-medium text-gray-700 mb-3">Project Assignment (optional)</p>
+            <div className="space-y-3">
+              <div>
+                <label htmlFor="invite-project" className="block text-sm font-medium text-gray-700 mb-1">
+                  Project
+                </label>
+                <select
+                  id="invite-project"
+                  value={projectId}
+                  onChange={(e) => {
+                    setProjectId(e.target.value)
+                    if (!e.target.value) setRole('')
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">No project assignment</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+              {projectId && (
+                <div>
+                  <label htmlFor="invite-role" className="block text-sm font-medium text-gray-700 mb-1">
+                    Role <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    id="invite-role"
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                    <option value="">Select a role</option>
+                    <option value="applicant">Applicant</option>
+                    <option value="verifier">Verifier</option>
+                    <option value="approver">Approver</option>
+                  </select>
+                </div>
+              )}
+            </div>
+          </div>
+
           <button
             type="submit"
-            disabled={submitting || !email.trim() || !name.trim()}
+            disabled={submitting || !email.trim() || !name.trim() || (!!projectId && !role)}
             className="w-full px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? 'Sending Invitation...' : 'Send Invitation'}

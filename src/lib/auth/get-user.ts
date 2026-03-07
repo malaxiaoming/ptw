@@ -7,6 +7,7 @@ export interface UserProfile {
   phone: string | null
   name: string
   organization_id: string | null
+  organization_name: string | null
   is_admin: boolean
   created_at: string
 }
@@ -19,7 +20,7 @@ export const getCurrentUser = cache(async (): Promise<UserProfile | null> => {
 
   const { data: profile, error } = await supabase
     .from('user_profiles')
-    .select('id, email, phone, name, organization_id, is_admin, created_at')
+    .select('id, email, phone, name, organization_id, is_admin, created_at, organizations(name)')
     .eq('id', user.id)
     .single()
 
@@ -27,5 +28,9 @@ export const getCurrentUser = cache(async (): Promise<UserProfile | null> => {
     throw new Error(`Failed to fetch user profile: ${error.message}`)
   }
 
-  return profile as UserProfile | null
+  if (!profile) return null
+
+  const org = profile.organizations as { name: string } | null
+  const { organizations: _, ...rest } = profile
+  return { ...rest, organization_name: org?.name ?? null } as UserProfile
 })

@@ -15,7 +15,7 @@ export async function Sidebar() {
       {/* Logo/Brand */}
       <div className="px-6 py-5 border-b border-gray-700">
         <h1 className="text-lg font-bold text-white">PTW System</h1>
-        <p className="text-xs text-gray-400 mt-0.5">Permit-To-Work</p>
+        <p className="text-xs text-gray-400 mt-0.5">{user?.organization_name ?? 'Permit-To-Work'}</p>
       </div>
 
       {/* Navigation */}

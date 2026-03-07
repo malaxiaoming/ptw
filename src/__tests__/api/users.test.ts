@@ -255,7 +255,7 @@ describe('POST /api/users/invite', () => {
     const body = await res.json()
 
     expect(res.status).toBe(201)
-    expect(body.data).toEqual(newProfile)
+    expect(body.data).toEqual({ ...newProfile, role_warning: null })
     expect(inviteUserByEmail).toHaveBeenCalledWith('new@test.com', {
       redirectTo: 'https://ptw-iota.vercel.app/auth/callback',
     })

@@ -30,6 +30,34 @@ export async function POST(request: NextRequest) {
     return error('name is required', 400)
   }
 
+  const projectId = typeof body.project_id === 'string' ? body.project_id : null
+  const role = typeof body.role === 'string' ? body.role : null
+  const validRoles = ['applicant', 'verifier', 'approver']
+
+  if (projectId && !role) {
+    return error('role is required when project_id is provided', 400)
+  }
+  if (role && !projectId) {
+    return error('project_id is required when role is provided', 400)
+  }
+  if (role && !validRoles.includes(role)) {
+    return error(`role must be one of: ${validRoles.join(', ')}`, 400)
+  }
+
+  // Validate project belongs to admin's org
+  if (projectId) {
+    const { data: project, error: projError } = await serviceClient
+      .from('projects')
+      .select('id')
+      .eq('id', projectId)
+      .eq('organization_id', user.organization_id!)
+      .single()
+
+    if (projError || !project) {
+      return error('Project not found in your organization', 400)
+    }
+  }
+
   // Send invite email via Supabase (uses configured SMTP — noreply@clawforge.online)
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://ptw-iota.vercel.app'
   const { data: authData, error: inviteError } = await serviceClient.auth.admin.inviteUserByEmail(body.email, {
@@ -64,5 +92,22 @@ export async function POST(request: NextRequest) {
     return error(`Failed to create user profile: ${profileError.message}`, 500)
   }
 
-  return success(profile, 201)
+  // Assign project role if provided
+  let roleWarning: string | null = null
+  if (projectId && role) {
+    const { error: roleError } = await serviceClient
+      .from('user_project_roles')
+      .insert({
+        user_id: newUserId,
+        project_id: projectId,
+        role,
+        is_active: true,
+      })
+
+    if (roleError) {
+      roleWarning = `User created but role assignment failed: ${roleError.message}`
+    }
+  }
+
+  return success({ ...profile, role_warning: roleWarning }, 201)
 }
