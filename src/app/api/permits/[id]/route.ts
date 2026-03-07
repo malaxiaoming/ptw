@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/get-user'
 import { getUserRolesForProject } from '@/lib/auth/get-user-roles'
 import { success, error } from '@/lib/api/response'
@@ -81,7 +81,8 @@ export async function PATCH(
     if (body[field] !== undefined) updates[field] = body[field]
   }
 
-  const { data, error: dbError } = await supabase
+  const serviceClient = await createServiceRoleClient()
+  const { data, error: dbError } = await serviceClient
     .from('permits')
     .update(updates)
     .eq('id', id)

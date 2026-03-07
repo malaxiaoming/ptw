@@ -56,7 +56,7 @@ export async function POST(
   if (uploadError) return error(uploadError.message, 500)
 
   // Save attachment record
-  const { data, error: dbError } = await supabase
+  const { data, error: dbError } = await serviceClient
     .from('permit_attachments')
     .insert({
       permit_id: id,

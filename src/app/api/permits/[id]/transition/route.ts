@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/get-user'
 import { getUserRolesForProject } from '@/lib/auth/get-user-roles'
 import { validateTransition } from '@/lib/permits/transition'
@@ -30,6 +30,7 @@ export async function POST(
   const comments = typeof body.comments === 'string' ? body.comments : undefined
 
   const supabase = await createServerSupabaseClient()
+  const serviceClient = await createServiceRoleClient()
 
   // Get current permit
   const { data: permit } = await supabase
@@ -88,7 +89,7 @@ export async function POST(
   }
 
   // Execute transition
-  const { data: updated, error: dbError } = await supabase
+  const { data: updated, error: dbError } = await serviceClient
     .from('permits')
     .update(updates)
     .eq('id', id)
@@ -98,7 +99,7 @@ export async function POST(
   if (dbError) return error(dbError.message, 500)
 
   // Log activity
-  await supabase.from('permit_activity_log').insert({
+  await serviceClient.from('permit_activity_log').insert({
     permit_id: id,
     action: action === 'submit_closure' ? 'closure_submitted'
       : action === 'verify_closure' ? 'closed'

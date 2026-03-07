@@ -211,30 +211,20 @@ describe('POST /api/permits/[id]/attachments', () => {
       created_at: '2024-01-01T00:00:00Z',
     }
 
-    // The route calls supabase.from('permits') once then supabase.from('permit_attachments') once
-    let callCount = 0
-    const fromMock = vi.fn().mockImplementation(() => {
-      callCount++
-      if (callCount === 1) {
-        // permits lookup
-        return {
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({ data: mockPermit, error: null }),
-        }
-      } else {
-        // permit_attachments insert
-        return {
-          insert: vi.fn().mockReturnThis(),
-          select: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({ data: newAttachment, error: null }),
-        }
-      }
-    })
-    mockCreateClient.mockResolvedValue({ from: fromMock } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
+    // supabase (authenticated) handles permits lookup only
+    mockCreateClient.mockResolvedValue(
+      makePermitChain({ data: mockPermit, error: null }) as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>
+    )
     mockGetUserRoles.mockResolvedValue(['applicant'])
+    // serviceClient handles storage upload + permit_attachments insert
+    const storageMock = makeStorageMock()
+    const dbFromMock = vi.fn().mockReturnValue({
+      insert: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: newAttachment, error: null }),
+    })
     mockCreateServiceClient.mockResolvedValue(
-      { storage: makeStorageMock() } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>
+      { storage: storageMock, from: dbFromMock } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>
     )
 
     const file = makeJpegFile('photo.jpg', 1024)
@@ -249,28 +239,19 @@ describe('POST /api/permits/[id]/attachments', () => {
   it('removes uploaded file from storage when DB insert fails', async () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
 
-    // First call: permits lookup; second call: permit_attachments insert (fails)
-    let callCount = 0
-    const fromMock = vi.fn().mockImplementation(() => {
-      callCount++
-      if (callCount === 1) {
-        return {
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({ data: mockPermit, error: null }),
-        }
-      } else {
-        return {
-          insert: vi.fn().mockReturnThis(),
-          select: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({ data: null, error: { message: 'DB insert failed' } }),
-        }
-      }
-    })
-    mockCreateClient.mockResolvedValue({ from: fromMock } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
+    // supabase (authenticated) handles permits lookup only
+    mockCreateClient.mockResolvedValue(
+      makePermitChain({ data: mockPermit, error: null }) as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>
+    )
     mockGetUserRoles.mockResolvedValue(['applicant'])
 
     const removeMock = vi.fn().mockResolvedValue({ error: null })
+    // serviceClient handles storage + permit_attachments insert (which fails)
+    const dbFromMock = vi.fn().mockReturnValue({
+      insert: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: null, error: { message: 'DB insert failed' } }),
+    })
     mockCreateServiceClient.mockResolvedValue({
       storage: {
         from: vi.fn().mockReturnValue({
@@ -278,6 +259,7 @@ describe('POST /api/permits/[id]/attachments', () => {
           remove: removeMock,
         }),
       },
+      from: dbFromMock,
     } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     const file = makeJpegFile('photo.jpg', 1024)

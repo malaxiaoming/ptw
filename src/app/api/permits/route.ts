@@ -92,9 +92,9 @@ export async function POST(request: NextRequest) {
     return error('You do not have permission to create permits in this project', 403)
   }
 
-  const supabase = await createServerSupabaseClient()
+  const serviceClient = await createServiceRoleClient()
 
-  const { data, error: dbError } = await supabase
+  const { data, error: dbError } = await serviceClient
     .from('permits')
     .insert({
       project_id,
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
 
   if (dbError) return error('Failed to create permit', 500)
 
-  await supabase.from('permit_activity_log').insert({
+  await serviceClient.from('permit_activity_log').insert({
     permit_id: data.id,
     action: 'created',
     performed_by: user.id,
