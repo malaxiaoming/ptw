@@ -6,7 +6,10 @@ import Link from 'next/link'
 interface Project {
   id: string
   name: string
-  location: string | null
+  description: string | null
+  reference_number: string | null
+  address: string | null
+  postal_code: string | null
   status: 'active' | 'archived'
   created_at: string
 }
@@ -20,7 +23,10 @@ export default function ProjectsPage() {
   // Create project form state
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [newName, setNewName] = useState('')
-  const [newLocation, setNewLocation] = useState('')
+  const [newDescription, setNewDescription] = useState('')
+  const [newRefNumber, setNewRefNumber] = useState('')
+  const [newAddress, setNewAddress] = useState('')
+  const [newPostalCode, setNewPostalCode] = useState('')
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
 
@@ -58,7 +64,13 @@ export default function ProjectsPage() {
       const res = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newName.trim(), location: newLocation.trim() || undefined }),
+        body: JSON.stringify({
+          name: newName.trim(),
+          description: newDescription.trim() || undefined,
+          reference_number: newRefNumber.trim() || undefined,
+          address: newAddress.trim() || undefined,
+          postal_code: newPostalCode.trim() || undefined,
+        }),
       })
       const json = await res.json()
       if (!res.ok) {
@@ -66,7 +78,10 @@ export default function ProjectsPage() {
       } else {
         setProjects((prev) => [...prev, json.data])
         setNewName('')
-        setNewLocation('')
+        setNewDescription('')
+        setNewRefNumber('')
+        setNewAddress('')
+        setNewPostalCode('')
         setShowCreateForm(false)
       }
     } catch {
@@ -128,15 +143,54 @@ export default function ProjectsPage() {
               />
             </div>
             <div>
-              <label htmlFor="project-location" className="block text-sm font-medium text-gray-700 mb-1">
-                Location
+              <label htmlFor="project-description" className="block text-sm font-medium text-gray-700 mb-1">
+                Description
+              </label>
+              <textarea
+                id="project-description"
+                value={newDescription}
+                onChange={(e) => setNewDescription(e.target.value)}
+                placeholder="Project details"
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="project-ref" className="block text-sm font-medium text-gray-700 mb-1">
+                Reference Number
               </label>
               <input
-                id="project-location"
+                id="project-ref"
                 type="text"
-                value={newLocation}
-                onChange={(e) => setNewLocation(e.target.value)}
-                placeholder="e.g. 1 Marina Boulevard, Singapore"
+                value={newRefNumber}
+                onChange={(e) => setNewRefNumber(e.target.value)}
+                placeholder="e.g. CONTRACT-2026-001"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="project-address" className="block text-sm font-medium text-gray-700 mb-1">
+                Address
+              </label>
+              <input
+                id="project-address"
+                type="text"
+                value={newAddress}
+                onChange={(e) => setNewAddress(e.target.value)}
+                placeholder="e.g. 1 Marina Boulevard"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="project-postal" className="block text-sm font-medium text-gray-700 mb-1">
+                Postal Code
+              </label>
+              <input
+                id="project-postal"
+                type="text"
+                value={newPostalCode}
+                onChange={(e) => setNewPostalCode(e.target.value)}
+                placeholder="e.g. 018989"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -150,7 +204,7 @@ export default function ProjectsPage() {
               </button>
               <button
                 type="button"
-                onClick={() => { setShowCreateForm(false); setCreateError(null); setNewName(''); setNewLocation('') }}
+                onClick={() => { setShowCreateForm(false); setCreateError(null); setNewName(''); setNewDescription(''); setNewRefNumber(''); setNewAddress(''); setNewPostalCode('') }}
                 className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
               >
                 Cancel
@@ -181,8 +235,11 @@ export default function ProjectsPage() {
               <div className="flex items-center justify-between">
                 <div className="min-w-0">
                   <p className="font-medium text-gray-900 truncate">{project.name}</p>
-                  {project.location && (
-                    <p className="text-sm text-gray-500 mt-0.5 truncate">{project.location}</p>
+                  {project.address && (
+                    <p className="text-sm text-gray-500 mt-0.5 truncate">{project.address}</p>
+                  )}
+                  {project.reference_number && (
+                    <p className="text-xs text-gray-400 mt-0.5 truncate">Ref: {project.reference_number}</p>
                   )}
                 </div>
                 <span

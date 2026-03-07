@@ -10,7 +10,7 @@ import { compressImage } from '@/lib/utils/image-compression'
 interface Project {
   id: string
   name: string
-  location: string | null
+  address: string | null
 }
 
 interface PermitType {
@@ -256,8 +256,8 @@ export default function NewPermitPage() {
                     }`}
                   >
                     <p className="font-medium text-gray-900">{project.name}</p>
-                    {project.location && (
-                      <p className="text-sm text-gray-500 mt-0.5">{project.location}</p>
+                    {project.address && (
+                      <p className="text-sm text-gray-500 mt-0.5">{project.address}</p>
                     )}
                   </button>
                 ))}

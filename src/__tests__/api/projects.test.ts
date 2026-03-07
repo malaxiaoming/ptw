@@ -61,7 +61,7 @@ describe('GET /api/projects', () => {
     mockGetCurrentUser.mockResolvedValue(mockAdminUser)
 
     const projects = [
-      { id: 'proj-1', name: 'Project Alpha', location: 'Singapore', status: 'active', created_at: '2024-01-01T00:00:00Z' },
+      { id: 'proj-1', name: 'Project Alpha', address: 'Singapore', status: 'active', created_at: '2024-01-01T00:00:00Z' },
     ]
 
     const projectsChain = {
@@ -109,7 +109,7 @@ describe('GET /api/projects', () => {
     mockGetCurrentUser.mockResolvedValue(mockNonAdminUser)
 
     const projects = [
-      { id: 'proj-1', name: 'Project Alpha', location: 'Singapore', status: 'active', created_at: '2024-01-01T00:00:00Z' },
+      { id: 'proj-1', name: 'Project Alpha', address: 'Singapore', status: 'active', created_at: '2024-01-01T00:00:00Z' },
     ]
 
     const rolesChain = {
@@ -223,7 +223,7 @@ describe('POST /api/projects', () => {
 
     const req = makeRequest('http://localhost/api/projects', {
       method: 'POST',
-      body: JSON.stringify({ location: 'Singapore' }),
+      body: JSON.stringify({ address: 'Singapore' }),
       headers: { 'Content-Type': 'application/json' },
     })
     const res = await postProjects(req)
@@ -256,7 +256,7 @@ describe('POST /api/projects', () => {
     const newProject = {
       id: 'proj-new',
       name: 'New Project',
-      location: 'Jurong',
+      address: 'Jurong',
       status: 'active',
       created_at: '2024-01-01T00:00:00Z',
     }
@@ -273,7 +273,7 @@ describe('POST /api/projects', () => {
 
     const req = makeRequest('http://localhost/api/projects', {
       method: 'POST',
-      body: JSON.stringify({ name: 'New Project', location: 'Jurong' }),
+      body: JSON.stringify({ name: 'New Project', address: 'Jurong' }),
       headers: { 'Content-Type': 'application/json' },
     })
     const res = await postProjects(req)
@@ -281,7 +281,7 @@ describe('POST /api/projects', () => {
     expect(res.status).toBe(201)
     expect(body.data).toEqual(newProject)
     expect(insertChain.insert).toHaveBeenCalledWith(
-      expect.objectContaining({ organization_id: 'org-1', name: 'New Project', location: 'Jurong' })
+      expect.objectContaining({ organization_id: 'org-1', name: 'New Project', address: 'Jurong' })
     )
   })
 })
@@ -316,7 +316,7 @@ describe('GET /api/projects/[id]', () => {
     const project = {
       id: 'proj-1',
       name: 'Project Alpha',
-      location: 'Singapore',
+      address: 'Singapore',
       status: 'active',
       created_at: '2024-01-01T00:00:00Z',
       user_project_roles: [],
@@ -376,7 +376,7 @@ describe('PATCH /api/projects/[id]', () => {
     mockGetCurrentUser.mockResolvedValue(mockAdminUser)
 
     const updatedProject = {
-      id: 'proj-1', name: 'Updated Name', location: 'Woodlands', status: 'archived', created_at: '2024-01-01T00:00:00Z',
+      id: 'proj-1', name: 'Updated Name', address: 'Woodlands', status: 'archived', created_at: '2024-01-01T00:00:00Z',
     }
 
     const updateChain = {
@@ -392,7 +392,7 @@ describe('PATCH /api/projects/[id]', () => {
 
     const req = makeRequest('http://localhost/api/projects/proj-1', {
       method: 'PATCH',
-      body: JSON.stringify({ name: 'Updated Name', location: 'Woodlands', status: 'archived' }),
+      body: JSON.stringify({ name: 'Updated Name', address: 'Woodlands', status: 'archived' }),
       headers: { 'Content-Type': 'application/json' },
     })
     const res = await patchProject(req, makeParams('proj-1'))

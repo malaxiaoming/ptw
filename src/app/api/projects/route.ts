@@ -14,7 +14,7 @@ export async function GET() {
   if (isOrgAdmin(user)) {
     const { data, error: dbError } = await serviceClient
       .from('projects')
-      .select('id, name, location, status, created_at')
+      .select('id, name, description, reference_number, address, postal_code, status, created_at')
       .eq('organization_id', user.organization_id!)
       .order('name', { ascending: true })
 
@@ -39,7 +39,7 @@ export async function GET() {
 
   const { data, error: dbError } = await serviceClient
     .from('projects')
-    .select('id, name, location, status, created_at')
+    .select('id, name, description, reference_number, address, postal_code, status, created_at')
     .in('id', projectIds)
     .order('name', { ascending: true })
 
@@ -76,10 +76,13 @@ export async function POST(request: NextRequest) {
     .insert({
       organization_id: user.organization_id,
       name: body.name,
-      location: typeof body.location === 'string' ? body.location : null,
+      description: typeof body.description === 'string' ? body.description : null,
+      reference_number: typeof body.reference_number === 'string' ? body.reference_number : null,
+      address: typeof body.address === 'string' ? body.address : null,
+      postal_code: typeof body.postal_code === 'string' ? body.postal_code : null,
       status: 'active',
     })
-    .select('id, name, location, status, created_at')
+    .select('id, name, description, reference_number, address, postal_code, status, created_at')
     .single()
 
   if (dbError) return error(dbError.message, 500)

@@ -19,7 +19,10 @@ interface RoleAssignment {
 interface Project {
   id: string
   name: string
-  location: string | null
+  description: string | null
+  reference_number: string | null
+  address: string | null
+  postal_code: string | null
   status: 'active' | 'archived'
   created_at: string
 }
@@ -109,10 +112,29 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         </Link>
       </div>
 
-      {project.location && (
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <p className="text-sm text-gray-500">Location</p>
-          <p className="text-gray-900 mt-0.5">{project.location}</p>
+      {(project.description || project.reference_number || project.address) && (
+        <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+          {project.description && (
+            <div>
+              <p className="text-sm text-gray-500">Description</p>
+              <p className="text-gray-900 mt-0.5">{project.description}</p>
+            </div>
+          )}
+          {project.reference_number && (
+            <div>
+              <p className="text-sm text-gray-500">Reference Number</p>
+              <p className="text-gray-900 mt-0.5">{project.reference_number}</p>
+            </div>
+          )}
+          {project.address && (
+            <div>
+              <p className="text-sm text-gray-500">Address</p>
+              <p className="text-gray-900 mt-0.5">
+                {project.address}
+                {project.postal_code && `, ${project.postal_code}`}
+              </p>
+            </div>
+          )}
         </div>
       )}
 

@@ -22,7 +22,10 @@ interface RoleAssignment {
 interface Project {
   id: string
   name: string
-  location: string | null
+  description: string | null
+  reference_number: string | null
+  address: string | null
+  postal_code: string | null
   status: 'active' | 'archived'
 }
 
@@ -53,7 +56,10 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ id: 
 
   // Edit project form
   const [editName, setEditName] = useState('')
-  const [editLocation, setEditLocation] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editRefNumber, setEditRefNumber] = useState('')
+  const [editAddress, setEditAddress] = useState('')
+  const [editPostalCode, setEditPostalCode] = useState('')
   const [editStatus, setEditStatus] = useState<'active' | 'archived'>('active')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -99,7 +105,10 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ id: 
         const p = projectJson.data as Project
         setProject(p)
         setEditName(p.name)
-        setEditLocation(p.location ?? '')
+        setEditDescription(p.description ?? '')
+        setEditRefNumber(p.reference_number ?? '')
+        setEditAddress(p.address ?? '')
+        setEditPostalCode(p.postal_code ?? '')
         setEditStatus(p.status)
         setRoles(rolesJson.data ?? [])
         setOrgUsers(usersJson.data?.users ?? [])
@@ -123,7 +132,10 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ id: 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: editName.trim(),
-          location: editLocation.trim() || null,
+          description: editDescription.trim() || null,
+          reference_number: editRefNumber.trim() || null,
+          address: editAddress.trim() || null,
+          postal_code: editPostalCode.trim() || null,
           status: editStatus,
         }),
       })
@@ -286,14 +298,50 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ id: 
             />
           </div>
           <div>
-            <label htmlFor="edit-location" className="block text-sm font-medium text-gray-700 mb-1">
-              Location
+            <label htmlFor="edit-description" className="block text-sm font-medium text-gray-700 mb-1">
+              Description
+            </label>
+            <textarea
+              id="edit-description"
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="edit-ref" className="block text-sm font-medium text-gray-700 mb-1">
+              Reference Number
             </label>
             <input
-              id="edit-location"
+              id="edit-ref"
               type="text"
-              value={editLocation}
-              onChange={(e) => setEditLocation(e.target.value)}
+              value={editRefNumber}
+              onChange={(e) => setEditRefNumber(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="edit-address" className="block text-sm font-medium text-gray-700 mb-1">
+              Address
+            </label>
+            <input
+              id="edit-address"
+              type="text"
+              value={editAddress}
+              onChange={(e) => setEditAddress(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="edit-postal" className="block text-sm font-medium text-gray-700 mb-1">
+              Postal Code
+            </label>
+            <input
+              id="edit-postal"
+              type="text"
+              value={editPostalCode}
+              onChange={(e) => setEditPostalCode(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>

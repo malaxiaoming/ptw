@@ -22,7 +22,7 @@ export async function GET(
       applicant:user_profiles!applicant_id(id, name, email),
       verifier:user_profiles!verifier_id(id, name, email),
       approver:user_profiles!approver_id(id, name, email),
-      project:projects!project_id(id, name, location),
+      project:projects!project_id(id, name, address),
       permit_attachments(*),
       permit_activity_log(*, performer:user_profiles!performed_by(name))
     `)
