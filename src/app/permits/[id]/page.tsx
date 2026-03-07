@@ -383,6 +383,7 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
                 template={permit.permit_types.checklist_template}
                 data={permit.checklist_data ?? {}}
                 onChange={() => {}}
+                permitId={id}
                 disabled
               />
             ) : (
