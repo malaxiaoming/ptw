@@ -39,6 +39,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   const [project, setProject] = useState<Project | null>(null)
   const [roles, setRoles] = useState<RoleAssignment[]>([])
+  const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
 
@@ -47,18 +48,22 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       setLoading(true)
       setFetchError(null)
       try {
-        const [projectRes, rolesRes] = await Promise.all([
-          fetch(`/api/projects/${id}`),
-          fetch(`/api/projects/${id}/roles`),
-        ])
+        const projectRes = await fetch(`/api/projects/${id}`)
         const projectJson = await projectRes.json()
-        const rolesJson = await rolesRes.json()
 
         if (!projectRes.ok) {
           setFetchError(projectJson.error ?? 'Failed to load project')
-        } else {
-          setProject(projectJson.data)
+          return
+        }
+
+        setProject(projectJson.data)
+
+        // Fetch roles (admin-only endpoint) — if it succeeds, user is admin
+        const rolesRes = await fetch(`/api/projects/${id}/roles`)
+        if (rolesRes.ok) {
+          const rolesJson = await rolesRes.json()
           setRoles(rolesJson.data ?? [])
+          setIsAdmin(true)
         }
       } catch {
         setFetchError('Failed to load project')
@@ -104,12 +109,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             {project.status}
           </span>
         </div>
-        <Link
-          href={`/projects/${id}/settings`}
-          className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200 transition-colors"
-        >
-          Settings
-        </Link>
+        {isAdmin && (
+          <Link
+            href={`/projects/${id}/settings`}
+            className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200 transition-colors"
+          >
+            Settings
+          </Link>
+        )}
       </div>
 
       {(project.description || project.reference_number || project.address) && (
@@ -138,37 +145,39 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         </div>
       )}
 
-      <div className="bg-white border border-gray-200 rounded-lg">
-        <div className="px-5 py-4 border-b border-gray-100">
-          <h2 className="text-base font-semibold text-gray-900">Team Members</h2>
-        </div>
-        {roles.length === 0 ? (
-          <div className="px-5 py-8 text-center text-gray-500 text-sm">
-            No users assigned to this project yet.{' '}
-            <Link href={`/projects/${id}/settings`} className="text-blue-600 hover:underline">
-              Add users in Settings.
-            </Link>
+      {isAdmin && (
+        <div className="bg-white border border-gray-200 rounded-lg">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h2 className="text-base font-semibold text-gray-900">Team Members</h2>
           </div>
-        ) : (
-          <ul className="divide-y divide-gray-100">
-            {roles.map((assignment) => (
-              <li key={assignment.id} className="px-5 py-3 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    {assignment.user_profiles?.name ?? 'Unknown User'}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {assignment.user_profiles?.email ?? ''}
-                  </p>
-                </div>
-                <span className="text-xs font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
-                  {ROLE_LABELS[assignment.role] ?? assignment.role}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+          {roles.length === 0 ? (
+            <div className="px-5 py-8 text-center text-gray-500 text-sm">
+              No users assigned to this project yet.{' '}
+              <Link href={`/projects/${id}/settings`} className="text-blue-600 hover:underline">
+                Add users in Settings.
+              </Link>
+            </div>
+          ) : (
+            <ul className="divide-y divide-gray-100">
+              {roles.map((assignment) => (
+                <li key={assignment.id} className="px-5 py-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {assignment.user_profiles?.name ?? 'Unknown User'}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {assignment.user_profiles?.email ?? ''}
+                    </p>
+                  </div>
+                  <span className="text-xs font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
+                    {ROLE_LABELS[assignment.role] ?? assignment.role}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   )
 }

@@ -58,25 +58,47 @@ export async function GET(
 
   const { id } = await params
   if (!user.organization_id) return error('User has no organization', 403)
-  if (!isOrgAdmin(user)) return error('Admin access required', 403)
 
   const serviceClient = await createServiceRoleClient()
 
+  if (isOrgAdmin(user)) {
+    // Admin: return project with team roster
+    const { data, error: dbError } = await serviceClient
+      .from('projects')
+      .select(`
+        id, name, description, reference_number, address, postal_code, status, created_at,
+        user_project_roles(
+          id, user_id, role, is_active,
+          user_profiles(id, name, email)
+        )
+      `)
+      .eq('id', id)
+      .eq('organization_id', user.organization_id)
+      .single()
+
+    if (dbError || !data) return error('Project not found', 404)
+    return success(data)
+  }
+
+  // Non-admin: check active role on this project
+  const { data: role } = await serviceClient
+    .from('user_project_roles')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('project_id', id)
+    .eq('is_active', true)
+    .limit(1)
+    .single()
+
+  if (!role) return error('Access denied', 403)
+
   const { data, error: dbError } = await serviceClient
     .from('projects')
-    .select(`
-      id, name, description, reference_number, address, postal_code, status, created_at,
-      user_project_roles(
-        id, user_id, role, is_active,
-        user_profiles(id, name, email)
-      )
-    `)
+    .select('id, name, description, reference_number, address, postal_code, status, created_at')
     .eq('id', id)
-    .eq('organization_id', user.organization_id)
     .single()
 
   if (dbError || !data) return error('Project not found', 404)
-
   return success(data)
 }
 

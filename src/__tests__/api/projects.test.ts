@@ -281,17 +281,7 @@ describe('GET /api/projects/[id]', () => {
     expect(body.error).toBe('Unauthorized')
   })
 
-  it('returns 403 if user is not org admin', async () => {
-    mockGetCurrentUser.mockResolvedValue(mockNonAdminUser)
-
-    const req = makeRequest('http://localhost/api/projects/proj-1')
-    const res = await getProject(req, makeParams('proj-1'))
-    const body = await res.json()
-    expect(res.status).toBe(403)
-    expect(body.error).toBe('Admin access required')
-  })
-
-  it('returns project data for admin user', async () => {
+  it('returns project data for admin user with user_project_roles', async () => {
     mockGetCurrentUser.mockResolvedValue(mockAdminUser)
 
     const project = {
@@ -318,6 +308,68 @@ describe('GET /api/projects/[id]', () => {
     const body = await res.json()
     expect(res.status).toBe(200)
     expect(body.data).toEqual(project)
+    expect(body.data.user_project_roles).toBeDefined()
+  })
+
+  it('returns project data for non-admin with active role (without user_project_roles)', async () => {
+    mockGetCurrentUser.mockResolvedValue(mockNonAdminUser)
+
+    const roleCheckChain = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: { id: 'r-1' }, error: null }),
+    }
+
+    const project = {
+      id: 'proj-1',
+      name: 'Project Alpha',
+      address: 'Singapore',
+      status: 'active',
+      created_at: '2024-01-01T00:00:00Z',
+    }
+
+    const projectDataChain = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: project, error: null }),
+    }
+
+    let fromCount = 0
+    mockCreateServiceClient.mockResolvedValue({
+      from: vi.fn().mockImplementation(() => {
+        fromCount++
+        return fromCount === 1 ? roleCheckChain : projectDataChain
+      }),
+    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
+
+    const req = makeRequest('http://localhost/api/projects/proj-1')
+    const res = await getProject(req, makeParams('proj-1'))
+    const body = await res.json()
+    expect(res.status).toBe(200)
+    expect(body.data).toEqual(project)
+    expect(body.data.user_project_roles).toBeUndefined()
+  })
+
+  it('returns 403 for non-admin without active role on project', async () => {
+    mockGetCurrentUser.mockResolvedValue(mockNonAdminUser)
+
+    const roleCheckChain = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: null, error: { code: 'PGRST116' } }),
+    }
+
+    mockCreateServiceClient.mockResolvedValue({
+      from: vi.fn().mockReturnValue(roleCheckChain),
+    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
+
+    const req = makeRequest('http://localhost/api/projects/proj-1')
+    const res = await getProject(req, makeParams('proj-1'))
+    const body = await res.json()
+    expect(res.status).toBe(403)
+    expect(body.error).toBe('Access denied')
   })
 })
 
