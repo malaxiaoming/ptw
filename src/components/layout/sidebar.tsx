@@ -25,12 +25,14 @@ export async function Sidebar() {
         ))}
 
         {/* Admin section */}
-        <div className="pt-4 mt-4 border-t border-gray-700">
-          <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Admin</p>
-          {ADMIN_NAV_ITEMS.map((item) => (
-            <SidebarLink key={item.href} item={item} />
-          ))}
-        </div>
+        {user?.is_admin && (
+          <div className="pt-4 mt-4 border-t border-gray-700">
+            <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Admin</p>
+            {ADMIN_NAV_ITEMS.map((item) => (
+              <SidebarLink key={item.href} item={item} />
+            ))}
+          </div>
+        )}
       </nav>
 
       {/* User info + notification bell at bottom */}

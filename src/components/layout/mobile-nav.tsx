@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Menu, X } from 'lucide-react'
-import { ALL_NAV_ITEMS } from '@/lib/nav-items'
+import { NAV_ITEMS, ALL_NAV_ITEMS } from '@/lib/nav-items'
 import { LogoutButton } from './logout-button'
 
-export function MobileMenuButton() {
+export function MobileMenuButton({ isAdmin = false }: { isAdmin?: boolean }) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
 
@@ -58,7 +58,7 @@ export function MobileMenuButton() {
           </button>
         </div>
         <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-          {ALL_NAV_ITEMS.map((item) => {
+          {(isAdmin ? ALL_NAV_ITEMS : NAV_ITEMS).map((item) => {
             const Icon = item.icon
             return (
               <Link
