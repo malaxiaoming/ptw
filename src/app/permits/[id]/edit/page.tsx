@@ -7,6 +7,7 @@ import { ChecklistForm } from '@/components/permits/checklist-form'
 import { PersonnelPicker } from '@/components/permits/personnel-picker'
 import type { ChecklistTemplate, PersonnelEntry } from '@/lib/permits/checklist-validation'
 import { createClient } from '@/lib/supabase/client'
+import { defaultScheduledStart, defaultScheduledEnd } from '@/lib/utils/date-defaults'
 
 interface Permit {
   id: string
@@ -65,12 +66,12 @@ export default function EditPermitPage({ params }: { params: Promise<{ id: strin
       setScheduledStart(
         data.scheduled_start
           ? new Date(data.scheduled_start).toISOString().slice(0, 16)
-          : ''
+          : defaultScheduledStart()
       )
       setScheduledEnd(
         data.scheduled_end
           ? new Date(data.scheduled_end).toISOString().slice(0, 16)
-          : ''
+          : defaultScheduledEnd()
       )
       setChecklistData(data.checklist_data ?? {})
       setPersonnel(data.personnel ?? [])
