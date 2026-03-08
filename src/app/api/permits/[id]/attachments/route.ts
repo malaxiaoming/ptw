@@ -63,9 +63,10 @@ export async function POST(
       file_url: filePath,
       file_name: file.name,
       file_type: file.type,
+      file_size: file.size,
       uploaded_by: user.id,
     })
-    .select('id, permit_id, file_url, file_name, file_type, uploaded_by, created_at')
+    .select('id, permit_id, file_url, file_name, file_type, file_size, uploaded_by, created_at')
     .single()
 
   if (dbError) {
@@ -101,7 +102,7 @@ export async function GET(
 
   const { data, error: dbError } = await supabase
     .from('permit_attachments')
-    .select('id, permit_id, file_url, file_name, file_type, uploaded_by, created_at')
+    .select('id, permit_id, file_url, file_name, file_type, file_size, uploaded_by, created_at')
     .eq('permit_id', id)
     .order('created_at')
 

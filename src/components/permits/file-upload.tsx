@@ -2,11 +2,13 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { compressImage } from '@/lib/utils/image-compression'
+import { formatFileSize } from '@/lib/utils/format-file-size'
 
 interface Attachment {
   id: string
   file_name: string
   file_type: string
+  file_size?: number | null
   signed_url?: string | null
   uploaded_by?: string
   created_at: string
@@ -103,28 +105,44 @@ export function FileUpload({ permitId, attachments, onUploadComplete, disabled }
       {loadingAttachments ? (
         <p className="text-sm text-gray-400 italic">Loading attachments...</p>
       ) : (fetchedAttachments ?? attachments).length > 0 ? (
-        <ul className="divide-y divide-gray-200 border border-gray-200 rounded-md">
-          {(fetchedAttachments ?? attachments).map((att) => (
-            <li key={att.id} className="py-3 px-4 flex justify-between items-center">
-              <div>
-                <p className="text-sm font-medium text-gray-900">{att.file_name}</p>
-                <p className="text-xs text-gray-500">
-                  {new Date(att.created_at).toLocaleDateString()}
-                </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {(fetchedAttachments ?? attachments).map((att) => {
+            const isImage = att.file_type.startsWith('image/')
+            return (
+              <div key={att.id} className="flex gap-3 p-3 border border-gray-200 rounded-lg">
+                {/* Thumbnail */}
+                <div className="w-16 h-16 flex-shrink-0 rounded-md overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center">
+                  {isImage && att.signed_url ? (
+                    <img src={att.signed_url} alt={att.file_name} className="w-full h-full object-cover" />
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-gray-400">
+                      <path d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0 0 16.5 9h-1.875a1.875 1.875 0 0 1-1.875-1.875V5.25A3.75 3.75 0 0 0 9 1.5H5.625Z" />
+                      <path d="M12.971 1.816A5.23 5.23 0 0 1 14.25 5.25v1.875c0 .207.168.375.375.375H16.5a5.23 5.23 0 0 1 3.434 1.279 9.768 9.768 0 0 0-6.963-6.963Z" />
+                    </svg>
+                  )}
+                </div>
+                {/* Details */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">{att.file_name}</p>
+                  <p className="text-xs text-gray-500">
+                    {new Date(att.created_at).toLocaleDateString()}
+                    {formatFileSize(att.file_size) && ` \u00B7 ${formatFileSize(att.file_size)}`}
+                  </p>
+                  {att.signed_url && (
+                    <a
+                      href={att.signed_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      Download
+                    </a>
+                  )}
+                </div>
               </div>
-              {att.signed_url && (
-                <a
-                  href={att.signed_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-blue-600 hover:underline ml-4 flex-shrink-0"
-                >
-                  Download
-                </a>
-              )}
-            </li>
-          ))}
-        </ul>
+            )
+          })}
+        </div>
       ) : (
         <p className="text-sm text-gray-400 italic">No attachments yet.</p>
       )}

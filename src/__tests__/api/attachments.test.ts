@@ -209,6 +209,7 @@ describe('POST /api/permits/[id]/attachments', () => {
       file_url: 'org-1/project-1/permit-1/123-photo.jpg',
       file_name: 'photo.jpg',
       file_type: 'image/jpeg',
+      file_size: 1024,
       uploaded_by: 'user-1',
       created_at: '2024-01-01T00:00:00Z',
     }
@@ -336,6 +337,7 @@ describe('GET /api/permits/[id]/attachments', () => {
         file_url: 'org-1/project-1/permit-1/123-photo.jpg',
         file_name: 'photo.jpg',
         file_type: 'image/jpeg',
+        file_size: 524288,
         uploaded_by: 'user-1',
         created_at: '2024-01-01T00:00:00Z',
       },
@@ -345,6 +347,7 @@ describe('GET /api/permits/[id]/attachments', () => {
         file_url: 'org-1/project-1/permit-1/456-plan.pdf',
         file_name: 'plan.pdf',
         file_type: 'application/pdf',
+        file_size: 1048576,
         uploaded_by: 'user-1',
         created_at: '2024-01-02T00:00:00Z',
       },

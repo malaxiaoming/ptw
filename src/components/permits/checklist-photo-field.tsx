@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { compressImage } from '@/lib/utils/image-compression'
+import { formatFileSize } from '@/lib/utils/format-file-size'
 import type { ChecklistField } from '@/lib/permits/checklist-validation'
 
 interface ChecklistPhotoFieldProps {
@@ -141,6 +142,11 @@ export function ChecklistPhotoField({ field, value, onChange, permitId, disabled
                   <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
                     {item instanceof File ? item.name.slice(0, 8) : 'Loading...'}
                   </div>
+                )}
+                {item instanceof File && formatFileSize(item.size) && (
+                  <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-center" style={{ fontSize: '10px', lineHeight: '16px' }}>
+                    {formatFileSize(item.size)}
+                  </span>
                 )}
                 {!disabled && (
                   <button
