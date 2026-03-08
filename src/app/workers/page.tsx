@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { WorkerForm } from '@/components/workers/worker-form'
+import { WorkerForm, type WorkerFormData } from '@/components/workers/worker-form'
 import { WorkerList } from '@/components/workers/worker-list'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,6 +16,8 @@ interface Worker {
   phone: string | null
   cert_number: string | null
   cert_expiry: string | null
+  project_id: string | null
+  company_id: string | null
 }
 
 export default function WorkersPage() {
@@ -25,7 +27,15 @@ export default function WorkersPage() {
   const [error, setError] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [editingWorker, setEditingWorker] = useState<Worker | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const { toast } = useToast()
+
+  useEffect(() => {
+    fetch('/api/me')
+      .then((r) => r.json())
+      .then((json) => setIsAdmin(json.data?.is_admin === true))
+      .catch(() => {})
+  }, [])
 
   const fetchWorkers = useCallback(async () => {
     setLoading(true)
@@ -45,7 +55,7 @@ export default function WorkersPage() {
 
   useEffect(() => { fetchWorkers() }, [fetchWorkers])
 
-  async function handleCreate(data: Omit<Worker, 'id'>) {
+  async function handleCreate(data: WorkerFormData) {
     const res = await fetch('/api/workers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -58,7 +68,7 @@ export default function WorkersPage() {
     await fetchWorkers()
   }
 
-  async function handleEdit(data: Omit<Worker, 'id'>) {
+  async function handleEdit(data: WorkerFormData) {
     if (!editingWorker) return
     const res = await fetch(`/api/workers/${editingWorker.id}`, {
       method: 'PATCH',
@@ -87,12 +97,14 @@ export default function WorkersPage() {
     <div className="max-w-5xl mx-auto px-4 py-8 animate-fade-in">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Worker Registry</h1>
-        <Button onClick={() => { setShowForm(true); setEditingWorker(null) }}>
-          Add Worker
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => { setShowForm(true); setEditingWorker(null) }}>
+            Add Worker
+          </Button>
+        )}
       </div>
 
-      {(showForm || editingWorker) && (
+      {isAdmin && (showForm || editingWorker) && (
         <div className="mb-6 p-6 border border-gray-200 rounded-lg bg-white">
           <h2 className="text-lg font-medium mb-4">{editingWorker ? 'Edit Worker' : 'New Worker'}</h2>
           <WorkerForm
@@ -103,6 +115,8 @@ export default function WorkersPage() {
               trade: editingWorker.trade ?? undefined,
               cert_number: editingWorker.cert_number ?? undefined,
               cert_expiry: editingWorker.cert_expiry ?? undefined,
+              project_id: editingWorker.project_id ?? undefined,
+              company_id: editingWorker.company_id ?? undefined,
             } : undefined}
             onSubmit={editingWorker ? handleEdit : handleCreate}
             onCancel={() => { setShowForm(false); setEditingWorker(null) }}
@@ -130,6 +144,7 @@ export default function WorkersPage() {
           workers={workers}
           onEdit={(w) => { setEditingWorker(w); setShowForm(false) }}
           onDeactivate={handleDeactivate}
+          isAdmin={isAdmin}
         />
       )}
     </div>

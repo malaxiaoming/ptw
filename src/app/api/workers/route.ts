@@ -1,7 +1,13 @@
 import { NextRequest } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/get-user'
+import { isOrgAdmin } from '@/lib/auth/check-admin'
 import { success, error } from '@/lib/api/response'
+
+function maskPhone(phone: string | null): string | null {
+  if (!phone || phone.length < 4) return phone
+  return '****' + phone.slice(-4)
+}
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser()
@@ -9,13 +15,18 @@ export async function GET(request: NextRequest) {
 
   const supabase = await createServerSupabaseClient()
   const search = request.nextUrl.searchParams.get('search')
+  const projectId = request.nextUrl.searchParams.get('project_id')
 
   let query = supabase
     .from('workers')
-    .select('id, name, phone, company, trade, cert_number, cert_expiry, is_active, created_at')
+    .select('id, name, phone, company, trade, cert_number, cert_expiry, is_active, created_at, project_id, company_id')
     .eq('organization_id', user.organization_id)
     .eq('is_active', true)
     .order('name')
+
+  if (projectId) {
+    query = query.eq('project_id', projectId)
+  }
 
   if (search) {
     const safeSearch = search.replace(/[,)(]/g, '')
@@ -27,12 +38,16 @@ export async function GET(request: NextRequest) {
   const { data, error: dbError } = await query
   if (dbError) return error(dbError.message, 500)
 
-  return success(data)
+  const admin = isOrgAdmin(user)
+  const masked = admin ? data : data?.map((w) => ({ ...w, phone: maskPhone(w.phone) }))
+
+  return success(masked)
 }
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return error('Unauthorized', 401)
+  if (!isOrgAdmin(user)) return error('Admin access required', 403)
 
   let body: Record<string, unknown>
   try {
@@ -46,18 +61,32 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = await createServerSupabaseClient()
+
+  // If company_id provided, look up company name for backward compat
+  let companyName = typeof body.company === 'string' ? body.company : null
+  if (typeof body.company_id === 'string' && body.company_id) {
+    const { data: companyRow } = await supabase
+      .from('project_companies')
+      .select('name')
+      .eq('id', body.company_id)
+      .single()
+    if (companyRow) companyName = companyRow.name
+  }
+
   const { data, error: dbError } = await supabase
     .from('workers')
     .insert({
       organization_id: user.organization_id,
       name: body.name as string,
       phone: typeof body.phone === 'string' ? body.phone : null,
-      company: typeof body.company === 'string' ? body.company : null,
+      company: companyName,
       trade: typeof body.trade === 'string' ? body.trade : null,
       cert_number: typeof body.cert_number === 'string' ? body.cert_number : null,
       cert_expiry: typeof body.cert_expiry === 'string' ? body.cert_expiry : null,
+      project_id: typeof body.project_id === 'string' ? body.project_id : null,
+      company_id: typeof body.company_id === 'string' ? body.company_id : null,
     })
-    .select('id, name, phone, company, trade, cert_number, cert_expiry, is_active, created_at')
+    .select('id, name, phone, company, trade, cert_number, cert_expiry, is_active, created_at, project_id, company_id')
     .single()
 
   if (dbError) return error(dbError.message, 500)

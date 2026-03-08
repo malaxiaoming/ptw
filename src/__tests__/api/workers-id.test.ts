@@ -11,12 +11,19 @@ vi.mock('@/lib/supabase/server', () => ({
   createServerSupabaseClient: vi.fn(),
 }))
 
+// Mock isOrgAdmin
+vi.mock('@/lib/auth/check-admin', () => ({
+  isOrgAdmin: vi.fn(),
+}))
+
 import { getCurrentUser } from '@/lib/auth/get-user'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { isOrgAdmin } from '@/lib/auth/check-admin'
 import { GET, PATCH, DELETE } from '@/app/api/workers/[id]/route'
 
 const mockGetCurrentUser = vi.mocked(getCurrentUser)
 const mockCreateClient = vi.mocked(createServerSupabaseClient)
+const mockIsOrgAdmin = vi.mocked(isOrgAdmin)
 
 const mockUser = {
   id: 'user-1',
@@ -30,6 +37,8 @@ const mockUser = {
   created_at: '2024-01-01T00:00:00Z',
 }
 
+const mockAdminUser = { ...mockUser, is_admin: true }
+
 const existingWorker = {
   id: 'w-1',
   name: 'Alice',
@@ -40,6 +49,8 @@ const existingWorker = {
   cert_expiry: '2025-12-31',
   is_active: true,
   created_at: '2024-01-01T00:00:00Z',
+  project_id: null,
+  company_id: null,
 }
 
 function makeRequest(url: string, options?: ConstructorParameters<typeof NextRequest>[1]): NextRequest {
@@ -68,6 +79,7 @@ describe('GET /api/workers/[id]', () => {
 
   it('returns 404 if worker not found or not in org', async () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
+    mockIsOrgAdmin.mockReturnValue(false)
 
     const chain = {
       select: vi.fn().mockReturnThis(),
@@ -84,13 +96,14 @@ describe('GET /api/workers/[id]', () => {
     expect(body.error).toBe('Worker not found')
   })
 
-  it('returns worker data for valid id in org', async () => {
+  it('returns worker with masked phone for non-admin', async () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
+    mockIsOrgAdmin.mockReturnValue(false)
 
     const chain = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: existingWorker, error: null }),
+      single: vi.fn().mockResolvedValue({ data: { ...existingWorker }, error: null }),
     }
     mockCreateClient.mockResolvedValue({ from: vi.fn().mockReturnValue(chain) } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
 
@@ -99,7 +112,27 @@ describe('GET /api/workers/[id]', () => {
     const body = await res.json()
 
     expect(res.status).toBe(200)
-    expect(body.data).toEqual(existingWorker)
+    expect(body.data.phone).toBe('****4567')
+    expect(body.data.cert_number).toBe('C001')
+  })
+
+  it('returns worker with full phone for admin', async () => {
+    mockGetCurrentUser.mockResolvedValue(mockAdminUser)
+    mockIsOrgAdmin.mockReturnValue(true)
+
+    const chain = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: { ...existingWorker }, error: null }),
+    }
+    mockCreateClient.mockResolvedValue({ from: vi.fn().mockReturnValue(chain) } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
+
+    const req = makeRequest('http://localhost/api/workers/w-1')
+    const res = await GET(req, makeParams('w-1'))
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.data.phone).toBe('91234567')
     expect(chain.eq).toHaveBeenCalledWith('id', 'w-1')
     expect(chain.eq).toHaveBeenCalledWith('organization_id', 'org-1')
   })
@@ -125,8 +158,25 @@ describe('PATCH /api/workers/[id]', () => {
     expect(body.error).toBe('Unauthorized')
   })
 
-  it('returns 404 if worker not in org', async () => {
+  it('returns 403 if not admin', async () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
+    mockIsOrgAdmin.mockReturnValue(false)
+
+    const req = makeRequest('http://localhost/api/workers/w-1', {
+      method: 'PATCH',
+      body: JSON.stringify({ name: 'Updated Name' }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const res = await PATCH(req, makeParams('w-1'))
+    const body = await res.json()
+
+    expect(res.status).toBe(403)
+    expect(body.error).toBe('Admin access required')
+  })
+
+  it('returns 404 if worker not in org', async () => {
+    mockGetCurrentUser.mockResolvedValue(mockAdminUser)
+    mockIsOrgAdmin.mockReturnValue(true)
 
     // Ownership check returns null
     const chain = {
@@ -150,7 +200,8 @@ describe('PATCH /api/workers/[id]', () => {
   })
 
   it('updates only provided fields and returns updated worker', async () => {
-    mockGetCurrentUser.mockResolvedValue(mockUser)
+    mockGetCurrentUser.mockResolvedValue(mockAdminUser)
+    mockIsOrgAdmin.mockReturnValue(true)
 
     const updatedWorker = { ...existingWorker, name: 'Alice Updated', trade: 'Senior Electrician' }
 
@@ -207,8 +258,21 @@ describe('DELETE /api/workers/[id]', () => {
     expect(body.error).toBe('Unauthorized')
   })
 
-  it('soft-deletes (sets is_active=false) and returns 200', async () => {
+  it('returns 403 if not admin', async () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
+    mockIsOrgAdmin.mockReturnValue(false)
+
+    const req = makeRequest('http://localhost/api/workers/w-1', { method: 'DELETE' })
+    const res = await DELETE(req, makeParams('w-1'))
+    const body = await res.json()
+
+    expect(res.status).toBe(403)
+    expect(body.error).toBe('Admin access required')
+  })
+
+  it('soft-deletes (sets is_active=false) and returns 200', async () => {
+    mockGetCurrentUser.mockResolvedValue(mockAdminUser)
+    mockIsOrgAdmin.mockReturnValue(true)
 
     const chain = {
       update: vi.fn().mockReturnThis(),
@@ -230,7 +294,8 @@ describe('DELETE /api/workers/[id]', () => {
   })
 
   it('returns 404 if worker not found', async () => {
-    mockGetCurrentUser.mockResolvedValue(mockUser)
+    mockGetCurrentUser.mockResolvedValue(mockAdminUser)
+    mockIsOrgAdmin.mockReturnValue(true)
 
     const chain = {
       update: vi.fn().mockReturnThis(),

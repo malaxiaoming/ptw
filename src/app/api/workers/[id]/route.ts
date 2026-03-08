@@ -1,7 +1,13 @@
 import { NextRequest } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/get-user'
+import { isOrgAdmin } from '@/lib/auth/check-admin'
 import { success, error } from '@/lib/api/response'
+
+function maskPhone(phone: string | null): string | null {
+  if (!phone || phone.length < 4) return phone
+  return '****' + phone.slice(-4)
+}
 
 export async function GET(
   _request: NextRequest,
@@ -14,12 +20,16 @@ export async function GET(
   const supabase = await createServerSupabaseClient()
   const { data, error: dbError } = await supabase
     .from('workers')
-    .select('id, name, phone, company, trade, cert_number, cert_expiry, is_active, created_at')
+    .select('id, name, phone, company, trade, cert_number, cert_expiry, is_active, created_at, project_id, company_id')
     .eq('id', id)
     .eq('organization_id', user.organization_id)
     .single()
 
   if (dbError || !data) return error('Worker not found', 404)
+
+  if (!isOrgAdmin(user)) {
+    data.phone = maskPhone(data.phone)
+  }
 
   return success(data)
 }
@@ -30,6 +40,7 @@ export async function PATCH(
 ) {
   const user = await getCurrentUser()
   if (!user) return error('Unauthorized', 401)
+  if (!isOrgAdmin(user)) return error('Admin access required', 403)
 
   const { id } = await params
 
@@ -60,13 +71,25 @@ export async function PATCH(
   if (typeof body.cert_number === 'string') updates.cert_number = body.cert_number
   if (typeof body.cert_expiry === 'string') updates.cert_expiry = body.cert_expiry
   if (typeof body.is_active === 'boolean') updates.is_active = body.is_active
+  if (typeof body.project_id === 'string') updates.project_id = body.project_id
+  if (typeof body.company_id === 'string') updates.company_id = body.company_id
+
+  // If company_id changed, also update company text field
+  if (typeof body.company_id === 'string' && body.company_id) {
+    const { data: companyRow } = await supabase
+      .from('project_companies')
+      .select('name')
+      .eq('id', body.company_id)
+      .single()
+    if (companyRow) updates.company = companyRow.name
+  }
 
   const { data, error: dbError } = await supabase
     .from('workers')
     .update(updates)
     .eq('id', id)
     .eq('organization_id', user.organization_id)
-    .select('id, name, phone, company, trade, cert_number, cert_expiry, is_active, created_at')
+    .select('id, name, phone, company, trade, cert_number, cert_expiry, is_active, created_at, project_id, company_id')
     .single()
 
   if (dbError) return error(dbError.message, 500)
@@ -80,6 +103,7 @@ export async function DELETE(
 ) {
   const user = await getCurrentUser()
   if (!user) return error('Unauthorized', 401)
+  if (!isOrgAdmin(user)) return error('Admin access required', 403)
 
   const { id } = await params
   const supabase = await createServerSupabaseClient()

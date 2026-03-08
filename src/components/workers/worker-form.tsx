@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface WorkerFormData {
   name: string
@@ -9,7 +9,22 @@ interface WorkerFormData {
   trade: string
   cert_number: string
   cert_expiry: string
+  project_id: string
+  company_id: string
 }
+
+interface Project {
+  id: string
+  name: string
+}
+
+interface ProjectCompany {
+  id: string
+  name: string
+  role: string
+}
+
+export type { WorkerFormData }
 
 interface WorkerFormProps {
   initialData?: Partial<WorkerFormData>
@@ -26,9 +41,31 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
     trade: initialData?.trade ?? '',
     cert_number: initialData?.cert_number ?? '',
     cert_expiry: initialData?.cert_expiry ?? '',
+    project_id: initialData?.project_id ?? '',
+    company_id: initialData?.company_id ?? '',
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [projects, setProjects] = useState<Project[]>([])
+  const [companies, setCompanies] = useState<ProjectCompany[]>([])
+
+  useEffect(() => {
+    fetch('/api/projects')
+      .then((r) => r.json())
+      .then((json) => setProjects(json.data ?? []))
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (!form.project_id) {
+      setCompanies([])
+      return
+    }
+    fetch(`/api/projects/${form.project_id}/companies`)
+      .then((r) => r.json())
+      .then((json) => setCompanies(json.data ?? []))
+      .catch(() => setCompanies([]))
+  }, [form.project_id])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -45,8 +82,23 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
   }
 
   function handleChange(field: keyof WorkerFormData, value: string) {
-    setForm((prev) => ({ ...prev, [field]: value }))
+    setForm((prev) => {
+      const next = { ...prev, [field]: value }
+      // Reset company_id when project changes
+      if (field === 'project_id') {
+        next.company_id = ''
+        next.company = ''
+      }
+      // Update company text when company_id selected
+      if (field === 'company_id') {
+        const selected = companies.find((c) => c.id === value)
+        if (selected) next.company = selected.name
+      }
+      return next
+    })
   }
+
+  const inputClass = 'mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -60,19 +112,50 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
           type="text"
           value={form.name}
           onChange={(e) => handleChange('name', e.target.value)}
-          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={inputClass}
           required
         />
       </div>
       <div>
+        <label htmlFor="worker-project" className="block text-sm font-medium text-gray-700">Project</label>
+        <select
+          id="worker-project"
+          value={form.project_id}
+          onChange={(e) => handleChange('project_id', e.target.value)}
+          className={inputClass}
+        >
+          <option value="">Select project...</option>
+          {projects.map((p) => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
+      </div>
+      <div>
         <label htmlFor="worker-company" className="block text-sm font-medium text-gray-700">Company</label>
-        <input
-          id="worker-company"
-          type="text"
-          value={form.company}
-          onChange={(e) => handleChange('company', e.target.value)}
-          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        {form.project_id && companies.length > 0 ? (
+          <select
+            id="worker-company"
+            value={form.company_id}
+            onChange={(e) => handleChange('company_id', e.target.value)}
+            className={inputClass}
+          >
+            <option value="">Select company...</option>
+            {companies.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} ({c.role === 'main_contractor' ? 'MC' : 'SC'})
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            id="worker-company"
+            type="text"
+            value={form.company}
+            onChange={(e) => handleChange('company', e.target.value)}
+            className={inputClass}
+            placeholder={form.project_id ? 'No companies registered for this project' : 'Select a project first, or type company name'}
+          />
+        )}
       </div>
       <div>
         <label htmlFor="worker-trade" className="block text-sm font-medium text-gray-700">Trade</label>
@@ -81,7 +164,7 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
           type="text"
           value={form.trade}
           onChange={(e) => handleChange('trade', e.target.value)}
-          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={inputClass}
         />
       </div>
       <div>
@@ -91,7 +174,7 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
           type="tel"
           value={form.phone}
           onChange={(e) => handleChange('phone', e.target.value)}
-          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={inputClass}
         />
       </div>
       <div>
@@ -101,7 +184,7 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
           type="text"
           value={form.cert_number}
           onChange={(e) => handleChange('cert_number', e.target.value)}
-          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={inputClass}
         />
       </div>
       <div>
@@ -111,7 +194,7 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
           type="date"
           value={form.cert_expiry}
           onChange={(e) => handleChange('cert_expiry', e.target.value)}
-          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={inputClass}
         />
       </div>
       <div className="flex gap-3 pt-2">

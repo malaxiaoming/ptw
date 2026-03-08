@@ -11,12 +11,19 @@ vi.mock('@/lib/supabase/server', () => ({
   createServerSupabaseClient: vi.fn(),
 }))
 
+// Mock isOrgAdmin
+vi.mock('@/lib/auth/check-admin', () => ({
+  isOrgAdmin: vi.fn(),
+}))
+
 import { getCurrentUser } from '@/lib/auth/get-user'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { isOrgAdmin } from '@/lib/auth/check-admin'
 import { GET, POST } from '@/app/api/workers/route'
 
 const mockGetCurrentUser = vi.mocked(getCurrentUser)
 const mockCreateClient = vi.mocked(createServerSupabaseClient)
+const mockIsOrgAdmin = vi.mocked(isOrgAdmin)
 
 const mockUser = {
   id: 'user-1',
@@ -30,23 +37,10 @@ const mockUser = {
   created_at: '2024-01-01T00:00:00Z',
 }
 
+const mockAdminUser = { ...mockUser, is_admin: true }
+
 function makeRequest(url: string, options?: ConstructorParameters<typeof NextRequest>[1]): NextRequest {
   return new NextRequest(url, options)
-}
-
-function makeSupabaseChain(result: { data: unknown; error: unknown }) {
-  const chain = {
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    order: vi.fn().mockReturnThis(),
-    or: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockReturnThis(),
-    single: vi.fn().mockResolvedValue(result),
-  }
-  // For list queries (no .single()), resolve from .order() or .or()
-  chain.order.mockResolvedValue(result)
-  chain.or.mockResolvedValue(result)
-  return chain
 }
 
 describe('GET /api/workers', () => {
@@ -65,11 +59,12 @@ describe('GET /api/workers', () => {
     expect(body.error).toBe('Unauthorized')
   })
 
-  it('returns worker list for authenticated user scoped to organization_id', async () => {
+  it('returns worker list with masked phone for non-admin', async () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
+    mockIsOrgAdmin.mockReturnValue(false)
 
     const workers = [
-      { id: 'w-1', name: 'Alice', company: 'BuildCo', trade: 'Electrician', cert_number: 'C001', cert_expiry: '2025-12-31', is_active: true, created_at: '2024-01-01T00:00:00Z' },
+      { id: 'w-1', name: 'Alice', phone: '91234567', company: 'BuildCo', trade: 'Electrician', cert_number: 'C001', cert_expiry: '2025-12-31', is_active: true, created_at: '2024-01-01T00:00:00Z', project_id: null, company_id: null },
     ]
 
     const chain = {
@@ -85,16 +80,41 @@ describe('GET /api/workers', () => {
     const body = await res.json()
 
     expect(res.status).toBe(200)
-    expect(body.data).toEqual(workers)
-    // Verify organization_id scoping
+    expect(body.data[0].phone).toBe('****4567')
+    expect(body.data[0].cert_number).toBe('C001')
     expect(chain.eq).toHaveBeenCalledWith('organization_id', 'org-1')
     expect(chain.eq).toHaveBeenCalledWith('is_active', true)
   })
 
-  it('calls .or() filter when search param is provided', async () => {
-    mockGetCurrentUser.mockResolvedValue(mockUser)
+  it('returns worker list with full phone for admin', async () => {
+    mockGetCurrentUser.mockResolvedValue(mockAdminUser)
+    mockIsOrgAdmin.mockReturnValue(true)
 
-    const workers = [{ id: 'w-1', name: 'Bob', company: 'TestCo', trade: 'Welder', cert_number: 'C002', cert_expiry: null, is_active: true, created_at: '2024-01-01T00:00:00Z' }]
+    const workers = [
+      { id: 'w-1', name: 'Alice', phone: '91234567', company: 'BuildCo', trade: 'Electrician', cert_number: 'C001', cert_expiry: '2025-12-31', is_active: true, created_at: '2024-01-01T00:00:00Z', project_id: null, company_id: null },
+    ]
+
+    const chain = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: workers, error: null }),
+      or: vi.fn().mockResolvedValue({ data: workers, error: null }),
+    }
+    mockCreateClient.mockResolvedValue({ from: vi.fn().mockReturnValue(chain) } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
+
+    const req = makeRequest('http://localhost/api/workers')
+    const res = await GET(req)
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.data[0].phone).toBe('91234567')
+  })
+
+  it('calls .or() filter when search param is provided', async () => {
+    mockGetCurrentUser.mockResolvedValue(mockAdminUser)
+    mockIsOrgAdmin.mockReturnValue(true)
+
+    const workers = [{ id: 'w-1', name: 'Bob', phone: null, company: 'TestCo', trade: 'Welder', cert_number: 'C002', cert_expiry: null, is_active: true, created_at: '2024-01-01T00:00:00Z', project_id: null, company_id: null }]
 
     const chain = {
       select: vi.fn().mockReturnThis(),
@@ -134,8 +154,25 @@ describe('POST /api/workers', () => {
     expect(body.error).toBe('Unauthorized')
   })
 
-  it('returns 400 if name is missing', async () => {
+  it('returns 403 if not admin', async () => {
     mockGetCurrentUser.mockResolvedValue(mockUser)
+    mockIsOrgAdmin.mockReturnValue(false)
+
+    const req = makeRequest('http://localhost/api/workers', {
+      method: 'POST',
+      body: JSON.stringify({ name: 'Alice' }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const res = await POST(req)
+    const body = await res.json()
+
+    expect(res.status).toBe(403)
+    expect(body.error).toBe('Admin access required')
+  })
+
+  it('returns 400 if name is missing', async () => {
+    mockGetCurrentUser.mockResolvedValue(mockAdminUser)
+    mockIsOrgAdmin.mockReturnValue(true)
 
     const req = makeRequest('http://localhost/api/workers', {
       method: 'POST',
@@ -150,7 +187,8 @@ describe('POST /api/workers', () => {
   })
 
   it('returns 400 if JSON is malformed', async () => {
-    mockGetCurrentUser.mockResolvedValue(mockUser)
+    mockGetCurrentUser.mockResolvedValue(mockAdminUser)
+    mockIsOrgAdmin.mockReturnValue(true)
 
     const req = makeRequest('http://localhost/api/workers', {
       method: 'POST',
@@ -165,7 +203,8 @@ describe('POST /api/workers', () => {
   })
 
   it('creates worker and returns 201', async () => {
-    mockGetCurrentUser.mockResolvedValue(mockUser)
+    mockGetCurrentUser.mockResolvedValue(mockAdminUser)
+    mockIsOrgAdmin.mockReturnValue(true)
 
     const newWorker = {
       id: 'w-new',
@@ -177,6 +216,8 @@ describe('POST /api/workers', () => {
       cert_expiry: '2026-06-30',
       is_active: true,
       created_at: '2024-01-01T00:00:00Z',
+      project_id: null,
+      company_id: null,
     }
 
     const chain = {
