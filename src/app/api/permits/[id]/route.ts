@@ -1,7 +1,9 @@
 import { NextRequest } from 'next/server'
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/get-user'
+import { isOrgAdmin } from '@/lib/auth/check-admin'
 import { getUserRolesForProject } from '@/lib/auth/get-user-roles'
+import { canDeletePermit } from '@/lib/permits/delete-rules'
 import { success, error } from '@/lib/api/response'
 
 export async function GET(
@@ -92,4 +94,57 @@ export async function PATCH(
   if (dbError) return error(dbError.message, 500)
 
   return success(data)
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const user = await getCurrentUser()
+  if (!user) return error('Unauthorized', 401)
+
+  const { id } = await params
+  const supabase = await createServerSupabaseClient()
+
+  const { data: permit } = await supabase
+    .from('permits')
+    .select('id, status, applicant_id, project_id, scheduled_end')
+    .eq('id', id)
+    .single()
+
+  if (!permit) return error('Permit not found', 404)
+
+  // Verify user belongs to the permit's project
+  const roles = await getUserRolesForProject(user.id, permit.project_id)
+  if (roles.length === 0 && !isOrgAdmin(user)) return error('Permit not found', 404)
+
+  const deleteCheck = canDeletePermit(
+    { status: permit.status, applicant_id: permit.applicant_id, scheduled_end: permit.scheduled_end },
+    { userId: user.id, isAdmin: isOrgAdmin(user) }
+  )
+
+  if (!deleteCheck.allowed) return error(deleteCheck.reason!, 403)
+
+  const serviceClient = await createServiceRoleClient()
+
+  // Clean up attachments from storage
+  const { data: attachments } = await serviceClient
+    .from('permit_attachments')
+    .select('file_path')
+    .eq('permit_id', id)
+
+  if (attachments && attachments.length > 0) {
+    const paths = attachments.map((a) => a.file_path)
+    await serviceClient.storage.from('permit-attachments').remove(paths)
+  }
+
+  // Delete the permit (cascades to attachments, activity log)
+  const { error: dbError } = await serviceClient
+    .from('permits')
+    .delete()
+    .eq('id', id)
+
+  if (dbError) return error(dbError.message, 500)
+
+  return success({ deleted: true })
 }

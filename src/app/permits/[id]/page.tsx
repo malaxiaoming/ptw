@@ -72,6 +72,7 @@ interface Permit {
 interface CurrentUser {
   id: string
   roles: Role[]
+  isAdmin: boolean
 }
 
 export default function PermitDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -84,6 +85,9 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [duplicateLoading, setDuplicateLoading] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const loadPermit = useCallback(async () => {
     try {
@@ -117,7 +121,7 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
         }
 
         if (userId) {
-          setCurrentUser({ id: userId, roles })
+          setCurrentUser({ id: userId, roles, isAdmin: userJson.data?.is_admin === true })
         }
       }
     } catch {
@@ -159,6 +163,43 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
     }
   }
 
+  async function handleDuplicate() {
+    setDuplicateLoading(true)
+    try {
+      const res = await fetch(`/api/permits/${id}/duplicate`, { method: 'POST' })
+      const json = await res.json()
+      if (!res.ok) {
+        toast(json.error ?? 'Failed to duplicate permit', 'error')
+        return
+      }
+      toast('Permit duplicated for today', 'success')
+      router.push(`/permits/${json.data.id}`)
+    } catch {
+      toast('Failed to duplicate permit', 'error')
+    } finally {
+      setDuplicateLoading(false)
+    }
+  }
+
+  async function handleDelete() {
+    setDeleteLoading(true)
+    try {
+      const res = await fetch(`/api/permits/${id}`, { method: 'DELETE' })
+      const json = await res.json()
+      if (!res.ok) {
+        toast(json.error ?? 'Failed to delete permit', 'error')
+        return
+      }
+      toast('Permit deleted', 'success')
+      router.push('/permits')
+    } catch {
+      toast('Failed to delete permit', 'error')
+    } finally {
+      setDeleteLoading(false)
+      setShowDeleteConfirm(false)
+    }
+  }
+
   if (loading) {
     return <DetailSkeleton />
   }
@@ -177,6 +218,12 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
 
   const isDraft = permit.status === 'draft'
   const isApplicant = currentUser?.id === permit.applicant_id
+  const isDeletable = currentUser && (
+    (permit.status === 'draft' && (isApplicant || currentUser.isAdmin)) ||
+    (['submitted', 'verified'].includes(permit.status) &&
+     permit.scheduled_end && new Date(permit.scheduled_end) < new Date() &&
+     (isApplicant || currentUser.isAdmin))
+  )
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -197,12 +244,60 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
 
-        {isDraft && isApplicant && (
-          <Link href={`/permits/${id}/edit`}>
-            <Button variant="outline" size="md">Edit</Button>
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="md"
+            disabled={duplicateLoading}
+            loading={duplicateLoading}
+            onClick={handleDuplicate}
+          >
+            Duplicate for Today
+          </Button>
+          {isDraft && isApplicant && (
+            <Link href={`/permits/${id}/edit`}>
+              <Button variant="outline" size="md">Edit</Button>
+            </Link>
+          )}
+          {isDeletable && (
+            <Button
+              variant="danger"
+              size="md"
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              Delete
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* Delete confirmation */}
+      {showDeleteConfirm && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-sm font-medium text-red-800 mb-3">
+            Are you sure you want to delete {permit.permit_number}? This cannot be undone.
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="danger"
+              size="sm"
+              disabled={deleteLoading}
+              loading={deleteLoading}
+              onClick={handleDelete}
+            >
+              Yes, Delete
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={deleteLoading}
+              onClick={() => setShowDeleteConfirm(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
 
       {actionError && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-md">
