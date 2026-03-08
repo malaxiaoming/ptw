@@ -6,7 +6,7 @@ import { ChecklistForm } from '@/components/permits/checklist-form'
 import { PersonnelPicker } from '@/components/permits/personnel-picker'
 import type { ChecklistTemplate, PersonnelEntry } from '@/lib/permits/checklist-validation'
 import { compressImage } from '@/lib/utils/image-compression'
-import { defaultScheduledStart, defaultScheduledEnd } from '@/lib/utils/date-defaults'
+import { defaultScheduledStart, defaultScheduledEnd, datetimeLocalToISO } from '@/lib/utils/date-defaults'
 
 interface Project {
   id: string
@@ -153,8 +153,8 @@ export default function NewPermitPage() {
 
       // Then patch with optional fields if they are set
       const patchBody: Record<string, unknown> = {}
-      patchBody.scheduled_start = scheduledStart
-      patchBody.scheduled_end = scheduledEnd
+      patchBody.scheduled_start = datetimeLocalToISO(scheduledStart)
+      patchBody.scheduled_end = datetimeLocalToISO(scheduledEnd)
       if (Object.keys(finalChecklistData).length > 0) patchBody.checklist_data = finalChecklistData
       if (personnel.length > 0) patchBody.personnel = personnel
 

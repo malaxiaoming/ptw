@@ -13,7 +13,19 @@ export function defaultScheduledEnd(): string {
 }
 
 /** Formats a Date to `YYYY-MM-DDTHH:mm` for <input type="datetime-local"> */
-function toDatetimeLocal(d: Date): string {
+export function toDatetimeLocal(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+/** Converts a datetime-local string (no TZ) to ISO 8601 with local timezone offset */
+export function datetimeLocalToISO(value: string): string {
+  const d = new Date(value)
+  const offset = -d.getTimezoneOffset()
+  const sign = offset >= 0 ? '+' : '-'
+  const absOffset = Math.abs(offset)
+  const hours = String(Math.floor(absOffset / 60)).padStart(2, '0')
+  const minutes = String(absOffset % 60).padStart(2, '0')
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}${sign}${hours}:${minutes}`
 }
