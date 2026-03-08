@@ -59,8 +59,13 @@ export function PermitCard({ permit }: PermitCardProps) {
             </div>
           )}
         </div>
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 flex items-center gap-1.5">
           <StatusBadge status={permit.status} />
+          {permit.scheduled_end && new Date(permit.scheduled_end) < new Date() && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+              Expired
+            </span>
+          )}
         </div>
       </div>
       <div className="mt-2 text-xs text-gray-400">

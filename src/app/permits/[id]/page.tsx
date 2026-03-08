@@ -238,6 +238,11 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
           <h1 className="text-2xl font-bold text-gray-900">{permit.permit_number}</h1>
           <div className="flex items-center gap-2 mt-1">
             <StatusBadge status={permit.status} />
+            {permit.scheduled_end && new Date(permit.scheduled_end) < new Date() && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                Expired
+              </span>
+            )}
             {permit.permit_types && (
               <span className="text-sm text-gray-500">{permit.permit_types.name}</span>
             )}
