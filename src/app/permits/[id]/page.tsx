@@ -244,31 +244,33 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="md"
-            disabled={duplicateLoading}
-            loading={duplicateLoading}
-            onClick={handleDuplicate}
-          >
-            Duplicate for Today
-          </Button>
-          {isDraft && isApplicant && (
-            <Link href={`/permits/${id}/edit`}>
-              <Button variant="outline" size="md">Edit</Button>
-            </Link>
-          )}
-          {isDeletable && (
+        {currentUser && (
+          <div className="flex items-center gap-2">
             <Button
-              variant="danger"
+              variant="outline"
               size="md"
-              onClick={() => setShowDeleteConfirm(true)}
+              disabled={duplicateLoading}
+              loading={duplicateLoading}
+              onClick={handleDuplicate}
             >
-              Delete
+              Duplicate for Today
             </Button>
-          )}
-        </div>
+            {isDraft && isApplicant && (
+              <Link href={`/permits/${id}/edit`}>
+                <Button variant="outline" size="md">Edit</Button>
+              </Link>
+            )}
+            {isDeletable && (
+              <Button
+                variant="danger"
+                size="md"
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                Delete
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Delete confirmation */}
