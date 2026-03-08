@@ -25,7 +25,9 @@ const mockUser = {
   phone: null,
   name: 'Test User',
   organization_id: 'org-1',
+  organization_name: null,
   is_admin: false,
+  is_active: true,
   created_at: '2024-01-01T00:00:00Z',
 }
 

@@ -4,9 +4,9 @@ import { validateChecklist } from '@/lib/permits/checklist-validation'
 import { getNotificationRecipients } from '@/lib/notifications/recipients'
 
 describe('Full permit lifecycle', () => {
-  const applicant = { userId: 'applicant-1', roles: ['applicant'] as const }
-  const verifier = { userId: 'verifier-1', roles: ['verifier'] as const }
-  const approver = { userId: 'approver-1', roles: ['approver'] as const }
+  const applicant = { userId: 'applicant-1', roles: ['applicant'] as import('@/lib/auth/permissions').Role[] }
+  const verifier = { userId: 'verifier-1', roles: ['verifier'] as import('@/lib/auth/permissions').Role[] }
+  const approver = { userId: 'approver-1', roles: ['approver'] as import('@/lib/auth/permissions').Role[] }
 
   const permit = {
     id: 'permit-1',
