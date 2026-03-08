@@ -21,12 +21,9 @@ interface PermitType {
   checklist_template: ChecklistTemplate
 }
 
-type Step = 1 | 2 | 3 | 4
-
 export default function NewPermitPage() {
   const router = useRouter()
 
-  const [step, setStep] = useState<Step>(1)
   const [projects, setProjects] = useState<Project[]>([])
   const [permitTypes, setPermitTypes] = useState<PermitType[]>([])
   const [loadingProjects, setLoadingProjects] = useState(true)
@@ -57,9 +54,9 @@ export default function NewPermitPage() {
       .finally(() => setLoadingProjects(false))
   }, [])
 
-  // Load permit types when step 2 is reached
+  // Load permit types when project is selected
   useEffect(() => {
-    if (step === 2 && selectedProjectId) {
+    if (selectedProjectId) {
       setLoadingTypes(true)
       setSelectedTypeId('')
       setSelectedType(null)
@@ -69,7 +66,7 @@ export default function NewPermitPage() {
         .catch(() => setError('Failed to load permit types'))
         .finally(() => setLoadingTypes(false))
     }
-  }, [step, selectedProjectId])
+  }, [selectedProjectId])
 
   function handleProjectSelect(projectId: string) {
     setSelectedProjectId(projectId)
@@ -85,17 +82,7 @@ export default function NewPermitPage() {
     setError(null)
   }
 
-  function canProceedStep1() {
-    return Boolean(selectedProjectId)
-  }
-
-  function canProceedStep2() {
-    return Boolean(selectedTypeId)
-  }
-
-  function canProceedStep3() {
-    return Boolean(workLocation.trim()) && Boolean(workDescription.trim())
-  }
+  const canSubmit = Boolean(selectedProjectId && selectedTypeId && workLocation.trim() && workDescription.trim())
 
   async function handleSubmit() {
     if (!selectedProjectId || !selectedTypeId || !workLocation || !workDescription) {
@@ -178,8 +165,6 @@ export default function NewPermitPage() {
     }
   }
 
-  const stepLabels = ['Select Project', 'Select Type', 'Work Details', 'Checklist & Personnel']
-
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       <div className="flex items-center gap-4">
@@ -193,38 +178,6 @@ export default function NewPermitPage() {
         <h1 className="text-2xl font-bold text-gray-900">New Permit</h1>
       </div>
 
-      {/* Step indicator */}
-      <div className="flex items-center gap-0">
-        {stepLabels.map((label, i) => {
-          const stepNum = (i + 1) as Step
-          const isActive = step === stepNum
-          const isCompleted = step > stepNum
-          return (
-            <div key={label} className="flex items-center flex-1">
-              <div className={`flex items-center gap-2 flex-1 ${i > 0 ? 'pl-2' : ''}`}>
-                {i > 0 && (
-                  <div className={`h-px flex-1 ${isCompleted || isActive ? 'bg-blue-600' : 'bg-gray-200'}`} />
-                )}
-                <div className={`flex items-center gap-1.5 whitespace-nowrap`}>
-                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                    isActive ? 'bg-blue-600 text-white' :
-                    isCompleted ? 'bg-blue-100 text-blue-700' :
-                    'bg-gray-100 text-gray-500'
-                  }`}>
-                    {isCompleted ? '✓' : stepNum}
-                  </span>
-                  <span className={`text-xs font-medium hidden sm:inline ${
-                    isActive ? 'text-blue-600' : isCompleted ? 'text-blue-500' : 'text-gray-400'
-                  }`}>
-                    {label}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
       {/* Error */}
       {error && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-md">
@@ -232,45 +185,43 @@ export default function NewPermitPage() {
         </div>
       )}
 
-      {/* Step content */}
+      {/* Section 1: Select Project */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-gray-900">Select Project <span className="text-red-500">*</span></h2>
+          {loadingProjects ? (
+            <p className="text-gray-500 text-sm">Loading projects...</p>
+          ) : projects.length === 0 ? (
+            <p className="text-gray-500 text-sm">No projects available. You need to be assigned to a project first.</p>
+          ) : (
+            <div className="space-y-2">
+              {projects.map((project) => (
+                <button
+                  key={project.id}
+                  type="button"
+                  onClick={() => handleProjectSelect(project.id)}
+                  className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
+                    selectedProjectId === project.id
+                      ? 'border-blue-600 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <p className="font-medium text-gray-900">{project.name}</p>
+                  {project.address && (
+                    <p className="text-sm text-gray-500 mt-0.5">{project.address}</p>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
-        {/* Step 1: Select Project */}
-        {step === 1 && (
+      {/* Section 2: Select Permit Type */}
+      {selectedProjectId && (
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">Select Project</h2>
-            {loadingProjects ? (
-              <p className="text-gray-500 text-sm">Loading projects...</p>
-            ) : projects.length === 0 ? (
-              <p className="text-gray-500 text-sm">No projects available. You need to be assigned to a project first.</p>
-            ) : (
-              <div className="space-y-2">
-                {projects.map((project) => (
-                  <button
-                    key={project.id}
-                    type="button"
-                    onClick={() => handleProjectSelect(project.id)}
-                    className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
-                      selectedProjectId === project.id
-                        ? 'border-blue-600 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <p className="font-medium text-gray-900">{project.name}</p>
-                    {project.address && (
-                      <p className="text-sm text-gray-500 mt-0.5">{project.address}</p>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Step 2: Select Permit Type */}
-        {step === 2 && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">Select Permit Type</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Select Permit Type <span className="text-red-500">*</span></h2>
             {loadingTypes ? (
               <p className="text-gray-500 text-sm">Loading permit types...</p>
             ) : permitTypes.length === 0 ? (
@@ -297,10 +248,12 @@ export default function NewPermitPage() {
               </div>
             )}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Step 3: Work Details */}
-        {step === 3 && (
+      {/* Section 3: Work Details */}
+      {selectedTypeId && (
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-gray-900">Work Details</h2>
 
@@ -359,10 +312,12 @@ export default function NewPermitPage() {
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Step 4: Checklist & Personnel */}
-        {step === 4 && selectedType && (
+      {/* Section 4: Checklist & Personnel */}
+      {selectedType && (
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="space-y-6">
             <h2 className="text-lg font-semibold text-gray-900">Checklist & Personnel</h2>
 
@@ -395,43 +350,19 @@ export default function NewPermitPage() {
               </p>
             )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Navigation buttons */}
-      <div className="flex justify-between">
+      {/* Submit button */}
+      <div className="flex justify-end">
         <button
           type="button"
-          onClick={() => setStep((s) => (s > 1 ? (s - 1) as Step : s))}
-          disabled={step === 1}
-          className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={handleSubmit}
+          disabled={submitting || !canSubmit}
+          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Back
+          {submitting ? 'Creating permit...' : 'Create Permit'}
         </button>
-
-        {step < 4 ? (
-          <button
-            type="button"
-            onClick={() => setStep((s) => (s < 4 ? (s + 1) as Step : s))}
-            disabled={
-              (step === 1 && !canProceedStep1()) ||
-              (step === 2 && !canProceedStep2()) ||
-              (step === 3 && !canProceedStep3())
-            }
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Next
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={submitting || !canProceedStep3()}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {submitting ? 'Creating permit...' : 'Create Permit'}
-          </button>
-        )}
       </div>
     </div>
   )
