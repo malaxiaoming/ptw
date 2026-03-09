@@ -8,13 +8,18 @@ export async function Header() {
   return (
     <header className="md:hidden fixed top-0 left-0 right-0 h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 z-50">
       <div className="flex items-center gap-3">
-        <MobileMenuButton isAdmin={!!user?.is_admin} />
+        <MobileMenuButton
+          isAdmin={!!user?.is_admin}
+          userName={user?.name}
+          userEmail={user?.email}
+          organizationName={user?.organization_name}
+        />
         <span className="font-semibold text-gray-900">PTW System</span>
       </div>
       <div className="flex items-center gap-2">
         <NotificationBell />
         {user && (
-          <span className="text-sm text-gray-600 hidden sm:block">{user.name ?? user.email}</span>
+          <span className="text-sm text-gray-600 max-w-[120px] truncate">{user.name ?? user.email}</span>
         )}
       </div>
     </header>

@@ -7,7 +7,14 @@ import { Menu, X } from 'lucide-react'
 import { NAV_ITEMS, ALL_NAV_ITEMS } from '@/lib/nav-items'
 import { LogoutButton } from './logout-button'
 
-export function MobileMenuButton({ isAdmin = false }: { isAdmin?: boolean }) {
+interface MobileMenuButtonProps {
+  isAdmin?: boolean
+  userName?: string | null
+  userEmail?: string | null
+  organizationName?: string | null
+}
+
+export function MobileMenuButton({ isAdmin = false, userName, userEmail, organizationName }: MobileMenuButtonProps) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
 
@@ -47,15 +54,28 @@ export function MobileMenuButton({ isAdmin = false }: { isAdmin?: boolean }) {
         className={`fixed top-0 left-0 bottom-0 w-72 bg-gray-900 text-white z-[60] flex flex-col transition-transform duration-200 ease-out ${open ? 'translate-x-0' : '-translate-x-full'}`}
         aria-label="Main navigation"
       >
-        <div className="flex justify-between items-center px-4 py-4 border-b border-gray-700">
-          <span className="font-bold text-white">PTW System</span>
-          <button
-            onClick={() => setOpen(false)}
-            className="text-gray-400 hover:text-white"
-            aria-label="Close navigation menu"
-          >
-            <X className="h-6 w-6" />
-          </button>
+        <div className="px-4 py-4 border-b border-gray-700">
+          <div className="flex justify-between items-center mb-3">
+            <span className="font-bold text-white">PTW System</span>
+            <button
+              onClick={() => setOpen(false)}
+              className="text-gray-400 hover:text-white"
+              aria-label="Close navigation menu"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+          {(userName || userEmail) && (
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-white truncate">{userName ?? userEmail}</p>
+              {userName && userEmail && (
+                <p className="text-xs text-gray-400 truncate">{userEmail}</p>
+              )}
+              {organizationName && (
+                <p className="text-xs text-gray-500 truncate mt-0.5">{organizationName}</p>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
           {(isAdmin ? ALL_NAV_ITEMS : NAV_ITEMS).map((item) => {
