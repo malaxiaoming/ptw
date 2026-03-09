@@ -44,7 +44,7 @@ export async function GET() {
     pendingQueries.push(
       supabase
         .from('permits')
-        .select('id, permit_number, status, project_id, permit_type_id, created_at, updated_at')
+        .select('id, permit_number, status, project_id, permit_type_id, created_at, updated_at, scheduled_end')
         .eq('applicant_id', user.id)
         .eq('status', 'draft')
         .in('project_id', applicantRoleProjects)
@@ -58,7 +58,7 @@ export async function GET() {
     pendingQueries.push(
       supabase
         .from('permits')
-        .select('id, permit_number, status, project_id, permit_type_id, created_at, updated_at')
+        .select('id, permit_number, status, project_id, permit_type_id, created_at, updated_at, scheduled_end')
         .in('status', ['submitted', 'closure_submitted'])
         .in('project_id', verifierRoleProjects)
         .order('updated_at', { ascending: false })
@@ -71,7 +71,7 @@ export async function GET() {
     pendingQueries.push(
       supabase
         .from('permits')
-        .select('id, permit_number, status, project_id, permit_type_id, created_at, updated_at')
+        .select('id, permit_number, status, project_id, permit_type_id, created_at, updated_at, scheduled_end')
         .eq('status', 'verified')
         .in('project_id', approverRoleProjects)
         .order('updated_at', { ascending: false })

@@ -12,6 +12,7 @@ interface PendingPermit {
   status: string
   project_id: string
   updated_at: string
+  scheduled_end?: string | null
 }
 
 interface ExpiringPermit {
@@ -114,10 +115,17 @@ export default function DashboardPage() {
                       Updated {new Date(permit.updated_at).toLocaleDateString()}
                     </p>
                   </div>
-                  <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full font-medium ${s.bg} ${s.text}`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
-                    {s.label}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {permit.scheduled_end && new Date(permit.scheduled_end) < new Date() && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                        Expired
+                      </span>
+                    )}
+                    <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full font-medium ${s.bg} ${s.text}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
+                      {s.label}
+                    </span>
+                  </div>
                 </li>
               )
             })}
