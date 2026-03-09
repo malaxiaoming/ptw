@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
+import ProjectSubNav from '@/components/projects/project-sub-nav'
 
 interface UserProfile {
   id: string
@@ -93,14 +94,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link href="/projects" className="text-sm text-gray-500 hover:text-gray-700">
-            &larr; Projects
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-900">{project.name}</h1>
+      <div>
+        <Link href="/projects" className="text-sm text-gray-500 hover:text-gray-700">
+          &larr; Projects
+        </Link>
+        <h1 className="text-2xl font-bold text-gray-900 mt-2">
+          {project.name}
           <span
-            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+            className={`ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium align-middle ${
               project.status === 'active'
                 ? 'bg-green-100 text-green-800'
                 : 'bg-gray-100 text-gray-600'
@@ -108,16 +109,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           >
             {project.status}
           </span>
-        </div>
-        {isAdmin && (
-          <Link
-            href={`/projects/${id}/settings`}
-            className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200 transition-colors"
-          >
-            Settings
-          </Link>
-        )}
+        </h1>
       </div>
+
+      <ProjectSubNav projectId={id} projectName={project.name} isAdmin={isAdmin} />
 
       {(project.description || project.reference_number || project.address) && (
         <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
@@ -153,8 +148,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           {roles.length === 0 ? (
             <div className="px-5 py-8 text-center text-gray-500 text-sm">
               No users assigned to this project yet.{' '}
-              <Link href={`/projects/${id}/settings`} className="text-blue-600 hover:underline">
-                Add users in Settings.
+              <Link href={`/projects/${id}/team`} className="text-blue-600 hover:underline">
+                Add users in Team.
               </Link>
             </div>
           ) : (
