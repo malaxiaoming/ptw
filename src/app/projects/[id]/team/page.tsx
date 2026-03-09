@@ -198,6 +198,18 @@ export default function ProjectTeamPage({ params }: { params: Promise<{ id: stri
         {/* Add role form */}
         <div className="px-5 py-4 border-b border-gray-100">
           <h3 className="text-sm font-medium text-gray-700 mb-3">Add Role</h3>
+          {addUserId && roles.some((r) => r.user_id === addUserId) && (
+            <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-md">
+              <p className="text-sm text-amber-700">
+                This user already has{' '}
+                {roles
+                  .filter((r) => r.user_id === addUserId)
+                  .map((r) => ROLE_LABELS[r.role as Role] ?? r.role)
+                  .join(', ')}{' '}
+                in this project. You can still add another role.
+              </p>
+            </div>
+          )}
           {addRoleError && (
             <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-md">
               <p className="text-sm text-red-600">{addRoleError}</p>
