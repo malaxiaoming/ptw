@@ -6,9 +6,10 @@ vi.mock('@/lib/auth/get-user', () => ({
   getCurrentUser: vi.fn(),
 }))
 
-// Mock createServerSupabaseClient
+// Mock supabase clients
 vi.mock('@/lib/supabase/server', () => ({
   createServerSupabaseClient: vi.fn(),
+  createServiceRoleClient: vi.fn(),
 }))
 
 // Mock isOrgAdmin
@@ -17,12 +18,13 @@ vi.mock('@/lib/auth/check-admin', () => ({
 }))
 
 import { getCurrentUser } from '@/lib/auth/get-user'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { isOrgAdmin } from '@/lib/auth/check-admin'
 import { GET, PATCH, DELETE } from '@/app/api/workers/[id]/route'
 
 const mockGetCurrentUser = vi.mocked(getCurrentUser)
 const mockCreateClient = vi.mocked(createServerSupabaseClient)
+const mockCreateServiceClient = vi.mocked(createServiceRoleClient)
 const mockIsOrgAdmin = vi.mocked(isOrgAdmin)
 
 const mockUser = {
@@ -185,7 +187,7 @@ describe('PATCH /api/workers/[id]', () => {
       update: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: null, error: null }),
     }
-    mockCreateClient.mockResolvedValue({ from: vi.fn().mockReturnValue(chain) } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
+    mockCreateServiceClient.mockResolvedValue({ from: vi.fn().mockReturnValue(chain) } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     const req = makeRequest('http://localhost/api/workers/w-999', {
       method: 'PATCH',
@@ -227,7 +229,7 @@ describe('PATCH /api/workers/[id]', () => {
         }
       }
     })
-    mockCreateClient.mockResolvedValue({ from: fromMock } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
+    mockCreateServiceClient.mockResolvedValue({ from: fromMock } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     const req = makeRequest('http://localhost/api/workers/w-1', {
       method: 'PATCH',
@@ -280,7 +282,7 @@ describe('DELETE /api/workers/[id]', () => {
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: { id: 'w-1' }, error: null }),
     }
-    mockCreateClient.mockResolvedValue({ from: vi.fn().mockReturnValue(chain) } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
+    mockCreateServiceClient.mockResolvedValue({ from: vi.fn().mockReturnValue(chain) } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     const req = makeRequest('http://localhost/api/workers/w-1', { method: 'DELETE' })
     const res = await DELETE(req, makeParams('w-1'))
@@ -303,7 +305,7 @@ describe('DELETE /api/workers/[id]', () => {
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: null, error: { message: 'Not found' } }),
     }
-    mockCreateClient.mockResolvedValue({ from: vi.fn().mockReturnValue(chain) } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
+    mockCreateServiceClient.mockResolvedValue({ from: vi.fn().mockReturnValue(chain) } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     const req = makeRequest('http://localhost/api/workers/w-999', { method: 'DELETE' })
     const res = await DELETE(req, makeParams('w-999'))

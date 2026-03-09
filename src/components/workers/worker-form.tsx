@@ -22,6 +22,7 @@ interface ProjectCompany {
   id: string
   name: string
   role: string
+  trade: string | null
 }
 
 export type { WorkerFormData }
@@ -31,9 +32,10 @@ interface WorkerFormProps {
   onSubmit: (data: WorkerFormData) => Promise<void>
   onCancel: () => void
   submitLabel?: string
+  projectId?: string
 }
 
-export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Save' }: WorkerFormProps) {
+export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Save', projectId }: WorkerFormProps) {
   const [form, setForm] = useState<WorkerFormData>({
     name: initialData?.name ?? '',
     phone: initialData?.phone ?? '',
@@ -41,7 +43,7 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
     trade: initialData?.trade ?? '',
     cert_number: initialData?.cert_number ?? '',
     cert_expiry: initialData?.cert_expiry ?? '',
-    project_id: initialData?.project_id ?? '',
+    project_id: projectId ?? initialData?.project_id ?? '',
     company_id: initialData?.company_id ?? '',
   })
   const [loading, setLoading] = useState(false)
@@ -50,11 +52,12 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
   const [companies, setCompanies] = useState<ProjectCompany[]>([])
 
   useEffect(() => {
+    if (projectId) return // No need to fetch projects when projectId is provided
     fetch('/api/projects')
       .then((r) => r.json())
       .then((json) => setProjects(json.data ?? []))
       .catch(() => {})
-  }, [])
+  }, [projectId])
 
   useEffect(() => {
     if (!form.project_id) {
@@ -88,15 +91,23 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
       if (field === 'project_id') {
         next.company_id = ''
         next.company = ''
+        next.trade = ''
       }
-      // Update company text when company_id selected
+      // Update company text and trade when company_id selected
       if (field === 'company_id') {
         const selected = companies.find((c) => c.id === value)
-        if (selected) next.company = selected.name
+        if (selected) {
+          next.company = selected.name
+          next.trade = selected.trade ?? ''
+        } else {
+          next.trade = ''
+        }
       }
       return next
     })
   }
+
+  const selectedCompany = companies.find((c) => c.id === form.company_id)
 
   const inputClass = 'mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
 
@@ -116,20 +127,22 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
           required
         />
       </div>
-      <div>
-        <label htmlFor="worker-project" className="block text-sm font-medium text-gray-700">Project</label>
-        <select
-          id="worker-project"
-          value={form.project_id}
-          onChange={(e) => handleChange('project_id', e.target.value)}
-          className={inputClass}
-        >
-          <option value="">Select project...</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>{p.name}</option>
-          ))}
-        </select>
-      </div>
+      {!projectId && (
+        <div>
+          <label htmlFor="worker-project" className="block text-sm font-medium text-gray-700">Project</label>
+          <select
+            id="worker-project"
+            value={form.project_id}
+            onChange={(e) => handleChange('project_id', e.target.value)}
+            className={inputClass}
+          >
+            <option value="">Select project...</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
       <div>
         <label htmlFor="worker-company" className="block text-sm font-medium text-gray-700">Company</label>
         {form.project_id && companies.length > 0 ? (
@@ -159,13 +172,15 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
       </div>
       <div>
         <label htmlFor="worker-trade" className="block text-sm font-medium text-gray-700">Trade</label>
-        <input
-          id="worker-trade"
-          type="text"
-          value={form.trade}
-          onChange={(e) => handleChange('trade', e.target.value)}
-          className={inputClass}
-        />
+        {form.company_id && selectedCompany ? (
+          <p id="worker-trade" className="mt-1 px-3 py-2 text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-md">
+            {selectedCompany.trade || 'Not set on company'}
+          </p>
+        ) : (
+          <p id="worker-trade" className="mt-1 px-3 py-2 text-sm text-gray-400 bg-gray-50 border border-gray-200 rounded-md">
+            Select a company first
+          </p>
+        )}
       </div>
       <div>
         <label htmlFor="worker-phone" className="block text-sm font-medium text-gray-700">Phone</label>

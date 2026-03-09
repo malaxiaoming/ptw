@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/get-user'
 import { isOrgAdmin } from '@/lib/auth/check-admin'
 import { success, error } from '@/lib/api/response'
@@ -60,17 +60,21 @@ export async function POST(request: NextRequest) {
     return error('name is required', 400)
   }
 
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServiceRoleClient()
 
-  // If company_id provided, look up company name for backward compat
+  // If company_id provided, look up company name and trade
   let companyName = typeof body.company === 'string' ? body.company : null
+  let companyTrade: string | null = typeof body.trade === 'string' ? body.trade : null
   if (typeof body.company_id === 'string' && body.company_id) {
     const { data: companyRow } = await supabase
       .from('project_companies')
-      .select('name')
+      .select('name, trade')
       .eq('id', body.company_id)
       .single()
-    if (companyRow) companyName = companyRow.name
+    if (companyRow) {
+      companyName = companyRow.name
+      if (companyRow.trade) companyTrade = companyRow.trade
+    }
   }
 
   const { data, error: dbError } = await supabase
@@ -80,7 +84,7 @@ export async function POST(request: NextRequest) {
       name: body.name as string,
       phone: typeof body.phone === 'string' ? body.phone : null,
       company: companyName,
-      trade: typeof body.trade === 'string' ? body.trade : null,
+      trade: companyTrade,
       cert_number: typeof body.cert_number === 'string' ? body.cert_number : null,
       cert_expiry: typeof body.cert_expiry === 'string' ? body.cert_expiry : null,
       project_id: typeof body.project_id === 'string' ? body.project_id : null,

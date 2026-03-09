@@ -1,4 +1,4 @@
-import { LayoutGrid, FileText, FolderOpen, HardHat, Bell, Settings, Users } from 'lucide-react'
+import { LayoutGrid, FileText, FolderOpen, Bell, Settings, Users } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 export interface NavItem {
@@ -11,7 +11,6 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
   { href: '/permits', label: 'Permits', icon: FileText },
   { href: '/projects', label: 'Projects', icon: FolderOpen },
-  { href: '/workers', label: 'Workers', icon: HardHat },
   { href: '/notifications', label: 'Notifications', icon: Bell },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]

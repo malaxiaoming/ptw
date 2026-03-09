@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/get-user'
 import { isOrgAdmin } from '@/lib/auth/check-admin'
 import { success, error } from '@/lib/api/response'
@@ -51,7 +51,7 @@ export async function PATCH(
     return error('Invalid JSON', 400)
   }
 
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServiceRoleClient()
 
   // Verify ownership
   const { data: existing } = await supabase
@@ -67,21 +67,23 @@ export async function PATCH(
   if (typeof body.name === 'string') updates.name = body.name
   if (typeof body.phone === 'string') updates.phone = body.phone
   if (typeof body.company === 'string') updates.company = body.company
-  if (typeof body.trade === 'string') updates.trade = body.trade
   if (typeof body.cert_number === 'string') updates.cert_number = body.cert_number
   if (typeof body.cert_expiry === 'string') updates.cert_expiry = body.cert_expiry
   if (typeof body.is_active === 'boolean') updates.is_active = body.is_active
   if (typeof body.project_id === 'string') updates.project_id = body.project_id
   if (typeof body.company_id === 'string') updates.company_id = body.company_id
 
-  // If company_id changed, also update company text field
+  // If company_id changed, update company name and trade from company record
   if (typeof body.company_id === 'string' && body.company_id) {
     const { data: companyRow } = await supabase
       .from('project_companies')
-      .select('name')
+      .select('name, trade')
       .eq('id', body.company_id)
       .single()
-    if (companyRow) updates.company = companyRow.name
+    if (companyRow) {
+      updates.company = companyRow.name
+      if (companyRow.trade) updates.trade = companyRow.trade
+    }
   }
 
   const { data, error: dbError } = await supabase
@@ -106,7 +108,7 @@ export async function DELETE(
   if (!isOrgAdmin(user)) return error('Admin access required', 403)
 
   const { id } = await params
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServiceRoleClient()
 
   // Soft delete
   const { data, error: dbError } = await supabase

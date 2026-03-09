@@ -6,9 +6,10 @@ vi.mock('@/lib/auth/get-user', () => ({
   getCurrentUser: vi.fn(),
 }))
 
-// Mock createServerSupabaseClient
+// Mock supabase clients
 vi.mock('@/lib/supabase/server', () => ({
   createServerSupabaseClient: vi.fn(),
+  createServiceRoleClient: vi.fn(),
 }))
 
 // Mock isOrgAdmin
@@ -17,12 +18,13 @@ vi.mock('@/lib/auth/check-admin', () => ({
 }))
 
 import { getCurrentUser } from '@/lib/auth/get-user'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { isOrgAdmin } from '@/lib/auth/check-admin'
 import { GET, POST } from '@/app/api/workers/route'
 
 const mockGetCurrentUser = vi.mocked(getCurrentUser)
 const mockCreateClient = vi.mocked(createServerSupabaseClient)
+const mockCreateServiceClient = vi.mocked(createServiceRoleClient)
 const mockIsOrgAdmin = vi.mocked(isOrgAdmin)
 
 const mockUser = {
@@ -225,7 +227,7 @@ describe('POST /api/workers', () => {
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: newWorker, error: null }),
     }
-    mockCreateClient.mockResolvedValue({ from: vi.fn().mockReturnValue(chain) } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
+    mockCreateServiceClient.mockResolvedValue({ from: vi.fn().mockReturnValue(chain) } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     const req = makeRequest('http://localhost/api/workers', {
       method: 'POST',

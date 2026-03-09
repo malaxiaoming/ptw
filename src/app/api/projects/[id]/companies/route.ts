@@ -16,7 +16,7 @@ export async function GET(
 
   const { data, error: dbError } = await serviceClient
     .from('project_companies')
-    .select('id, name, role, is_active, created_at')
+    .select('id, name, role, trade, is_active, created_at')
     .eq('project_id', id)
     .eq('is_active', true)
     .order('role', { ascending: true })
@@ -55,8 +55,13 @@ export async function POST(
   const serviceClient = await createServiceRoleClient()
   const { data, error: dbError } = await serviceClient
     .from('project_companies')
-    .insert({ project_id: id, name: body.name.trim(), role })
-    .select('id, name, role, is_active, created_at')
+    .insert({
+      project_id: id,
+      name: body.name.trim(),
+      role,
+      trade: typeof body.trade === 'string' ? body.trade.trim() || null : null,
+    })
+    .select('id, name, role, trade, is_active, created_at')
     .single()
 
   if (dbError) {
@@ -93,6 +98,7 @@ export async function PATCH(
   if (typeof body.role === 'string' && ['main_contractor', 'subcontractor'].includes(body.role)) {
     updates.role = body.role
   }
+  if (typeof body.trade === 'string') updates.trade = body.trade.trim() || null
   if (typeof body.is_active === 'boolean') updates.is_active = body.is_active
 
   const serviceClient = await createServiceRoleClient()
@@ -101,7 +107,7 @@ export async function PATCH(
     .update(updates)
     .eq('id', body.id)
     .eq('project_id', id)
-    .select('id, name, role, is_active, created_at')
+    .select('id, name, role, trade, is_active, created_at')
     .single()
 
   if (dbError) return error(dbError.message, 500)

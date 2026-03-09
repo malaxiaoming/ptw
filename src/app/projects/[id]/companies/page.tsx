@@ -13,6 +13,7 @@ interface Company {
   id: string
   name: string
   role: string
+  trade: string | null
   is_active: boolean
 }
 
@@ -34,9 +35,12 @@ export default function ProjectCompaniesPage({ params }: { params: Promise<{ id:
 
   const [addCompanyName, setAddCompanyName] = useState('')
   const [addCompanyRole, setAddCompanyRole] = useState<CompanyRole>('subcontractor')
+  const [addCompanyTrade, setAddCompanyTrade] = useState('')
   const [addingCompany, setAddingCompany] = useState(false)
   const [addCompanyError, setAddCompanyError] = useState<string | null>(null)
   const [removingCompanyId, setRemovingCompanyId] = useState<string | null>(null)
+  const [editingTradeId, setEditingTradeId] = useState<string | null>(null)
+  const [editingTradeValue, setEditingTradeValue] = useState('')
 
   useEffect(() => {
     async function load() {
@@ -79,7 +83,7 @@ export default function ProjectCompaniesPage({ params }: { params: Promise<{ id:
       const res = await fetch(`/api/projects/${id}/companies`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: addCompanyName.trim(), role: addCompanyRole }),
+        body: JSON.stringify({ name: addCompanyName.trim(), role: addCompanyRole, trade: addCompanyTrade.trim() || undefined }),
       })
       const json = await res.json()
       if (!res.ok) {
@@ -88,12 +92,28 @@ export default function ProjectCompaniesPage({ params }: { params: Promise<{ id:
         setCompanies((prev) => [...prev, json.data])
         setAddCompanyName('')
         setAddCompanyRole('subcontractor')
+        setAddCompanyTrade('')
       }
     } catch {
       setAddCompanyError('Failed to add company')
     } finally {
       setAddingCompany(false)
     }
+  }
+
+  async function handleSaveTrade(companyId: string) {
+    try {
+      const res = await fetch(`/api/projects/${id}/companies`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: companyId, trade: editingTradeValue }),
+      })
+      const json = await res.json()
+      if (res.ok) {
+        setCompanies((prev) => prev.map((c) => c.id === companyId ? { ...c, trade: json.data.trade } : c))
+      }
+    } catch { /* ignore */ }
+    setEditingTradeId(null)
   }
 
   async function handleRemoveCompany(companyId: string) {
@@ -167,6 +187,13 @@ export default function ProjectCompaniesPage({ params }: { params: Promise<{ id:
               className="flex-1 min-w-[160px] px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
+            <input
+              type="text"
+              placeholder="Trade (e.g. Electrical Works)"
+              value={addCompanyTrade}
+              onChange={(e) => setAddCompanyTrade(e.target.value)}
+              className="flex-1 min-w-[140px] px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
             <select
               value={addCompanyRole}
               onChange={(e) => setAddCompanyRole(e.target.value as CompanyRole)}
@@ -197,6 +224,28 @@ export default function ProjectCompaniesPage({ params }: { params: Promise<{ id:
               <li key={company.id} className="px-5 py-3 flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-900">{company.name}</p>
+                  {editingTradeId === company.id ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <input
+                        type="text"
+                        value={editingTradeValue}
+                        onChange={(e) => setEditingTradeValue(e.target.value)}
+                        className="px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="Trade"
+                        autoFocus
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSaveTrade(company.id); if (e.key === 'Escape') setEditingTradeId(null) }}
+                      />
+                      <button onClick={() => handleSaveTrade(company.id)} className="text-xs text-blue-600 hover:underline">Save</button>
+                      <button onClick={() => setEditingTradeId(null)} className="text-xs text-gray-500 hover:underline">Cancel</button>
+                    </div>
+                  ) : (
+                    <p
+                      className="text-xs text-gray-500 mt-0.5 cursor-pointer hover:text-gray-700"
+                      onClick={() => { setEditingTradeId(company.id); setEditingTradeValue(company.trade ?? '') }}
+                    >
+                      {company.trade || 'Add trade...'}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-3">
                   <span className={`text-xs font-medium px-2 py-0.5 rounded ${
