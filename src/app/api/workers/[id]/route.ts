@@ -68,7 +68,7 @@ export async function PATCH(
   if (typeof body.phone === 'string') updates.phone = body.phone
   if (typeof body.company === 'string') updates.company = body.company
   if (typeof body.cert_number === 'string') updates.cert_number = body.cert_number
-  if (typeof body.cert_expiry === 'string') updates.cert_expiry = body.cert_expiry
+  if (typeof body.cert_expiry === 'string') updates.cert_expiry = body.cert_expiry || null
   if (typeof body.is_active === 'boolean') updates.is_active = body.is_active
   if (typeof body.project_id === 'string') updates.project_id = body.project_id
   if (typeof body.company_id === 'string') updates.company_id = body.company_id

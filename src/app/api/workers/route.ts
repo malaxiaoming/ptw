@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
       company: companyName,
       trade: companyTrade,
       cert_number: typeof body.cert_number === 'string' ? body.cert_number : null,
-      cert_expiry: typeof body.cert_expiry === 'string' ? body.cert_expiry : null,
+      cert_expiry: typeof body.cert_expiry === 'string' && body.cert_expiry ? body.cert_expiry : null,
       project_id: typeof body.project_id === 'string' ? body.project_id : null,
       company_id: typeof body.company_id === 'string' ? body.company_id : null,
     })
