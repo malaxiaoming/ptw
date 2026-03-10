@@ -289,7 +289,7 @@ export default function ProjectCompaniesPage({ params }: { params: Promise<{ id:
                             else setEditingTradeValue(e.target.value)
                           }}
                           className="px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          autoFocus
+                          autoFocus={editingTradeValue === '' || TRADES.includes(editingTradeValue as typeof TRADES[number])}
                           onKeyDown={(e) => { if (e.key === 'Escape') setEditingTradeId(null) }}
                         >
                           <option value="">Select trade...</option>
