@@ -45,7 +45,6 @@ export default function EditPermitPage({ params }: { params: Promise<{ id: strin
   const [checklistData, setChecklistData] = useState<Record<string, unknown>>({})
   const [personnel, setPersonnel] = useState<PersonnelEntry[]>([])
   const [userCompanyId, setUserCompanyId] = useState<string | null>(null)
-  const [isAdmin, setIsAdmin] = useState(false)
 
   const loadPermit = useCallback(async () => {
     try {
@@ -86,7 +85,6 @@ export default function EditPermitPage({ params }: { params: Promise<{ id: strin
           const myRoleJson = await myRoleRes.json()
           if (myRoleJson.data) {
             setUserCompanyId(myRoleJson.data.company_id ?? null)
-            setIsAdmin(myRoleJson.data.is_admin ?? false)
           }
         } catch {
           // non-fatal
@@ -289,7 +287,8 @@ export default function EditPermitPage({ params }: { params: Promise<{ id: strin
               requirements={permit.permit_types.checklist_template.personnel}
               personnel={personnel}
               onChange={setPersonnel}
-              companyId={isAdmin ? undefined : userCompanyId}
+              companyId={userCompanyId}
+              projectId={permit.project_id}
             />
           </div>
         ) : null}

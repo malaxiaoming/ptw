@@ -42,7 +42,6 @@ export default function NewPermitPage() {
   const [checklistData, setChecklistData] = useState<Record<string, unknown>>({})
   const [personnel, setPersonnel] = useState<PersonnelEntry[]>([])
   const [userCompanyId, setUserCompanyId] = useState<string | null>(null)
-  const [isAdmin, setIsAdmin] = useState(false)
 
   // Load user's accessible projects
   useEffect(() => {
@@ -78,7 +77,6 @@ export default function NewPermitPage() {
       .then((json) => {
         if (json.data) {
           setUserCompanyId(json.data.company_id ?? null)
-          setIsAdmin(json.data.is_admin ?? false)
         }
       })
       .catch(() => {})
@@ -87,7 +85,6 @@ export default function NewPermitPage() {
   function handleProjectSelect(projectId: string) {
     setSelectedProjectId(projectId)
     setUserCompanyId(null)
-    setIsAdmin(false)
     setError(null)
   }
 
@@ -355,7 +352,8 @@ export default function NewPermitPage() {
                   requirements={selectedType.checklist_template.personnel}
                   personnel={personnel}
                   onChange={setPersonnel}
-                  companyId={isAdmin ? undefined : userCompanyId}
+                  companyId={userCompanyId}
+                  projectId={selectedProjectId}
                 />
               </div>
             )}

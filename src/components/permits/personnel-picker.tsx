@@ -18,18 +18,22 @@ interface PersonnelPickerProps {
   onChange: (personnel: PersonnelEntry[]) => void
   disabled?: boolean
   companyId?: string | null
+  projectId?: string
 }
 
-export function PersonnelPicker({ requirements, personnel, onChange, disabled, companyId }: PersonnelPickerProps) {
+export function PersonnelPicker({ requirements, personnel, onChange, disabled, companyId, projectId }: PersonnelPickerProps) {
   const [workers, setWorkers] = useState<Worker[]>([])
 
   useEffect(() => {
-    const url = companyId ? `/api/workers?company_id=${companyId}` : '/api/workers'
+    const params = new URLSearchParams()
+    if (projectId) params.set('project_id', projectId)
+    if (companyId) params.set('company_id', companyId)
+    const url = `/api/workers${params.toString() ? '?' + params.toString() : ''}`
     fetch(url)
       .then((r) => r.json())
       .then((res) => setWorkers(res.data ?? []))
       .catch(() => {/* non-fatal, manual entry still works */})
-  }, [companyId])
+  }, [companyId, projectId])
 
   function addPerson(role: string) {
     onChange([...personnel, { role, name: '' }])
