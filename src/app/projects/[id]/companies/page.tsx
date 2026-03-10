@@ -17,10 +17,7 @@ interface Company {
   is_active: boolean
 }
 
-const COMPANY_ROLES = ['main_contractor', 'subcontractor'] as const
-type CompanyRole = typeof COMPANY_ROLES[number]
-
-const COMPANY_ROLE_LABELS: Record<CompanyRole, string> = {
+const COMPANY_ROLE_LABELS: Record<string, string> = {
   main_contractor: 'Main Contractor',
   subcontractor: 'Subcontractor',
 }
@@ -91,7 +88,6 @@ export default function ProjectCompaniesPage({ params }: { params: Promise<{ id:
   const [fetchError, setFetchError] = useState<string | null>(null)
 
   const [addCompanyName, setAddCompanyName] = useState('')
-  const [addCompanyRole, setAddCompanyRole] = useState<CompanyRole>('subcontractor')
   const [addCompanyTrade, setAddCompanyTrade] = useState('')
   const [addingCompany, setAddingCompany] = useState(false)
   const [addCompanyError, setAddCompanyError] = useState<string | null>(null)
@@ -137,10 +133,11 @@ export default function ProjectCompaniesPage({ params }: { params: Promise<{ id:
     setAddingCompany(true)
     setAddCompanyError(null)
     try {
+      const role = companies.length === 0 ? 'main_contractor' : 'subcontractor'
       const res = await fetch(`/api/projects/${id}/companies`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: addCompanyName.trim(), role: addCompanyRole, trade: addCompanyTrade.trim() || undefined }),
+        body: JSON.stringify({ name: addCompanyName.trim(), role, trade: addCompanyTrade.trim() || undefined }),
       })
       const json = await res.json()
       if (!res.ok) {
@@ -148,7 +145,6 @@ export default function ProjectCompaniesPage({ params }: { params: Promise<{ id:
       } else {
         setCompanies((prev) => [...prev, json.data])
         setAddCompanyName('')
-        setAddCompanyRole('subcontractor')
         setAddCompanyTrade('')
       }
     } catch {
@@ -245,15 +241,6 @@ export default function ProjectCompaniesPage({ params }: { params: Promise<{ id:
               required
             />
             <TradeSelect value={addCompanyTrade} onChange={setAddCompanyTrade} />
-            <select
-              value={addCompanyRole}
-              onChange={(e) => setAddCompanyRole(e.target.value as CompanyRole)}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {COMPANY_ROLES.map((r) => (
-                <option key={r} value={r}>{COMPANY_ROLE_LABELS[r]}</option>
-              ))}
-            </select>
             <button
               type="submit"
               disabled={addingCompany || !addCompanyName.trim()}
@@ -326,7 +313,7 @@ export default function ProjectCompaniesPage({ params }: { params: Promise<{ id:
                       ? 'text-blue-700 bg-blue-50'
                       : 'text-gray-600 bg-gray-100'
                   }`}>
-                    {COMPANY_ROLE_LABELS[company.role as CompanyRole] ?? company.role}
+                    {COMPANY_ROLE_LABELS[company.role] ?? company.role}
                   </span>
                   <button
                     type="button"
