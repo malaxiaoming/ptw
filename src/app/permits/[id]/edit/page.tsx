@@ -14,6 +14,7 @@ interface Permit {
   permit_number: string
   status: string
   applicant_id: string
+  project_id: string
   work_location: string
   work_description: string
   gps_lat?: number | null
@@ -43,6 +44,8 @@ export default function EditPermitPage({ params }: { params: Promise<{ id: strin
   const [scheduledEnd, setScheduledEnd] = useState('')
   const [checklistData, setChecklistData] = useState<Record<string, unknown>>({})
   const [personnel, setPersonnel] = useState<PersonnelEntry[]>([])
+  const [userCompanyId, setUserCompanyId] = useState<string | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   const loadPermit = useCallback(async () => {
     try {
@@ -75,6 +78,20 @@ export default function EditPermitPage({ params }: { params: Promise<{ id: strin
       )
       setChecklistData(data.checklist_data ?? {})
       setPersonnel(data.personnel ?? [])
+
+      // Fetch user's role/company for personnel filtering
+      if (data.project_id) {
+        try {
+          const myRoleRes = await fetch(`/api/projects/${data.project_id}/my-role`)
+          const myRoleJson = await myRoleRes.json()
+          if (myRoleJson.data) {
+            setUserCompanyId(myRoleJson.data.company_id ?? null)
+            setIsAdmin(myRoleJson.data.is_admin ?? false)
+          }
+        } catch {
+          // non-fatal
+        }
+      }
     } catch {
       setError('Failed to load permit')
     }
@@ -272,6 +289,7 @@ export default function EditPermitPage({ params }: { params: Promise<{ id: strin
               requirements={permit.permit_types.checklist_template.personnel}
               personnel={personnel}
               onChange={setPersonnel}
+              companyId={isAdmin ? undefined : userCompanyId}
             />
           </div>
         ) : null}

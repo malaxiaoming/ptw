@@ -112,6 +112,43 @@ describe('GET /api/workers', () => {
     expect(body.data[0].phone).toBe('91234567')
   })
 
+  it('filters by company_id when param is provided', async () => {
+    mockGetCurrentUser.mockResolvedValue(mockAdminUser)
+    mockIsOrgAdmin.mockReturnValue(true)
+
+    const workers = [
+      { id: 'w-1', name: 'Alice', phone: null, company: 'BuildCo', trade: 'Electrician', cert_number: 'C001', cert_expiry: null, is_active: true, created_at: '2024-01-01T00:00:00Z', project_id: null, company_id: 'comp-1' },
+    ]
+
+    const chain = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+    }
+    // The last .eq() call (for company_id) resolves the chain
+    let eqCallCount = 0
+    chain.eq.mockImplementation(() => {
+      eqCallCount++
+      return chain
+    })
+    // order returns chain (so subsequent .eq works), and the final resolution
+    // happens when the chain is awaited. We need the chain to be thenable.
+    chain.order.mockReturnValue({
+      ...chain,
+      eq: vi.fn().mockResolvedValue({ data: workers, error: null }),
+      then: (resolve: (v: unknown) => void) => resolve({ data: workers, error: null }),
+    })
+
+    mockCreateClient.mockResolvedValue({ from: vi.fn().mockReturnValue(chain) } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>)
+
+    const req = makeRequest('http://localhost/api/workers?company_id=comp-1')
+    const res = await GET(req)
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.data).toEqual(workers)
+  })
+
   it('calls .or() filter when search param is provided', async () => {
     mockGetCurrentUser.mockResolvedValue(mockAdminUser)
     mockIsOrgAdmin.mockReturnValue(true)

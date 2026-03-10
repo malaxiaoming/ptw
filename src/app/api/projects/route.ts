@@ -99,5 +99,20 @@ export async function POST(request: NextRequest) {
 
   if (dbError) return error(dbError.message, 500)
 
+  // Auto-create MC company from admin's organization
+  if (data?.id && user.organization_name) {
+    try {
+      await serviceClient
+        .from('project_companies')
+        .insert({
+          project_id: data.id,
+          name: user.organization_name,
+          role: 'main_contractor',
+        })
+    } catch {
+      // non-blocking, fail silently
+    }
+  }
+
   return success(data, 201)
 }

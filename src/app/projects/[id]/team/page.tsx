@@ -10,12 +10,19 @@ interface UserProfile {
   email: string | null
 }
 
+interface Company {
+  id: string
+  name: string
+}
+
 interface RoleAssignment {
   id: string
   user_id: string
   role: string
   is_active: boolean
+  company_id: string | null
   user_profiles: UserProfile | null
+  project_companies: Company | null
 }
 
 interface Project {
@@ -45,11 +52,13 @@ export default function ProjectTeamPage({ params }: { params: Promise<{ id: stri
   const [project, setProject] = useState<Project | null>(null)
   const [roles, setRoles] = useState<RoleAssignment[]>([])
   const [orgUsers, setOrgUsers] = useState<OrgUser[]>([])
+  const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
 
   const [addUserId, setAddUserId] = useState('')
   const [addRole, setAddRole] = useState<Role>('applicant')
+  const [addCompanyId, setAddCompanyId] = useState('')
   const [addingRole, setAddingRole] = useState(false)
   const [addRoleError, setAddRoleError] = useState<string | null>(null)
 
@@ -61,14 +70,16 @@ export default function ProjectTeamPage({ params }: { params: Promise<{ id: stri
       setLoading(true)
       setFetchError(null)
       try {
-        const [projectRes, rolesRes, usersRes] = await Promise.all([
+        const [projectRes, rolesRes, usersRes, companiesRes] = await Promise.all([
           fetch(`/api/projects/${id}`),
           fetch(`/api/projects/${id}/roles`),
           fetch('/api/users'),
+          fetch(`/api/projects/${id}/companies`),
         ])
         const projectJson = await projectRes.json()
         const rolesJson = await rolesRes.json()
         const usersJson = await usersRes.json()
+        const companiesJson = await companiesRes.json()
 
         if (!projectRes.ok) {
           setFetchError(projectJson.error ?? 'Failed to load project')
@@ -82,6 +93,7 @@ export default function ProjectTeamPage({ params }: { params: Promise<{ id: stri
         setProject(projectJson.data)
         setRoles(rolesJson.data ?? [])
         setOrgUsers(usersJson.data?.users ?? [])
+        setCompanies(companiesJson.data ?? [])
       } catch {
         setFetchError('Failed to load team')
       } finally {
@@ -101,7 +113,7 @@ export default function ProjectTeamPage({ params }: { params: Promise<{ id: stri
       const res = await fetch(`/api/projects/${id}/roles`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: addUserId, role: addRole }),
+        body: JSON.stringify({ user_id: addUserId, role: addRole, company_id: addCompanyId || undefined }),
       })
       const json = await res.json()
       if (!res.ok) {
@@ -112,6 +124,7 @@ export default function ProjectTeamPage({ params }: { params: Promise<{ id: stri
         setRoles(rolesJson.data ?? [])
         setAddUserId('')
         setAddRole('applicant')
+        setAddCompanyId('')
       }
     } catch {
       setAddRoleError('Failed to add role')
@@ -237,6 +250,16 @@ export default function ProjectTeamPage({ params }: { params: Promise<{ id: stri
                 <option key={r} value={r}>{ROLE_LABELS[r]}</option>
               ))}
             </select>
+            <select
+              value={addCompanyId}
+              onChange={(e) => setAddCompanyId(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">No company</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
             <button
               type="submit"
               disabled={addingRole || !addUserId}
@@ -266,6 +289,11 @@ export default function ProjectTeamPage({ params }: { params: Promise<{ id: stri
                   <span className="text-xs font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
                     {ROLE_LABELS[assignment.role as Role] ?? assignment.role}
                   </span>
+                  {assignment.project_companies?.name && (
+                    <span className="text-xs text-gray-500">
+                      {assignment.project_companies.name}
+                    </span>
+                  )}
                   <button
                     type="button"
                     onClick={() => handleToggleActive(assignment)}

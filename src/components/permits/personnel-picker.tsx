@@ -17,17 +17,19 @@ interface PersonnelPickerProps {
   personnel: PersonnelEntry[]
   onChange: (personnel: PersonnelEntry[]) => void
   disabled?: boolean
+  companyId?: string | null
 }
 
-export function PersonnelPicker({ requirements, personnel, onChange, disabled }: PersonnelPickerProps) {
+export function PersonnelPicker({ requirements, personnel, onChange, disabled, companyId }: PersonnelPickerProps) {
   const [workers, setWorkers] = useState<Worker[]>([])
 
   useEffect(() => {
-    fetch('/api/workers')
+    const url = companyId ? `/api/workers?company_id=${companyId}` : '/api/workers'
+    fetch(url)
       .then((r) => r.json())
       .then((res) => setWorkers(res.data ?? []))
       .catch(() => {/* non-fatal, manual entry still works */})
-  }, [])
+  }, [companyId])
 
   function addPerson(role: string) {
     onChange([...personnel, { role, name: '' }])

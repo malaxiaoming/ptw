@@ -28,6 +28,11 @@ export async function GET(request: NextRequest) {
     query = query.eq('project_id', projectId)
   }
 
+  const companyId = request.nextUrl.searchParams.get('company_id')
+  if (companyId) {
+    query = query.eq('company_id', companyId)
+  }
+
   if (search) {
     const safeSearch = search.replace(/[,)(]/g, '')
     if (safeSearch) {

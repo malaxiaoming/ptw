@@ -234,7 +234,7 @@ describe('POST /api/projects', () => {
   })
 
   it('creates a project and returns 201 for admin user', async () => {
-    mockGetCurrentUser.mockResolvedValue(mockAdminUser)
+    mockGetCurrentUser.mockResolvedValue({ ...mockAdminUser, organization_name: 'Acme Corp' })
 
     const newProject = {
       id: 'proj-new',
@@ -250,8 +250,17 @@ describe('POST /api/projects', () => {
       single: vi.fn().mockResolvedValue({ data: newProject, error: null }),
     }
 
+    // MC company insert chain (second from() call)
+    const mcCompanyChain = {
+      insert: vi.fn().mockResolvedValue({ data: null, error: null }),
+    }
+
+    let fromCount = 0
     mockCreateServiceClient.mockResolvedValue({
-      from: vi.fn().mockReturnValue(insertChain),
+      from: vi.fn().mockImplementation(() => {
+        fromCount++
+        return fromCount === 1 ? insertChain : mcCompanyChain
+      }),
     } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     const req = makeRequest('http://localhost/api/projects', {
@@ -265,6 +274,10 @@ describe('POST /api/projects', () => {
     expect(body.data).toEqual(newProject)
     expect(insertChain.insert).toHaveBeenCalledWith(
       expect.objectContaining({ organization_id: 'org-1', name: 'New Project', address: 'Jurong' })
+    )
+    // Verify MC company was auto-created
+    expect(mcCompanyChain.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ project_id: 'proj-new', name: 'Acme Corp', role: 'main_contractor' })
     )
   })
 })

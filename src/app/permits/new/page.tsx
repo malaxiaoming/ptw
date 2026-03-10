@@ -41,6 +41,8 @@ export default function NewPermitPage() {
   const [scheduledEnd, setScheduledEnd] = useState(defaultScheduledEnd)
   const [checklistData, setChecklistData] = useState<Record<string, unknown>>({})
   const [personnel, setPersonnel] = useState<PersonnelEntry[]>([])
+  const [userCompanyId, setUserCompanyId] = useState<string | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   // Load user's accessible projects
   useEffect(() => {
@@ -68,8 +70,24 @@ export default function NewPermitPage() {
     }
   }, [selectedProjectId])
 
+  // Fetch user's role/company when project changes
+  useEffect(() => {
+    if (!selectedProjectId) return
+    fetch(`/api/projects/${selectedProjectId}/my-role`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.data) {
+          setUserCompanyId(json.data.company_id ?? null)
+          setIsAdmin(json.data.is_admin ?? false)
+        }
+      })
+      .catch(() => {})
+  }, [selectedProjectId])
+
   function handleProjectSelect(projectId: string) {
     setSelectedProjectId(projectId)
+    setUserCompanyId(null)
+    setIsAdmin(false)
     setError(null)
   }
 
@@ -337,6 +355,7 @@ export default function NewPermitPage() {
                   requirements={selectedType.checklist_template.personnel}
                   personnel={personnel}
                   onChange={setPersonnel}
+                  companyId={isAdmin ? undefined : userCompanyId}
                 />
               </div>
             )}

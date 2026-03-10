@@ -18,8 +18,9 @@ export async function GET(
   const { data, error: dbError } = await serviceClient
     .from('user_project_roles')
     .select(`
-      id, user_id, role, is_active,
-      user_profiles(id, name, email, organization_id)
+      id, user_id, role, is_active, company_id,
+      user_profiles(id, name, email, organization_id),
+      project_companies(id, name)
     `)
     .eq('project_id', id)
     .order('role', { ascending: true })
@@ -86,14 +87,16 @@ export async function POST(
     }
   }
 
+  const companyId = typeof body.company_id === 'string' && body.company_id ? body.company_id : null
+
   // Upsert semantics: insert, on conflict do nothing
   const { data, error: dbError } = await serviceClient
     .from('user_project_roles')
     .upsert(
-      { user_id: body.user_id, project_id: id, role: body.role },
+      { user_id: body.user_id, project_id: id, role: body.role, company_id: companyId },
       { onConflict: 'user_id,project_id,role', ignoreDuplicates: true }
     )
-    .select('id, user_id, role, is_active')
+    .select('id, user_id, role, is_active, company_id')
     .maybeSingle()  // returns null on duplicate (no-op upsert)
 
   if (dbError) return error(dbError.message, 500)
@@ -129,13 +132,18 @@ export async function PATCH(
     return error('is_active (boolean) is required', 400)
   }
 
+  const updatePayload: Record<string, unknown> = { is_active: body.is_active }
+  if (typeof body.company_id === 'string') {
+    updatePayload.company_id = body.company_id || null // empty string → null
+  }
+
   const { data, error: dbError } = await serviceClient
     .from('user_project_roles')
-    .update({ is_active: body.is_active })
+    .update(updatePayload)
     .eq('user_id', body.user_id)
     .eq('project_id', id)
     .eq('role', body.role)
-    .select('id, user_id, role, is_active')
+    .select('id, user_id, role, is_active, company_id')
     .single()
 
   if (dbError) return error(dbError.message, 500)
