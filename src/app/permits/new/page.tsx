@@ -227,22 +227,20 @@ export default function NewPermitPage() {
             ) : permitTypes.length === 0 ? (
               <p className="text-gray-500 text-sm">No permit types available for your organisation.</p>
             ) : (
-              <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
                 {permitTypes.map((type) => (
                   <button
                     key={type.id}
                     type="button"
                     onClick={() => handleTypeSelect(type.id)}
-                    className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
+                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 text-sm transition-colors ${
                       selectedTypeId === type.id
                         ? 'border-blue-600 bg-blue-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{type.code}</span>
-                      <p className="font-medium text-gray-900">{type.name}</p>
-                    </div>
+                    <span className="font-mono text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{type.code}</span>
+                    <span className="font-medium text-gray-900">{type.name}</span>
                   </button>
                 ))}
               </div>
