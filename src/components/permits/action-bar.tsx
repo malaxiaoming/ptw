@@ -23,6 +23,7 @@ interface ActionBarProps {
 export function ActionBar({ permit, userRoles, userId, onAction }: ActionBarProps) {
   const [pendingAction, setPendingAction] = useState<PermitAction | null>(null)
   const [comment, setComment] = useState('')
+  const [declarationChecked, setDeclarationChecked] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -39,7 +40,11 @@ export function ActionBar({ permit, userRoles, userId, onAction }: ActionBarProp
   if (availableActions.length === 0) return null
 
   async function handleActionClick(action: PermitAction, requiresComment: boolean) {
-    if (requiresComment) {
+    if (action === 'submit') {
+      setPendingAction(action)
+      setDeclarationChecked(false)
+      setError(null)
+    } else if (requiresComment) {
       setPendingAction(action)
       setComment('')
       setError(null)
@@ -73,6 +78,42 @@ export function ActionBar({ permit, userRoles, userId, onAction }: ActionBarProp
       )}
 
       {pendingAction ? (
+        pendingAction === 'submit' ? (
+        <div className="space-y-3">
+          <p className="text-sm font-medium text-gray-700">Applicant Declaration</p>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={declarationChecked}
+              onChange={(e) => setDeclarationChecked(e.target.checked)}
+              disabled={loading}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700">
+              I fully understand the nature of the work and safety conditions that must be met.
+              I have inspected the safety conditions relating to the work to be performed.
+            </span>
+          </label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => submitAction(pendingAction, undefined)}
+              disabled={loading || !declarationChecked}
+              className="px-4 py-2 text-sm font-medium rounded-md bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Processing...' : 'Confirm'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setPendingAction(null); setDeclarationChecked(false); setError(null) }}
+              disabled={loading}
+              className="px-4 py-2 text-sm font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+        ) : (
         <div className="space-y-3">
           <p className="text-sm text-gray-700">
             <span className="font-medium">{ACTION_CONFIG[pendingAction].label}</span>
@@ -105,6 +146,7 @@ export function ActionBar({ permit, userRoles, userId, onAction }: ActionBarProp
             </button>
           </div>
         </div>
+        )
       ) : (
         <div className="flex flex-wrap gap-2">
           {availableActions.map(({ action, result }) => (
