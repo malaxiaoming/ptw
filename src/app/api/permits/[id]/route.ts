@@ -130,11 +130,11 @@ export async function DELETE(
   // Clean up attachments from storage
   const { data: attachments } = await serviceClient
     .from('permit_attachments')
-    .select('file_path')
+    .select('file_url')
     .eq('permit_id', id)
 
   if (attachments && attachments.length > 0) {
-    const paths = attachments.map((a) => a.file_path)
+    const paths = attachments.map((a) => a.file_url)
     await serviceClient.storage.from('permit-attachments').remove(paths)
   }
 
