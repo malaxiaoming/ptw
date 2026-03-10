@@ -56,8 +56,8 @@ export function validateChecklist(
           errors.push(`${field.label} must be checked`)
         }
       } else if (field.type === 'yes_no') {
-        if (value !== 'yes' && value !== 'no') {
-          errors.push(`${field.label} must be answered Yes or No`)
+        if (value !== 'yes' && value !== 'no' && value !== 'na') {
+          errors.push(`${field.label} must be answered Yes, No, or N.A.`)
         }
       } else if (field.type === 'photo') {
         if (!Array.isArray(value) || value.length === 0) {

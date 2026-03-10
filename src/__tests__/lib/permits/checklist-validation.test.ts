@@ -176,16 +176,21 @@ describe('validateChecklist', () => {
       expect(result.valid).toBe(true)
     })
 
+    it('passes when required yes_no field is answered na', () => {
+      const result = validateChecklist(yesNoTemplate, { briefed: 'na' }, [])
+      expect(result.valid).toBe(true)
+    })
+
     it('fails when required yes_no field is unanswered', () => {
       const result = validateChecklist(yesNoTemplate, { briefed: '' }, [])
       expect(result.valid).toBe(false)
-      expect(result.errors).toContain('SWP briefed to workers? must be answered Yes or No')
+      expect(result.errors).toContain('SWP briefed to workers? must be answered Yes, No, or N.A.')
     })
 
     it('fails when required yes_no field is missing', () => {
       const result = validateChecklist(yesNoTemplate, {}, [])
       expect(result.valid).toBe(false)
-      expect(result.errors).toContain('SWP briefed to workers? must be answered Yes or No')
+      expect(result.errors).toContain('SWP briefed to workers? must be answered Yes, No, or N.A.')
     })
 
     it('passes when optional yes_no field is unanswered', () => {
