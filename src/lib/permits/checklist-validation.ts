@@ -1,6 +1,6 @@
 export interface ChecklistField {
   id: string
-  type: 'checkbox' | 'text' | 'date' | 'photo' | 'select'
+  type: 'checkbox' | 'text' | 'date' | 'photo' | 'select' | 'yes_no'
   label: string
   required: boolean
   max?: number
@@ -54,6 +54,10 @@ export function validateChecklist(
       if (field.type === 'checkbox') {
         if (value !== true) {
           errors.push(`${field.label} must be checked`)
+        }
+      } else if (field.type === 'yes_no') {
+        if (value !== 'yes' && value !== 'no') {
+          errors.push(`${field.label} must be answered Yes or No`)
         }
       } else if (field.type === 'photo') {
         if (!Array.isArray(value) || value.length === 0) {

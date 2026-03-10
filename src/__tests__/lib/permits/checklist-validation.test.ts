@@ -151,4 +151,46 @@ describe('validateChecklist', () => {
     expect(result.valid).toBe(false)
     expect(result.errors).toContain('Site photo can have at most 2 photos')
   })
+
+  describe('yes_no field type', () => {
+    const yesNoTemplate: ChecklistTemplate = {
+      sections: [
+        {
+          title: 'Safety Checks',
+          fields: [
+            { id: 'briefed', type: 'yes_no', label: 'SWP briefed to workers?', required: true },
+            { id: 'optional_check', type: 'yes_no', label: 'Optional check', required: false },
+          ],
+        },
+      ],
+      personnel: [],
+    }
+
+    it('passes when required yes_no field is answered yes', () => {
+      const result = validateChecklist(yesNoTemplate, { briefed: 'yes' }, [])
+      expect(result.valid).toBe(true)
+    })
+
+    it('passes when required yes_no field is answered no', () => {
+      const result = validateChecklist(yesNoTemplate, { briefed: 'no' }, [])
+      expect(result.valid).toBe(true)
+    })
+
+    it('fails when required yes_no field is unanswered', () => {
+      const result = validateChecklist(yesNoTemplate, { briefed: '' }, [])
+      expect(result.valid).toBe(false)
+      expect(result.errors).toContain('SWP briefed to workers? must be answered Yes or No')
+    })
+
+    it('fails when required yes_no field is missing', () => {
+      const result = validateChecklist(yesNoTemplate, {}, [])
+      expect(result.valid).toBe(false)
+      expect(result.errors).toContain('SWP briefed to workers? must be answered Yes or No')
+    })
+
+    it('passes when optional yes_no field is unanswered', () => {
+      const result = validateChecklist(yesNoTemplate, { briefed: 'yes', optional_check: '' }, [])
+      expect(result.valid).toBe(true)
+    })
+  })
 })

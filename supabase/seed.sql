@@ -11,13 +11,14 @@ insert into permit_types (organization_id, name, code, checklist_template) value
     {
       "title": "Pre-Work Safety Checks",
       "fields": [
-        { "id": "work_height", "type": "text", "label": "Working height (metres)", "required": true },
-        { "id": "harness_inspected", "type": "checkbox", "label": "Full body harness inspected and in good condition?", "required": true },
-        { "id": "anchor_point", "type": "text", "label": "Anchor point location", "required": true },
-        { "id": "guardrails_installed", "type": "checkbox", "label": "Guardrails/barriers installed?", "required": true },
-        { "id": "safety_net", "type": "checkbox", "label": "Safety net provided (if applicable)?", "required": false },
-        { "id": "weather_checked", "type": "checkbox", "label": "Weather conditions checked and suitable?", "required": true },
-        { "id": "rescue_plan", "type": "checkbox", "label": "Rescue plan in place?", "required": true },
+        { "id": "swp_briefed", "type": "yes_no", "label": "SWP briefed to workers involved?", "required": true },
+        { "id": "safety_rules_briefed", "type": "yes_no", "label": "In-house Safety Rules & Regulations briefed to workers?", "required": true },
+        { "id": "ppe_issued", "type": "yes_no", "label": "Has the required PPE issued to workers? (Safety Belt, Safety Harness, etc)", "required": true },
+        { "id": "harness_liftline", "type": "yes_no", "label": "Ensure when there is potential falling hazard, safety harness and additional lift line were provided.", "required": true },
+        { "id": "liftline_secured", "type": "yes_no", "label": "Lift line was firmly secured to rigid structure when necessary.", "required": true },
+        { "id": "hook_briefed", "type": "yes_no", "label": "Workers were briefed to hook their safety belt / harness to secured point (life line, structure, etc)", "required": true },
+        { "id": "area_barricaded", "type": "yes_no", "label": "Work area below to be barricade with danger signboard to prevent entry.", "required": true },
+        { "id": "harness_condition", "type": "yes_no", "label": "Check to ensure safety belt / harness is not defective.", "required": true },
         { "id": "site_photo", "type": "photo", "label": "Site condition photos", "required": true, "max": 5 }
       ]
     }

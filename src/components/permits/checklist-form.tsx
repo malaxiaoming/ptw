@@ -125,6 +125,32 @@ function ChecklistFieldInput({ field, value, onChange, permitId, disabled }: Che
         </div>
       )
 
+    case 'yes_no':
+      return (
+        <div>
+          <p className="text-sm font-medium text-gray-700 mb-1">
+            {field.label}
+            {field.required && <span className="text-red-500 ml-1">*</span>}
+          </p>
+          <div className="flex gap-4">
+            {(['yes', 'no'] as const).map((option) => (
+              <label key={option} className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="radio"
+                  name={field.id}
+                  value={option}
+                  checked={value === option}
+                  onChange={() => onChange(option)}
+                  disabled={disabled}
+                  className="h-4 w-4 text-blue-600 border-gray-300"
+                />
+                <span className="text-sm capitalize">{option === 'yes' ? 'Yes' : 'No'}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )
+
     case 'photo':
       return (
         <ChecklistPhotoField
