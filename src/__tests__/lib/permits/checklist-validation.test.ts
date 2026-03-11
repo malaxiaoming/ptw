@@ -171,13 +171,19 @@ describe('validateChecklist', () => {
       expect(result.valid).toBe(true)
     })
 
-    it('passes when required yes_no field is answered no', () => {
+    it('fails when required yes_no field is answered no', () => {
       const result = validateChecklist(yesNoTemplate, { briefed: 'no' }, [])
-      expect(result.valid).toBe(true)
+      expect(result.valid).toBe(false)
+      expect(result.errors).toContain('SWP briefed to workers? cannot be "No" — condition must be safe or N.A. to proceed')
     })
 
     it('passes when required yes_no field is answered na', () => {
       const result = validateChecklist(yesNoTemplate, { briefed: 'na' }, [])
+      expect(result.valid).toBe(true)
+    })
+
+    it('passes when non-required yes_no field is answered no', () => {
+      const result = validateChecklist(yesNoTemplate, { briefed: 'yes', optional_check: 'no' }, [])
       expect(result.valid).toBe(true)
     })
 

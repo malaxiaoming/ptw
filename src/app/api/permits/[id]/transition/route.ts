@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth/get-user'
 import { getUserRolesForProject } from '@/lib/auth/get-user-roles'
 import { validateTransition } from '@/lib/permits/transition'
 import { type PermitAction } from '@/lib/permits/state-machine'
+import { validateChecklist, type ChecklistTemplate, type PersonnelEntry } from '@/lib/permits/checklist-validation'
 import { success, error } from '@/lib/api/response'
 
 export async function POST(
@@ -35,7 +36,7 @@ export async function POST(
   // Get current permit
   const { data: permit } = await supabase
     .from('permits')
-    .select('id, status, applicant_id, project_id')
+    .select('id, status, applicant_id, project_id, checklist_data, personnel, permit_types(checklist_template)')
     .eq('id', id)
     .single()
 
@@ -55,6 +56,19 @@ export async function POST(
 
   if (result.requiresComment && !comments) {
     return error('Comments are required for this action', 400)
+  }
+
+  // Validate checklist on submit
+  if (action === 'submit') {
+    const template = (permit as Record<string, unknown>).permit_types as { checklist_template: ChecklistTemplate } | null
+    if (template?.checklist_template) {
+      const checklistData = (permit.checklist_data ?? {}) as Record<string, unknown>
+      const personnel = ((permit.personnel ?? []) as PersonnelEntry[])
+      const checklistResult = validateChecklist(template.checklist_template, checklistData, personnel)
+      if (!checklistResult.valid) {
+        return error(checklistResult.errors.join('; '), 400)
+      }
+    }
   }
 
   // Build update payload

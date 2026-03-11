@@ -13,7 +13,7 @@ import { DetailSkeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/components/ui/toast'
 import type { PermitStatus, PermitAction } from '@/lib/permits/state-machine'
 import type { Role } from '@/lib/auth/permissions'
-import type { ChecklistTemplate, PersonnelEntry } from '@/lib/permits/checklist-validation'
+import { validateChecklist, type ChecklistTemplate, type PersonnelEntry } from '@/lib/permits/checklist-validation'
 
 interface UserProfile {
   id: string
@@ -142,6 +142,22 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
 
   async function handleAction(action: PermitAction, comments?: string) {
     setActionError(null)
+
+    // Frontend checklist validation before submit
+    if (action === 'submit' && permit?.permit_types?.checklist_template) {
+      const checklistResult = validateChecklist(
+        permit.permit_types.checklist_template,
+        permit.checklist_data ?? {},
+        permit.personnel ?? []
+      )
+      if (!checklistResult.valid) {
+        const msg = checklistResult.errors.join('; ')
+        setActionError(msg)
+        toast(msg, 'error')
+        return
+      }
+    }
+
     try {
       const res = await fetch(`/api/permits/${id}/transition`, {
         method: 'POST',
