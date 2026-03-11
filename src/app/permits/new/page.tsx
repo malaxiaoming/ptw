@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChecklistForm } from '@/components/permits/checklist-form'
 import { PersonnelPicker } from '@/components/permits/personnel-picker'
+import { validateChecklist } from '@/lib/permits/checklist-validation'
 import type { ChecklistTemplate, PersonnelEntry } from '@/lib/permits/checklist-validation'
 import { compressImage } from '@/lib/utils/image-compression'
 import { defaultScheduledStart, defaultScheduledEnd, datetimeLocalToISO } from '@/lib/utils/date-defaults'
@@ -96,6 +97,12 @@ export default function NewPermitPage() {
     setPersonnel([])
     setError(null)
   }
+
+  const checklistWarnings = useMemo(() => {
+    if (!selectedType) return []
+    const result = validateChecklist(selectedType.checklist_template, checklistData, personnel)
+    return result.errors
+  }, [selectedType, checklistData, personnel])
 
   const canSubmit = Boolean(selectedProjectId && selectedTypeId && workLocation.trim() && workDescription.trim())
 
@@ -365,6 +372,18 @@ export default function NewPermitPage() {
               </p>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Checklist validation warnings */}
+      {checklistWarnings.length > 0 && (
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <p className="text-sm font-medium text-amber-800 mb-2">
+            The following items need attention before this permit can be submitted:
+          </p>
+          <ul className="list-disc list-inside text-sm text-amber-700 space-y-1">
+            {checklistWarnings.map((w, i) => <li key={i}>{w}</li>)}
+          </ul>
         </div>
       )}
 

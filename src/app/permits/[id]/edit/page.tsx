@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect, useCallback, use } from 'react'
+import { useState, useEffect, useCallback, use, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ChecklistForm } from '@/components/permits/checklist-form'
 import { PersonnelPicker } from '@/components/permits/personnel-picker'
+import { validateChecklist } from '@/lib/permits/checklist-validation'
 import type { ChecklistTemplate, PersonnelEntry } from '@/lib/permits/checklist-validation'
 import { createClient } from '@/lib/supabase/client'
 import { defaultScheduledStart, defaultScheduledEnd, toDatetimeLocal, datetimeLocalToISO } from '@/lib/utils/date-defaults'
@@ -99,6 +100,13 @@ export default function EditPermitPage({ params }: { params: Promise<{ id: strin
     setLoading(true)
     loadPermit().finally(() => setLoading(false))
   }, [loadPermit])
+
+  const checklistWarnings = useMemo(() => {
+    const template = permit?.permit_types?.checklist_template
+    if (!template) return []
+    const result = validateChecklist(template, checklistData, personnel)
+    return result.errors
+  }, [permit, checklistData, personnel])
 
   async function handleSave() {
     if (!workLocation.trim() || !workDescription.trim()) {
@@ -293,6 +301,18 @@ export default function EditPermitPage({ params }: { params: Promise<{ id: strin
           </div>
         ) : null}
       </div>
+
+      {/* Checklist validation warnings */}
+      {checklistWarnings.length > 0 && (
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <p className="text-sm font-medium text-amber-800 mb-2">
+            The following items need attention before this permit can be submitted:
+          </p>
+          <ul className="list-disc list-inside text-sm text-amber-700 space-y-1">
+            {checklistWarnings.map((w, i) => <li key={i}>{w}</li>)}
+          </ul>
+        </div>
+      )}
 
       <div className="flex justify-between">
         <Link
