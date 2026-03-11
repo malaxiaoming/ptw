@@ -24,6 +24,7 @@ export function ActionBar({ permit, userRoles, userId, onAction }: ActionBarProp
   const [pendingAction, setPendingAction] = useState<PermitAction | null>(null)
   const [comment, setComment] = useState('')
   const [declarationChecked, setDeclarationChecked] = useState(false)
+  const [verifierChecked, setVerifierChecked] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -43,6 +44,10 @@ export function ActionBar({ permit, userRoles, userId, onAction }: ActionBarProp
     if (action === 'submit') {
       setPendingAction(action)
       setDeclarationChecked(false)
+      setError(null)
+    } else if (action === 'verify') {
+      setPendingAction(action)
+      setVerifierChecked(false)
       setError(null)
     } else if (requiresComment) {
       setPendingAction(action)
@@ -106,6 +111,40 @@ export function ActionBar({ permit, userRoles, userId, onAction }: ActionBarProp
             <button
               type="button"
               onClick={() => { setPendingAction(null); setDeclarationChecked(false); setError(null) }}
+              disabled={loading}
+              className="px-4 py-2 text-sm font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+        ) : pendingAction === 'verify' ? (
+        <div className="space-y-3">
+          <p className="text-sm font-medium text-gray-700">Verifier Declaration</p>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={verifierChecked}
+              onChange={(e) => setVerifierChecked(e.target.checked)}
+              disabled={loading}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700">
+              I have evaluated the risks and hazards associated with the job, am satisfied that thorough assessment of the work area and its surroundings has been made, that all necessary safety measures have been undertaken, and have inspected and confirmed that the safety precautions/requirements are in place.
+            </span>
+          </label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => submitAction(pendingAction, undefined)}
+              disabled={loading || !verifierChecked}
+              className="px-4 py-2 text-sm font-medium rounded-md bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Processing...' : 'Confirm'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setPendingAction(null); setVerifierChecked(false); setError(null) }}
               disabled={loading}
               className="px-4 py-2 text-sm font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
             >
