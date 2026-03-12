@@ -18,15 +18,18 @@ export async function GET(
 
   const { data, error: dbError } = await serviceClient
     .from('user_project_roles')
-    .select('role, company_id')
+    .select('role, company_id, project_companies(role)')
     .eq('user_id', user.id)
     .eq('project_id', id)
     .eq('is_active', true)
 
   if (dbError) return error(dbError.message, 500)
 
-  const roles = (data ?? []).map((r: { role: string }) => r.role)
-  const companyId = (data ?? []).find((r: { company_id: string | null }) => r.company_id)?.company_id ?? null
+  const rows = data ?? []
+  const roles = rows.map((r: { role: string }) => r.role)
+  const companyId = rows.find((r: { company_id: string | null }) => r.company_id)?.company_id ?? null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const companyRole = (rows as any[]).find((r) => r.project_companies)?.project_companies?.role ?? null
 
-  return success({ roles, company_id: companyId, is_admin: admin })
+  return success({ roles, company_id: companyId, company_role: companyRole, is_admin: admin })
 }
