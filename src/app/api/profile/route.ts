@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/get-user'
 import { success, error } from '@/lib/api/response'
 
@@ -40,7 +40,7 @@ export async function PATCH(request: NextRequest) {
 
   if (Object.keys(updates).length === 0) return error('No fields to update', 400)
 
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServiceRoleClient()
   const { data, error: dbError } = await supabase
     .from('user_profiles')
     .update(updates)
