@@ -54,6 +54,7 @@ export default function SettingsPage() {
     setSaving(false)
     if (res.ok) {
       toast('Profile updated.', 'success')
+      router.refresh()
     } else {
       toast(json.error ?? 'Failed to save.', 'error')
     }
