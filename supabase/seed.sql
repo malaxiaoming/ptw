@@ -126,14 +126,15 @@ insert into permit_types (organization_id, name, code, checklist_template) value
     {
       "title": "Demolition Safety Checks",
       "fields": [
-        { "id": "structure_description", "type": "text", "label": "Structure to be demolished", "required": true },
-        { "id": "demolition_method", "type": "select", "label": "Demolition method", "required": true, "options": ["Manual", "Mechanical", "Controlled Blasting", "Deconstruction"] },
-        { "id": "structural_survey", "type": "checkbox", "label": "Structural survey completed?", "required": true },
-        { "id": "asbestos_check", "type": "checkbox", "label": "Asbestos/hazardous material survey completed?", "required": true },
-        { "id": "utilities_disconnected", "type": "checkbox", "label": "All utilities disconnected?", "required": true },
-        { "id": "exclusion_zone", "type": "checkbox", "label": "Exclusion zone established and barricaded?", "required": true },
-        { "id": "dust_control", "type": "checkbox", "label": "Dust suppression measures in place?", "required": true },
-        { "id": "debris_management", "type": "checkbox", "label": "Debris management plan in place?", "required": true },
+        { "id": "hoarding_barricade", "type": "yes_no", "label": "Erect hoarding, adequate barricade and warning signage are provided to prevent unauthorised entry", "required": true },
+        { "id": "ppe_used", "type": "yes_no", "label": "Appropriate personal protection equipment are used", "required": true },
+        { "id": "service_lines_capped", "type": "yes_no", "label": "Disconnect and cap all the service lines", "required": true },
+        { "id": "glass_loose_removed", "type": "yes_no", "label": "Dismantle all glass in the exterior openings, and loose components before commencement of demolition works", "required": true },
+        { "id": "hazardous_material_check", "type": "yes_no", "label": "Check and ensure adequate precaution measures has been taken if there is presence of material such as asbestos, lead or mercury", "required": true },
+        { "id": "structure_guarded", "type": "yes_no", "label": "All structure must be guarded to prevent falling or collapse", "required": true },
+        { "id": "safe_access_exit", "type": "yes_no", "label": "Safe access and exit route to/from any building are provided", "required": true },
+        { "id": "demolition_permit_display", "type": "yes_no", "label": "Prominent display of demolition permit", "required": true },
+        { "id": "debris_disposal", "type": "yes_no", "label": "Proper material disposal of debris are provided", "required": true },
         { "id": "site_photo", "type": "photo", "label": "Pre-demolition photos", "required": true, "max": 5 }
       ]
     }
