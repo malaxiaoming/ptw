@@ -46,6 +46,7 @@ export default function NewPermitPage() {
   const [userCompanyRole, setUserCompanyRole] = useState<string | null>(null)
   const [userRoles, setUserRoles] = useState<string[]>([])
   const [loadingRole, setLoadingRole] = useState(false)
+  const [roleFetched, setRoleFetched] = useState(false)
 
   // Load user's accessible projects
   useEffect(() => {
@@ -87,17 +88,18 @@ export default function NewPermitPage() {
         }
       })
       .catch(() => {})
-      .finally(() => setLoadingRole(false))
+      .finally(() => { setLoadingRole(false); setRoleFetched(true) })
   }, [selectedProjectId])
 
   const isApplicant = userRoles.includes('applicant')
-  const hasCheckedRole = !loadingRole && selectedProjectId !== '' && userRoles.length >= 0
+  const hasCheckedRole = roleFetched && !loadingRole && selectedProjectId !== ''
 
   function handleProjectSelect(projectId: string) {
     setSelectedProjectId(projectId)
     setUserCompanyId(null)
     setUserCompanyRole(null)
     setUserRoles([])
+    setRoleFetched(false)
     setError(null)
   }
 
