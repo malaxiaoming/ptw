@@ -44,6 +44,8 @@ export default function NewPermitPage() {
   const [personnel, setPersonnel] = useState<PersonnelEntry[]>([])
   const [userCompanyId, setUserCompanyId] = useState<string | null>(null)
   const [userCompanyRole, setUserCompanyRole] = useState<string | null>(null)
+  const [userRoles, setUserRoles] = useState<string[]>([])
+  const [loadingRole, setLoadingRole] = useState(false)
 
   // Load user's accessible projects
   useEffect(() => {
@@ -74,21 +76,28 @@ export default function NewPermitPage() {
   // Fetch user's role/company when project changes
   useEffect(() => {
     if (!selectedProjectId) return
+    setLoadingRole(true)
     fetch(`/api/projects/${selectedProjectId}/my-role`)
       .then((r) => r.json())
       .then((json) => {
         if (json.data) {
           setUserCompanyId(json.data.company_id ?? null)
           setUserCompanyRole(json.data.company_role ?? null)
+          setUserRoles(json.data.roles ?? [])
         }
       })
       .catch(() => {})
+      .finally(() => setLoadingRole(false))
   }, [selectedProjectId])
+
+  const isApplicant = userRoles.includes('applicant')
+  const hasCheckedRole = !loadingRole && selectedProjectId !== '' && userRoles.length >= 0
 
   function handleProjectSelect(projectId: string) {
     setSelectedProjectId(projectId)
     setUserCompanyId(null)
     setUserCompanyRole(null)
+    setUserRoles([])
     setError(null)
   }
 
@@ -242,8 +251,20 @@ export default function NewPermitPage() {
         </div>
       </div>
 
+      {/* Non-applicant warning */}
+      {selectedProjectId && hasCheckedRole && !isApplicant && !loadingRole && (
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <p className="text-sm font-medium text-amber-800">
+            You do not have the Applicant role on this project.
+          </p>
+          <p className="text-sm text-amber-700 mt-1">
+            Only users with the Applicant role can create permits. Contact your project administrator to request access.
+          </p>
+        </div>
+      )}
+
       {/* Section 2: Select Permit Type */}
-      {selectedProjectId && (
+      {selectedProjectId && isApplicant && (
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-gray-900">Select Permit Type <span className="text-red-500">*</span></h2>

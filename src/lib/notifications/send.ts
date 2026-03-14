@@ -17,10 +17,9 @@ interface SendNotificationParams {
 const STATUS_MESSAGES: Partial<Record<PermitStatus, { title: string; message: string }>> = {
   submitted: { title: 'Permit Submitted for Verification', message: 'A new permit requires your verification.' },
   verified: { title: 'Permit Verified', message: 'A permit has been verified and requires your approval.' },
-  approved: { title: 'Permit Approved', message: 'Your permit has been approved.' },
   rejected: { title: 'Permit Rejected', message: 'Your permit has been rejected.' },
   revoked: { title: 'Permit Revoked', message: 'A permit has been revoked.' },
-  active: { title: 'Permit Active', message: 'A permit is now active.' },
+  active: { title: 'Permit Approved & Active', message: 'Your permit has been approved and is now active.' },
   closure_submitted: { title: 'Closure Report Submitted', message: 'A closure report requires your verification.' },
   closed: { title: 'Permit Closed', message: 'Your permit has been closed out.' },
   draft: { title: 'Permit Returned', message: 'Your permit has been returned for revision.' },

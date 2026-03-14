@@ -27,7 +27,6 @@ export function getNotificationRecipients(
     case 'draft': // returned to draft
       return { targetUserIds: [parties.applicant_id] }
 
-    case 'approved':
     case 'rejected':
     case 'closed':
       return { targetUserIds: [parties.applicant_id] }

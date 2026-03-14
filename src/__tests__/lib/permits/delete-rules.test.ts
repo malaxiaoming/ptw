@@ -78,14 +78,6 @@ describe('canDeletePermit', () => {
     expect(result.allowed).toBe(false)
   })
 
-  it('rejects approved permit', () => {
-    const result = canDeletePermit(
-      { status: 'approved', applicant_id: 'user-1', scheduled_end: pastDate },
-      applicant
-    )
-    expect(result.allowed).toBe(false)
-  })
-
   it('rejects active permit', () => {
     const result = canDeletePermit(
       { status: 'active', applicant_id: 'user-1', scheduled_end: pastDate },

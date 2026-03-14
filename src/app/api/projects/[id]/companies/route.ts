@@ -14,6 +14,18 @@ export async function GET(
   const { id } = await params
   const serviceClient = await createServiceRoleClient()
 
+  // Verify user has project access (has a role on this project) or is org admin
+  if (!isOrgAdmin(user)) {
+    const { count } = await serviceClient
+      .from('user_project_roles')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('project_id', id)
+      .eq('is_active', true)
+
+    if (!count || count === 0) return error('Access denied', 403)
+  }
+
   const { data, error: dbError } = await serviceClient
     .from('project_companies')
     .select('id, name, role, trade, is_active, created_at')

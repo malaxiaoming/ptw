@@ -23,11 +23,6 @@ describe('getNotificationRecipients', () => {
     expect(result.targetRoles).toEqual(['approver'])
   })
 
-  it('returns applicant when permit is approved', () => {
-    const result = getNotificationRecipients('approved', parties)
-    expect(result.targetUserIds).toEqual(['user-1'])
-  })
-
   it('returns applicant when permit is rejected', () => {
     const result = getNotificationRecipients('rejected', parties)
     expect(result.targetUserIds).toEqual(['user-1'])
@@ -109,7 +104,7 @@ describe('sendPermitNotifications', () => {
       from: vi.fn().mockReturnValue({ insert: insertMock }),
     } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
-    await sendPermitNotifications({ ...baseParams, newStatus: 'approved' })
+    await sendPermitNotifications({ ...baseParams, newStatus: 'active' })
 
     expect(insertMock).toHaveBeenCalledOnce()
     const [rows] = insertMock.mock.calls[0]
@@ -117,9 +112,9 @@ describe('sendPermitNotifications', () => {
     expect(rows[0]).toMatchObject({
       user_id: 'user-1',
       permit_id: 'permit-1',
-      type: 'approved',
-      title: 'Permit Approved — PTW-2024-0001',
-      message: 'Your permit has been approved.',
+      type: 'active',
+      title: 'Permit Approved & Active — PTW-2024-0001',
+      message: 'Your permit has been approved and is now active.',
     })
   })
 
@@ -192,7 +187,7 @@ describe('sendPermitNotifications', () => {
     } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     await expect(
-      sendPermitNotifications({ ...baseParams, newStatus: 'approved' })
+      sendPermitNotifications({ ...baseParams, newStatus: 'active' })
     ).resolves.toBeUndefined()
 
     expect(consoleErrorSpy).toHaveBeenCalledWith(

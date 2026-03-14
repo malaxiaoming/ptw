@@ -19,8 +19,17 @@ export default function InviteUserPage() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [invitedEmail, setInvitedEmail] = useState<string | null>(null)
   const [assignedProject, setAssignedProject] = useState<{ name: string; role: string } | null>(null)
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
 
   useEffect(() => {
+    // Check admin status
+    fetch('/api/profile')
+      .then((res) => res.json())
+      .then((json) => {
+        setIsAdmin(json.data?.is_admin === true)
+      })
+      .catch(() => setIsAdmin(false))
+
     fetch('/api/projects')
       .then((res) => res.json())
       .then((json) => {
@@ -62,6 +71,25 @@ export default function InviteUserPage() {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  if (isAdmin === null) {
+    return <p className="text-gray-500 text-sm mt-8 text-center">Loading...</p>
+  }
+
+  if (isAdmin === false) {
+    return (
+      <div className="max-w-md mx-auto mt-12 bg-white border border-gray-200 rounded-lg p-8 text-center">
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">Access Denied</h2>
+        <p className="text-sm text-gray-600 mb-4">Only organisation administrators can invite users.</p>
+        <Link
+          href="/users"
+          className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 inline-block"
+        >
+          Back to Users
+        </Link>
+      </div>
+    )
   }
 
   if (invitedEmail) {

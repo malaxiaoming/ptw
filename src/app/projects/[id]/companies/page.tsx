@@ -87,6 +87,7 @@ export default function ProjectCompaniesPage({ params }: { params: Promise<{ id:
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
 
+  const [isAdmin, setIsAdmin] = useState(false)
   const [addCompanyName, setAddCompanyName] = useState('')
   const [addCompanyTrade, setAddCompanyTrade] = useState('')
   const [addingCompany, setAddingCompany] = useState(false)
@@ -100,12 +101,14 @@ export default function ProjectCompaniesPage({ params }: { params: Promise<{ id:
       setLoading(true)
       setFetchError(null)
       try {
-        const [projectRes, companiesRes] = await Promise.all([
+        const [projectRes, companiesRes, meRes] = await Promise.all([
           fetch(`/api/projects/${id}`),
           fetch(`/api/projects/${id}/companies`),
+          fetch('/api/me'),
         ])
         const projectJson = await projectRes.json()
         const companiesJson = await companiesRes.json()
+        const meJson = await meRes.json()
 
         if (!projectRes.ok) {
           setFetchError(projectJson.error ?? 'Failed to load project')
@@ -118,6 +121,7 @@ export default function ProjectCompaniesPage({ params }: { params: Promise<{ id:
 
         setProject(projectJson.data)
         setCompanies(companiesJson.data ?? [])
+        setIsAdmin(meJson.data?.is_admin === true)
       } catch {
         setFetchError('Failed to load companies')
       } finally {
@@ -216,40 +220,42 @@ export default function ProjectCompaniesPage({ params }: { params: Promise<{ id:
         <h1 className="text-2xl font-bold text-gray-900 mt-2">{project.name}</h1>
       </div>
 
-      <ProjectSubNav projectId={id} projectName={project.name} isAdmin={true} />
+      <ProjectSubNav projectId={id} projectName={project.name} isAdmin={isAdmin} />
 
       <div className="bg-white border border-gray-200 rounded-lg max-w-2xl">
         <div className="px-5 py-4 border-b border-gray-100">
           <h2 className="text-base font-semibold text-gray-900">Registered Companies</h2>
         </div>
 
-        {/* Add company form */}
-        <div className="px-5 py-4 border-b border-gray-100">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Add Company</h3>
-          {addCompanyError && (
-            <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-600">{addCompanyError}</p>
-            </div>
-          )}
-          <form onSubmit={handleAddCompany} className="flex flex-wrap gap-3">
-            <input
-              type="text"
-              placeholder="Company name"
-              value={addCompanyName}
-              onChange={(e) => setAddCompanyName(e.target.value)}
-              className="flex-1 min-w-[160px] px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-            <TradeSelect value={addCompanyTrade} onChange={setAddCompanyTrade} />
-            <button
-              type="submit"
-              disabled={addingCompany || !addCompanyName.trim()}
-              className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {addingCompany ? 'Adding...' : 'Add'}
-            </button>
-          </form>
-        </div>
+        {/* Add company form — admin only */}
+        {isAdmin && (
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">Add Company</h3>
+            {addCompanyError && (
+              <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-600">{addCompanyError}</p>
+              </div>
+            )}
+            <form onSubmit={handleAddCompany} className="flex flex-wrap gap-3">
+              <input
+                type="text"
+                placeholder="Company name"
+                value={addCompanyName}
+                onChange={(e) => setAddCompanyName(e.target.value)}
+                className="flex-1 min-w-[160px] px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+              <TradeSelect value={addCompanyTrade} onChange={setAddCompanyTrade} />
+              <button
+                type="submit"
+                disabled={addingCompany || !addCompanyName.trim()}
+                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {addingCompany ? 'Adding...' : 'Add'}
+              </button>
+            </form>
+          </div>
+        )}
 
         {/* Companies list */}
         {companies.length === 0 ? (
@@ -262,7 +268,7 @@ export default function ProjectCompaniesPage({ params }: { params: Promise<{ id:
               <li key={company.id} className="px-5 py-3 flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-900">{company.name}</p>
-                  {editingTradeId === company.id ? (
+                  {isAdmin && editingTradeId === company.id ? (
                     <div className="flex items-center gap-2 mt-1">
                       <>
                         <select
@@ -300,10 +306,10 @@ export default function ProjectCompaniesPage({ params }: { params: Promise<{ id:
                     </div>
                   ) : (
                     <p
-                      className="text-xs text-gray-500 mt-0.5 cursor-pointer hover:text-gray-700"
-                      onClick={() => { setEditingTradeId(company.id); setEditingTradeValue(company.trade ?? '') }}
+                      className={`text-xs text-gray-500 mt-0.5 ${isAdmin ? 'cursor-pointer hover:text-gray-700' : ''}`}
+                      onClick={isAdmin ? () => { setEditingTradeId(company.id); setEditingTradeValue(company.trade ?? '') } : undefined}
                     >
-                      {company.trade || 'Add trade...'}
+                      {company.trade || (isAdmin ? 'Add trade...' : '—')}
                     </p>
                   )}
                 </div>
@@ -315,14 +321,16 @@ export default function ProjectCompaniesPage({ params }: { params: Promise<{ id:
                   }`}>
                     {COMPANY_ROLE_LABELS[company.role] ?? company.role}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveCompany(company.id)}
-                    disabled={removingCompanyId === company.id}
-                    className="text-xs text-red-600 hover:text-red-800 disabled:opacity-50"
-                  >
-                    {removingCompanyId === company.id ? 'Removing...' : 'Remove'}
-                  </button>
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveCompany(company.id)}
+                      disabled={removingCompanyId === company.id}
+                      className="text-xs text-red-600 hover:text-red-800 disabled:opacity-50"
+                    >
+                      {removingCompanyId === company.id ? 'Removing...' : 'Remove'}
+                    </button>
+                  )}
                 </div>
               </li>
             ))}

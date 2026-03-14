@@ -25,7 +25,13 @@ export function WorkerList({ workers, onEdit, onDeactivate, isAdmin }: WorkerLis
   const [confirmDeactivate, setConfirmDeactivate] = useState<string | null>(null)
 
   if (workers.length === 0) {
-    return <p className="text-gray-500 text-sm py-8 text-center">No workers found.</p>
+    return (
+      <p className="text-gray-500 text-sm py-8 text-center">
+        {isAdmin
+          ? "No workers registered yet. Use the 'Add Worker' button above to get started."
+          : 'No workers registered yet.'}
+      </p>
+    )
   }
 
   return (

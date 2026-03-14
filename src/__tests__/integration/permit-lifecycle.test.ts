@@ -14,7 +14,7 @@ describe('Full permit lifecycle', () => {
     project_id: 'project-1',
   }
 
-  it('follows complete happy path: draft -> submitted -> verified -> approved -> active -> closure_submitted -> closed', () => {
+  it('follows complete happy path: draft -> submitted -> verified -> active -> closure_submitted -> closed', () => {
     // Submit
     let result = validateTransition({ ...permit, status: 'draft' }, 'submit', applicant)
     expect(result.valid).toBe(true)
@@ -25,10 +25,10 @@ describe('Full permit lifecycle', () => {
     expect(result.valid).toBe(true)
     expect(result.newStatus).toBe('verified')
 
-    // Approve
+    // Approve (goes directly to active)
     result = validateTransition({ ...permit, status: 'verified' }, 'approve', approver)
     expect(result.valid).toBe(true)
-    expect(result.newStatus).toBe('approved')
+    expect(result.newStatus).toBe('active')
 
     // Submit closure
     result = validateTransition({ ...permit, status: 'active' }, 'submit_closure', applicant)
@@ -84,7 +84,7 @@ describe('Full permit lifecycle', () => {
 
     expect(getNotificationRecipients('submitted', parties).targetRoles).toEqual(['verifier'])
     expect(getNotificationRecipients('verified', parties).targetRoles).toEqual(['approver'])
-    expect(getNotificationRecipients('approved', parties).targetUserIds).toEqual(['applicant-1'])
+    expect(getNotificationRecipients('active', parties).targetUserIds).toEqual(['applicant-1'])
     expect(getNotificationRecipients('rejected', parties).targetUserIds).toEqual(['applicant-1'])
     expect(getNotificationRecipients('revoked', parties).targetUserIds).toEqual(['applicant-1', 'verifier-1'])
   })

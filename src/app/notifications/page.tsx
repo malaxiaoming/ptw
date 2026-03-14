@@ -21,17 +21,22 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState(false)
   const [markingAll, setMarkingAll] = useState(false)
 
   async function fetchNotifications() {
+    setFetchError(false)
     try {
       const res = await fetch('/api/notifications')
-      if (!res.ok) return
+      if (!res.ok) {
+        setFetchError(true)
+        return
+      }
       const json = await res.json()
       setNotifications(json.data?.notifications ?? [])
       setUnreadCount(json.data?.unread_count ?? 0)
     } catch {
-      // non-fatal
+      setFetchError(true)
     } finally {
       setLoading(false)
     }
@@ -90,6 +95,23 @@ export default function NotificationsPage() {
             </div>
           ))}
         </div>
+      </div>
+    )
+  }
+
+  if (fetchError) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-2xl font-semibold text-gray-900">Notifications</h1>
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Bell className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-red-600 font-medium mb-2">Failed to load notifications</p>
+            <Button variant="outline" size="sm" onClick={() => { setLoading(true); fetchNotifications() }}>
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     )
   }

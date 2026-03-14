@@ -86,13 +86,11 @@ export async function POST(
     case 'approve':
       updates.approver_id = user.id
       updates.approved_at = now
+      updates.activated_at = now
       break
     case 'reject':
       updates.approver_id = user.id
       updates.rejection_reason = comments
-      break
-    case 'activate':
-      updates.activated_at = now
       break
     case 'revoke':
       updates.revocation_reason = comments

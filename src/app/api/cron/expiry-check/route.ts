@@ -23,11 +23,11 @@ export async function POST(request: NextRequest) {
   const now = new Date()
   const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000)
 
-  // Find active/approved permits expiring within 48 hours
+  // Find active permits expiring within 48 hours
   const { data: expiringPermits, error: dbError } = await supabase
     .from('permits')
     .select('id, permit_number, project_id, applicant_id, verifier_id, approver_id')
-    .in('status', ['approved', 'active'])
+    .in('status', ['active'])
     .lte('scheduled_end', in48h.toISOString())
     .gte('scheduled_end', now.toISOString())
 

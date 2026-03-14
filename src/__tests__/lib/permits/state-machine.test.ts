@@ -20,16 +20,12 @@ describe('canTransition', () => {
     expect(canTransition('submitted', 'return')).toBe(true)
   })
 
-  it('allows verified -> approved', () => {
+  it('allows verified -> active (approve)', () => {
     expect(canTransition('verified', 'approve')).toBe(true)
   })
 
   it('allows verified -> rejected', () => {
     expect(canTransition('verified', 'reject')).toBe(true)
-  })
-
-  it('allows approved -> active', () => {
-    expect(canTransition('approved', 'activate')).toBe(true)
   })
 
   it('allows active -> closure_submitted', () => {
@@ -48,7 +44,7 @@ describe('canTransition', () => {
     expect(canTransition('closure_submitted', 'return_closure')).toBe(true)
   })
 
-  it('denies draft -> approved (skip)', () => {
+  it('denies draft -> active (skip)', () => {
     expect(canTransition('draft', 'approve')).toBe(false)
   })
 
@@ -77,10 +73,6 @@ describe('getAvailableTransitions', () => {
 
   it('returns approve and reject for verified', () => {
     expect(getAvailableTransitions('verified')).toEqual(['approve', 'reject'])
-  })
-
-  it('returns activate for approved', () => {
-    expect(getAvailableTransitions('approved')).toEqual(['activate'])
   })
 
   it('returns submit_closure and revoke for active', () => {
@@ -122,8 +114,13 @@ describe('getTransition', () => {
 
   it('returns correct role for key transitions', () => {
     expect(getTransition('draft', 'submit')?.role).toBe('applicant')
-    expect(getTransition('approved', 'activate')?.role).toBe('approver')
+    expect(getTransition('verified', 'approve')?.role).toBe('approver')
     expect(getTransition('active', 'revoke')?.role).toBe('approver')
+  })
+
+  it('approve transition goes directly to active', () => {
+    const t = getTransition('verified', 'approve')
+    expect(t?.to).toBe('active')
   })
 
   it('flags requiresComment correctly', () => {

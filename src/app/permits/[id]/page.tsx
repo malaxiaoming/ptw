@@ -415,12 +415,6 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
                 <dd className="mt-1 text-sm text-gray-900">{new Date(permit.approved_at).toLocaleString()}</dd>
               </div>
             )}
-            {permit.activated_at && (
-              <div>
-                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Activated</dt>
-                <dd className="mt-1 text-sm text-gray-900">{new Date(permit.activated_at).toLocaleString()}</dd>
-              </div>
-            )}
             {permit.closed_at && (
               <div>
                 <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Closed</dt>

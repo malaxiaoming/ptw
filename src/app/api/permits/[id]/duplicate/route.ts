@@ -5,6 +5,7 @@ import { getUserRolesForProject } from '@/lib/auth/get-user-roles'
 import { canPerformActionWithRoles } from '@/lib/auth/permissions'
 import { defaultScheduledStart, defaultScheduledEnd, datetimeLocalToISO } from '@/lib/utils/date-defaults'
 import { success, error } from '@/lib/api/response'
+import type { ChecklistTemplate } from '@/lib/permits/checklist-validation'
 
 export async function POST(
   _request: NextRequest,
@@ -19,7 +20,7 @@ export async function POST(
   // Fetch source permit
   const { data: source } = await supabase
     .from('permits')
-    .select('*, permit_types(name, code)')
+    .select('*, permit_types(name, code, checklist_template)')
     .eq('id', id)
     .single()
 
@@ -35,6 +36,21 @@ export async function POST(
 
   const serviceClient = await createServiceRoleClient()
 
+  // Strip photo field values from checklist_data — photos reference the
+  // original permit's attachments and must be re-uploaded for each new permit.
+  let checklistData = source.checklist_data as Record<string, unknown> | null
+  const template = (source as Record<string, unknown>).permit_types as { checklist_template: ChecklistTemplate } | null
+  if (checklistData && template?.checklist_template?.sections) {
+    checklistData = { ...checklistData }
+    for (const section of template.checklist_template.sections) {
+      for (const field of section.fields) {
+        if (field.type === 'photo') {
+          delete checklistData[field.id]
+        }
+      }
+    }
+  }
+
   const { data: newPermit, error: dbError } = await serviceClient
     .from('permits')
     .insert({
@@ -46,7 +62,7 @@ export async function POST(
       work_description: source.work_description,
       gps_lat: source.gps_lat,
       gps_lng: source.gps_lng,
-      checklist_data: source.checklist_data,
+      checklist_data: checklistData,
       personnel: source.personnel,
       scheduled_start: datetimeLocalToISO(defaultScheduledStart()),
       scheduled_end: datetimeLocalToISO(defaultScheduledEnd()),
