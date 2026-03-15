@@ -55,6 +55,7 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
   const [nricError, setNricError] = useState<string | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
   const [companies, setCompanies] = useState<ProjectCompany[]>([])
+  const [sicPreview, setSicPreview] = useState<string | null>(null)
 
   useEffect(() => {
     if (projectId) return // No need to fetch projects when projectId is provided
@@ -67,12 +68,22 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
   useEffect(() => {
     if (!form.project_id) {
       setCompanies([])
+      setSicPreview(null)
       return
     }
     fetch(`/api/projects/${form.project_id}/companies`)
       .then((r) => r.json())
       .then((json) => setCompanies(json.data ?? []))
       .catch(() => setCompanies([]))
+    // Fetch SIC preview from project settings
+    fetch(`/api/projects/${form.project_id}`)
+      .then((r) => r.json())
+      .then((json) => {
+        const prefix = json.data?.sic_number_prefix ?? 'SIC-'
+        const next = json.data?.sic_number_next ?? 1
+        setSicPreview(`${prefix}${String(next).padStart(4, '0')}`)
+      })
+      .catch(() => setSicPreview(null))
   }, [form.project_id])
 
   function validateNric(): string | null {
@@ -295,9 +306,14 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
               value={form.sic_number}
               onChange={(e) => handleChange('sic_number', e.target.value)}
               className={inputClass}
-              placeholder="Auto-generated if blank"
+              placeholder={sicPreview ? `e.g. ${sicPreview}` : 'Auto-generated if blank'}
             />
-            <p className="mt-1 text-xs text-gray-500">Leave blank to auto-generate from project settings.</p>
+            {!form.sic_number && sicPreview && (
+              <p className="mt-1 text-xs text-gray-500">Next auto-generated number: <span className="font-medium text-gray-700">{sicPreview}</span></p>
+            )}
+            {form.sic_number && (
+              <p className="mt-1 text-xs text-gray-500">Using manual override. Clear to auto-generate.</p>
+            )}
           </div>
         </div>
       )}
