@@ -10,10 +10,16 @@ function maskPhone(phone: string | null): string | null {
   return '****' + phone.slice(-4)
 }
 
-const NRIC_REGEX = /^[STFGM]\d{7}[A-Z]$/i
-function validateNricFormat(value: string, type: string): boolean {
-  if (type === 'nric' || type === 'fin') return NRIC_REGEX.test(value)
-  return value.length >= 4
+const NRIC_REGEX = /^[ST]\d{7}[A-Z]$/i
+const FIN_REGEX = /^[FGM]\d{7}[A-Z]$/i
+function validateNricFormat(value: string, type: string): string | null {
+  if (type === 'nric') {
+    return NRIC_REGEX.test(value) ? null : 'Invalid NRIC format. Expected: 1 letter (S/T) + 7 digits + 1 letter (e.g. S1234567A)'
+  }
+  if (type === 'fin') {
+    return FIN_REGEX.test(value) ? null : 'Invalid FIN format. Expected: 1 letter (F/G/M) + 7 digits + 1 letter (e.g. G1234567A)'
+  }
+  return value.length >= 4 ? null : 'Work permit number must be at least 4 characters'
 }
 
 export async function GET(
@@ -87,8 +93,9 @@ export async function PATCH(
     if (!['nric', 'fin', 'work_permit'].includes(nricType)) {
       return error('nric_fin_type must be nric, fin, or work_permit', 400)
     }
-    if (!validateNricFormat(body.nric_fin_full, nricType)) {
-      return error('Invalid NRIC/FIN format', 400)
+    const nricValidationError = validateNricFormat(body.nric_fin_full, nricType)
+    if (nricValidationError) {
+      return error(nricValidationError, 400)
     }
     if (body.consent_given !== true) {
       return error('Consent is required when providing NRIC/FIN data', 400)

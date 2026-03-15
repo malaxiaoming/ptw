@@ -54,6 +54,7 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [nricError, setNricError] = useState<string | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
   const [companies, setCompanies] = useState<ProjectCompany[]>([])
 
@@ -76,9 +77,31 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
       .catch(() => setCompanies([]))
   }, [form.project_id])
 
+  function validateNric(): string | null {
+    if (!form.nric_fin_type || !form.nric_fin_full) return null
+    const value = form.nric_fin_full
+    if (form.nric_fin_type === 'nric') {
+      if (!/^[ST]\d{7}[A-Z]$/i.test(value)) {
+        return 'NRIC must be 1 letter (S/T) + 7 digits + 1 letter (e.g. S1234567A)'
+      }
+    } else if (form.nric_fin_type === 'fin') {
+      if (!/^[FGM]\d{7}[A-Z]$/i.test(value)) {
+        return 'FIN must be 1 letter (F/G/M) + 7 digits + 1 letter (e.g. G1234567A)'
+      }
+    } else if (form.nric_fin_type === 'work_permit') {
+      if (value.length < 4) {
+        return 'Work permit number must be at least 4 characters'
+      }
+    }
+    return null
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.name.trim()) { setError('Name is required'); return }
+    const nricValidation = validateNric()
+    if (nricValidation) { setNricError(nricValidation); return }
+    setNricError(null)
     setLoading(true)
     setError(null)
     try {
@@ -91,6 +114,14 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
   }
 
   function handleChange(field: keyof WorkerFormData, value: string) {
+    // Auto-uppercase NRIC/FIN input
+    if (field === 'nric_fin_full' && (form.nric_fin_type === 'nric' || form.nric_fin_type === 'fin')) {
+      value = value.toUpperCase()
+    }
+    // Clear NRIC error when user edits the field
+    if (field === 'nric_fin_full' || field === 'nric_fin_type') {
+      setNricError(null)
+    }
     setForm((prev) => {
       const next = { ...prev, [field]: value }
       // Reset company_id when project changes
@@ -223,10 +254,20 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
               type="text"
               value={form.nric_fin_full}
               onChange={(e) => handleChange('nric_fin_full', e.target.value)}
-              className={inputClass}
+              className={`${inputClass}${nricError ? ' border-red-500 focus:ring-red-500' : ''}`}
               placeholder={form.nric_fin_type === 'nric' || form.nric_fin_type === 'fin' ? 'e.g. S1234567A' : 'ID number'}
               disabled={!form.nric_fin_type}
             />
+            {nricError && <p className="mt-1 text-xs text-red-600">{nricError}</p>}
+            {!nricError && form.nric_fin_type === 'nric' && (
+              <p className="mt-1 text-xs text-gray-500">Format: 1 letter (S/T) + 7 digits + 1 letter, e.g. S1234567A</p>
+            )}
+            {!nricError && form.nric_fin_type === 'fin' && (
+              <p className="mt-1 text-xs text-gray-500">Format: 1 letter (F/G/M) + 7 digits + 1 letter, e.g. G1234567A</p>
+            )}
+            {!nricError && form.nric_fin_type === 'work_permit' && (
+              <p className="mt-1 text-xs text-gray-500">Minimum 4 characters</p>
+            )}
           </div>
         </div>
         {form.nric_fin_type && form.nric_fin_full && (
