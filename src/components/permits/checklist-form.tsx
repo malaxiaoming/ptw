@@ -21,6 +21,9 @@ export function ChecklistForm({ template, data, onChange, permitId, disabled }: 
       {template.sections.map((section) => (
         <fieldset key={section.title} className="border border-gray-200 rounded-lg p-4">
           <legend className="text-lg font-semibold px-2">{section.title}</legend>
+          {section.description && (
+            <p className="text-sm text-gray-500 mt-1 px-2 whitespace-pre-line">{section.description}</p>
+          )}
           <div className="space-y-4 mt-2">
             {section.fields.map((field) => (
               <ChecklistFieldInput

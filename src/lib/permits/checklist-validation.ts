@@ -9,6 +9,7 @@ export interface ChecklistField {
 
 export interface ChecklistSection {
   title: string
+  description?: string
   fields: ChecklistField[]
 }
 
