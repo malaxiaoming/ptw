@@ -26,6 +26,7 @@ interface Worker {
   nric_fin_type: string | null
   nric_fin_last4: string | null
   consent_given: boolean | null
+  sic_number?: string | null
 }
 
 export default function ProjectWorkersPage({ params }: { params: Promise<{ id: string }> }) {
@@ -39,6 +40,7 @@ export default function ProjectWorkersPage({ params }: { params: Promise<{ id: s
   const [showForm, setShowForm] = useState(false)
   const [editingWorker, setEditingWorker] = useState<Worker | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [editingSicNumber, setEditingSicNumber] = useState<string>('')
   const { toast } = useToast()
 
   useEffect(() => {
@@ -71,7 +73,24 @@ export default function ProjectWorkersPage({ params }: { params: Promise<{ id: s
       const res = await fetch(`/api/workers?${params}`)
       const json = await res.json()
       if (!res.ok) { setFetchError(json.error ?? 'Failed to load workers'); return }
-      setWorkers(json.data ?? [])
+      const workerList = (json.data ?? []) as Worker[]
+
+      // Fetch SIC records for all workers in this project
+      if (workerList.length > 0) {
+        try {
+          const sicPromises = workerList.map((w) =>
+            fetch(`/api/workers/${w.id}/sic?project_id=${id}`).then((r) => r.json())
+          )
+          const sicResults = await Promise.all(sicPromises)
+          workerList.forEach((w, i) => {
+            w.sic_number = sicResults[i]?.data?.[0]?.sic_number ?? null
+          })
+        } catch {
+          // SIC fetch failed, continue without
+        }
+      }
+
+      setWorkers(workerList)
     } catch {
       setFetchError('Failed to load workers')
     } finally {
@@ -89,6 +108,23 @@ export default function ProjectWorkersPage({ params }: { params: Promise<{ id: s
     })
     const json = await res.json()
     if (!res.ok) throw new Error(json.error ?? 'Failed to create worker')
+
+    // Auto-create SIC record for the new worker
+    if (json.data?.id && data.project_id) {
+      const sicRes = await fetch(`/api/workers/${json.data.id}/sic`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: data.project_id,
+          sic_number: data.sic_number || undefined,
+        }),
+      })
+      if (!sicRes.ok) {
+        const sicJson = await sicRes.json().catch(() => ({}))
+        toast(sicJson.error ?? 'Worker created but SIC generation failed', 'error')
+      }
+    }
+
     setShowForm(false)
     toast('Worker added successfully.', 'success')
     await fetchWorkers()
@@ -103,6 +139,29 @@ export default function ProjectWorkersPage({ params }: { params: Promise<{ id: s
     })
     const json = await res.json()
     if (!res.ok) throw new Error(json.error ?? 'Failed to update worker')
+
+    // Update or create SIC record
+    if (data.project_id && data.sic_number) {
+      // Check if SIC exists for this worker+project
+      const sicListRes = await fetch(`/api/workers/${editingWorker.id}/sic?project_id=${data.project_id}`)
+      const sicListJson = await sicListRes.json()
+      const existingSic = sicListJson.data?.[0]
+
+      if (existingSic) {
+        await fetch(`/api/workers/${editingWorker.id}/sic/${existingSic.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sic_number: data.sic_number }),
+        })
+      } else {
+        await fetch(`/api/workers/${editingWorker.id}/sic`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ project_id: data.project_id, sic_number: data.sic_number }),
+        })
+      }
+    }
+
     setEditingWorker(null)
     toast('Worker updated.', 'success')
     await fetchWorkers()
@@ -167,6 +226,7 @@ export default function ProjectWorkersPage({ params }: { params: Promise<{ id: s
                 trade: editingWorker.trade ?? undefined,
                 project_id: id,
                 company_id: editingWorker.company_id ?? undefined,
+                sic_number: editingSicNumber,
               } : undefined}
               onSubmit={editingWorker ? handleEdit : handleCreate}
               onCancel={() => { setShowForm(false); setEditingWorker(null) }}
@@ -190,7 +250,18 @@ export default function ProjectWorkersPage({ params }: { params: Promise<{ id: s
         ) : (
           <WorkerList
             workers={workers}
-            onEdit={(w) => { setEditingWorker(w); setShowForm(false) }}
+            onEdit={async (w) => {
+              setEditingWorker(w)
+              setShowForm(false)
+              // Fetch existing SIC number for this worker+project
+              try {
+                const sicRes = await fetch(`/api/workers/${w.id}/sic?project_id=${id}`)
+                const sicJson = await sicRes.json()
+                setEditingSicNumber(sicJson.data?.[0]?.sic_number ?? '')
+              } catch {
+                setEditingSicNumber('')
+              }
+            }}
             onDeactivate={handleDeactivate}
             isAdmin={isAdmin}
           />

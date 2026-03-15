@@ -12,6 +12,7 @@ interface WorkerFormData {
   nric_fin_type: string
   nric_fin_full: string
   consent_given: boolean
+  sic_number: string
 }
 
 interface Project {
@@ -47,6 +48,7 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
     nric_fin_type: initialData?.nric_fin_type ?? '',
     nric_fin_full: initialData?.nric_fin_full ?? '',
     consent_given: initialData?.consent_given ?? false,
+    sic_number: initialData?.sic_number ?? '',
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -282,6 +284,23 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
           </div>
         )}
       </div>
+      {form.project_id && (
+        <div className="border-t border-gray-200 pt-4 mt-4">
+          <p className="text-sm font-medium text-gray-700 mb-2">Safety Induction Course (SIC)</p>
+          <div>
+            <label htmlFor="worker-sic" className="block text-sm font-medium text-gray-700">SIC Number</label>
+            <input
+              id="worker-sic"
+              type="text"
+              value={form.sic_number}
+              onChange={(e) => handleChange('sic_number', e.target.value)}
+              className={inputClass}
+              placeholder="Auto-generated if blank"
+            />
+            <p className="mt-1 text-xs text-gray-500">Leave blank to auto-generate from project settings.</p>
+          </div>
+        </div>
+      )}
       <div className="flex gap-3 pt-2">
         <button
           type="submit"

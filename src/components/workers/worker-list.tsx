@@ -13,6 +13,7 @@ interface Worker {
   nric_fin_type: string | null
   nric_fin_last4: string | null
   consent_given: boolean | null
+  sic_number?: string | null
 }
 
 interface WorkerListProps {
@@ -66,6 +67,7 @@ export function WorkerList({ workers, onEdit, onDeactivate, isAdmin }: WorkerLis
             <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Company</th>
             <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Trade</th>
             <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">NRIC/FIN</th>
+            <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">SIC No.</th>
             <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Phone</th>
             {isAdmin && (
               <th className="px-4 py-3 text-right font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -104,6 +106,7 @@ export function WorkerList({ workers, onEdit, onDeactivate, isAdmin }: WorkerLis
                   </span>
                 ) : '—'}
               </td>
+              <td className="px-4 py-3 text-gray-600">{worker.sic_number ?? '—'}</td>
               <td className="px-4 py-3 text-gray-600">{worker.phone ?? '—'}</td>
               {isAdmin && (
                 <td className="px-4 py-3 text-right whitespace-nowrap">
