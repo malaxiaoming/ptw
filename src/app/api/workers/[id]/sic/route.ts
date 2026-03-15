@@ -17,7 +17,7 @@ export async function GET(
 
   let query = supabase
     .from('worker_sic_records')
-    .select('id, worker_id, project_id, sic_number, sic_expiry, sic_issuer, issued_at, is_active, created_at')
+    .select('id, worker_id, project_id, sic_number, sic_issuer, issued_at, is_active, created_at')
     .eq('worker_id', workerId)
     .eq('organization_id', user.organization_id)
     .eq('is_active', true)
@@ -53,10 +53,6 @@ export async function POST(
   if (!body.project_id || typeof body.project_id !== 'string') {
     return error('project_id is required', 400)
   }
-  if (!body.sic_number || typeof body.sic_number !== 'string') {
-    return error('sic_number is required', 400)
-  }
-
   const supabase = await createServiceRoleClient()
 
   // Verify worker belongs to this org
@@ -69,18 +65,25 @@ export async function POST(
 
   if (!worker) return error('Worker not found', 404)
 
+  // Auto-generate SIC number if not provided
+  let sicNumber = typeof body.sic_number === 'string' && body.sic_number.trim() ? body.sic_number.trim() : null
+  if (!sicNumber) {
+    const { data: generated, error: rpcError } = await supabase.rpc('generate_next_sic_number', { p_project_id: body.project_id })
+    if (rpcError || !generated) return error('Failed to generate SIC number', 500)
+    sicNumber = generated as string
+  }
+
   const { data, error: dbError } = await supabase
     .from('worker_sic_records')
     .insert({
       worker_id: workerId,
       project_id: body.project_id,
-      sic_number: body.sic_number,
-      sic_expiry: typeof body.sic_expiry === 'string' && body.sic_expiry ? body.sic_expiry : null,
+      sic_number: sicNumber,
       sic_issuer: typeof body.sic_issuer === 'string' ? body.sic_issuer : null,
       issued_at: typeof body.issued_at === 'string' && body.issued_at ? body.issued_at : null,
       organization_id: user.organization_id,
     })
-    .select('id, worker_id, project_id, sic_number, sic_expiry, sic_issuer, issued_at, is_active, created_at')
+    .select('id, worker_id, project_id, sic_number, sic_issuer, issued_at, is_active, created_at')
     .single()
 
   if (dbError) {

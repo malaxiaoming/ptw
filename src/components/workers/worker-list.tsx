@@ -8,8 +8,6 @@ interface Worker {
   company: string | null
   trade: string | null
   phone: string | null
-  cert_number: string | null
-  cert_expiry: string | null
   project_id: string | null
   company_id: string | null
   nric_fin_type: string | null
@@ -69,8 +67,6 @@ export function WorkerList({ workers, onEdit, onDeactivate, isAdmin }: WorkerLis
             <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Trade</th>
             <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">NRIC/FIN</th>
             <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-            <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Cert No.</th>
-            <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Cert Expiry</th>
             {isAdmin && (
               <th className="px-4 py-3 text-right font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             )}
@@ -109,8 +105,6 @@ export function WorkerList({ workers, onEdit, onDeactivate, isAdmin }: WorkerLis
                 ) : '—'}
               </td>
               <td className="px-4 py-3 text-gray-600">{worker.phone ?? '—'}</td>
-              <td className="px-4 py-3 text-gray-600">{worker.cert_number ?? '—'}</td>
-              <td className="px-4 py-3 text-gray-600">{worker.cert_expiry ?? '—'}</td>
               {isAdmin && (
                 <td className="px-4 py-3 text-right whitespace-nowrap">
                   {confirmDeactivate === worker.id ? (

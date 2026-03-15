@@ -7,8 +7,6 @@ interface WorkerFormData {
   phone: string
   company: string
   trade: string
-  cert_number: string
-  cert_expiry: string
   project_id: string
   company_id: string
   nric_fin_type: string
@@ -44,8 +42,6 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
     phone: initialData?.phone ?? '',
     company: initialData?.company ?? '',
     trade: initialData?.trade ?? '',
-    cert_number: initialData?.cert_number ?? '',
-    cert_expiry: initialData?.cert_expiry ?? '',
     project_id: projectId ?? initialData?.project_id ?? '',
     company_id: initialData?.company_id ?? '',
     nric_fin_type: initialData?.nric_fin_type ?? '',
@@ -285,26 +281,6 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
             </label>
           </div>
         )}
-      </div>
-      <div>
-        <label htmlFor="worker-cert" className="block text-sm font-medium text-gray-700">Cert Number</label>
-        <input
-          id="worker-cert"
-          type="text"
-          value={form.cert_number}
-          onChange={(e) => handleChange('cert_number', e.target.value)}
-          className={inputClass}
-        />
-      </div>
-      <div>
-        <label htmlFor="worker-cert-expiry" className="block text-sm font-medium text-gray-700">Cert Expiry</label>
-        <input
-          id="worker-cert-expiry"
-          type="date"
-          value={form.cert_expiry}
-          onChange={(e) => handleChange('cert_expiry', e.target.value)}
-          className={inputClass}
-        />
       </div>
       <div className="flex gap-3 pt-2">
         <button

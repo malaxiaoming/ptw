@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from('workers')
-    .select('id, name, phone, company, trade, cert_number, cert_expiry, is_active, created_at, project_id, company_id, nric_fin_type, nric_fin_last4, consent_given')
+    .select('id, name, phone, company, trade, is_active, created_at, project_id, company_id, nric_fin_type, nric_fin_last4, consent_given')
     .eq('organization_id', user.organization_id)
     .eq('is_active', true)
     .order('name')
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
   if (search) {
     const safeSearch = search.replace(/[,)(]/g, '')
     if (safeSearch) {
-      query = query.or(`name.ilike.%${safeSearch}%,cert_number.ilike.%${safeSearch}%,company.ilike.%${safeSearch}%`)
+      query = query.or(`name.ilike.%${safeSearch}%,company.ilike.%${safeSearch}%`)
     }
   }
 
@@ -153,13 +153,11 @@ export async function POST(request: NextRequest) {
       phone: typeof body.phone === 'string' ? body.phone : null,
       company: companyName,
       trade: companyTrade,
-      cert_number: typeof body.cert_number === 'string' ? body.cert_number : null,
-      cert_expiry: typeof body.cert_expiry === 'string' && body.cert_expiry ? body.cert_expiry : null,
       project_id: typeof body.project_id === 'string' ? body.project_id : null,
       company_id: typeof body.company_id === 'string' ? body.company_id : null,
       ...nricFields,
     })
-    .select('id, name, phone, company, trade, cert_number, cert_expiry, is_active, created_at, project_id, company_id, nric_fin_type, nric_fin_last4, consent_given')
+    .select('id, name, phone, company, trade, is_active, created_at, project_id, company_id, nric_fin_type, nric_fin_last4, consent_given')
     .single()
 
   if (dbError) return error(dbError.message, 500)

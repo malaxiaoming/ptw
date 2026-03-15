@@ -21,8 +21,6 @@ interface Worker {
   company: string | null
   trade: string | null
   phone: string | null
-  cert_number: string | null
-  cert_expiry: string | null
   project_id: string | null
   company_id: string | null
   nric_fin_type: string | null
@@ -167,8 +165,6 @@ export default function ProjectWorkersPage({ params }: { params: Promise<{ id: s
                 phone: editingWorker.phone ?? undefined,
                 company: editingWorker.company ?? undefined,
                 trade: editingWorker.trade ?? undefined,
-                cert_number: editingWorker.cert_number ?? undefined,
-                cert_expiry: editingWorker.cert_expiry ?? undefined,
                 project_id: id,
                 company_id: editingWorker.company_id ?? undefined,
               } : undefined}
@@ -182,7 +178,7 @@ export default function ProjectWorkersPage({ params }: { params: Promise<{ id: s
         <div className="mb-4">
           <Input
             type="search"
-            placeholder="Search by name, cert number, or company..."
+            placeholder="Search by name or company..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="max-w-md"

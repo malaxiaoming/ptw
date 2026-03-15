@@ -66,7 +66,7 @@ export async function GET(
     const { data, error: dbError } = await serviceClient
       .from('projects')
       .select(`
-        id, name, description, reference_number, address, postal_code, status, created_at,
+        id, name, description, reference_number, address, postal_code, status, created_at, sic_number_prefix, sic_number_next,
         user_project_roles(
           id, user_id, role, is_active,
           user_profiles(id, name, email)
@@ -94,7 +94,7 @@ export async function GET(
 
   const { data, error: dbError } = await serviceClient
     .from('projects')
-    .select('id, name, description, reference_number, address, postal_code, status, created_at')
+    .select('id, name, description, reference_number, address, postal_code, status, created_at, sic_number_prefix, sic_number_next')
     .eq('id', id)
     .single()
 
@@ -131,7 +131,7 @@ export async function PATCH(
     return error('name cannot be empty', 400)
   }
 
-  const allowedFields = ['name', 'description', 'reference_number', 'address', 'postal_code', 'status']
+  const allowedFields = ['name', 'description', 'reference_number', 'address', 'postal_code', 'status', 'sic_number_prefix', 'sic_number_next']
   const updates: Record<string, unknown> = {}
   for (const field of allowedFields) {
     if (body[field] !== undefined) updates[field] = body[field]
@@ -146,7 +146,7 @@ export async function PATCH(
     .update(updates)
     .eq('id', id)
     .eq('organization_id', user.organization_id)
-    .select('id, name, description, reference_number, address, postal_code, status, created_at')
+    .select('id, name, description, reference_number, address, postal_code, status, created_at, sic_number_prefix, sic_number_next')
     .single()
 
   if (dbError) return error(dbError.message, 500)

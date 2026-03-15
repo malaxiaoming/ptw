@@ -25,7 +25,6 @@ export async function PATCH(
 
   const updates: Record<string, unknown> = {}
   if (typeof body.sic_number === 'string') updates.sic_number = body.sic_number
-  if (typeof body.sic_expiry === 'string') updates.sic_expiry = body.sic_expiry || null
   if (typeof body.sic_issuer === 'string') updates.sic_issuer = body.sic_issuer
   if (typeof body.issued_at === 'string') updates.issued_at = body.issued_at || null
 
@@ -34,7 +33,7 @@ export async function PATCH(
     .update(updates)
     .eq('id', sicId)
     .eq('organization_id', user.organization_id)
-    .select('id, worker_id, project_id, sic_number, sic_expiry, sic_issuer, issued_at, is_active, created_at')
+    .select('id, worker_id, project_id, sic_number, sic_issuer, issued_at, is_active, created_at')
     .single()
 
   if (dbError || !data) return error('SIC record not found', 404)

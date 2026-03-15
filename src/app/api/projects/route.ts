@@ -14,7 +14,7 @@ export async function GET() {
   if (isOrgAdmin(user)) {
     const { data, error: dbError } = await serviceClient
       .from('projects')
-      .select('id, name, description, reference_number, address, postal_code, status, created_at')
+      .select('id, name, description, reference_number, address, postal_code, status, created_at, sic_number_prefix, sic_number_next')
       .eq('organization_id', user.organization_id!)
       .order('name', { ascending: true })
 
@@ -45,7 +45,7 @@ export async function GET() {
 
   const { data, error: dbError } = await serviceClient
     .from('projects')
-    .select('id, name, description, reference_number, address, postal_code, status, created_at')
+    .select('id, name, description, reference_number, address, postal_code, status, created_at, sic_number_prefix, sic_number_next')
     .in('id', projectIds)
     .order('name', { ascending: true })
 
@@ -93,8 +93,9 @@ export async function POST(request: NextRequest) {
       address: typeof body.address === 'string' ? body.address : null,
       postal_code: typeof body.postal_code === 'string' ? body.postal_code : null,
       status: 'active',
+      ...(typeof body.sic_number_prefix === 'string' && body.sic_number_prefix.trim() ? { sic_number_prefix: body.sic_number_prefix.trim() } : {}),
     })
-    .select('id, name, description, reference_number, address, postal_code, status, created_at')
+    .select('id, name, description, reference_number, address, postal_code, status, created_at, sic_number_prefix, sic_number_next')
     .single()
 
   if (dbError) return error(dbError.message, 500)

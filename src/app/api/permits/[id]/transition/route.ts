@@ -69,6 +69,26 @@ export async function POST(
         return error(checklistResult.errors.join('; '), 400)
       }
     }
+
+    // Enforce SIC requirement for all personnel with worker_id
+    const personnel = ((permit.personnel ?? []) as PersonnelEntry[])
+    const workerEntries = personnel.filter((p) => p.worker_id)
+    if (workerEntries.length > 0) {
+      const workerIds = workerEntries.map((p) => p.worker_id as string)
+      const { data: sicRecords } = await serviceClient
+        .from('worker_sic_records')
+        .select('worker_id')
+        .in('worker_id', workerIds)
+        .eq('project_id', permit.project_id)
+        .eq('is_active', true)
+
+      const workersWithSic = new Set((sicRecords ?? []).map((r: { worker_id: string }) => r.worker_id))
+      const missing = workerEntries.filter((p) => !workersWithSic.has(p.worker_id as string))
+      if (missing.length > 0) {
+        const names = missing.map((p) => p.name || p.worker_id).join(', ')
+        return error(`Worker ${names} does not have a SIC number for this project`, 400)
+      }
+    }
   }
 
   // Build update payload

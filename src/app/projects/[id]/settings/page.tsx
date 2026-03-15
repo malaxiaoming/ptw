@@ -13,6 +13,8 @@ interface Project {
   address: string | null
   postal_code: string | null
   status: 'active' | 'archived'
+  sic_number_prefix: string
+  sic_number_next: number
 }
 
 export default function ProjectSettingsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -30,6 +32,8 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ id: 
   const [editAddress, setEditAddress] = useState('')
   const [editPostalCode, setEditPostalCode] = useState('')
   const [editStatus, setEditStatus] = useState<'active' | 'archived'>('active')
+  const [editSicPrefix, setEditSicPrefix] = useState('SIC-')
+  const [editSicNext, setEditSicNext] = useState(1)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -68,6 +72,8 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ id: 
         setEditAddress(p.address ?? '')
         setEditPostalCode(p.postal_code ?? '')
         setEditStatus(p.status)
+        setEditSicPrefix(p.sic_number_prefix ?? 'SIC-')
+        setEditSicNext(p.sic_number_next ?? 1)
       } catch {
         setFetchError('Failed to load settings')
       } finally {
@@ -93,6 +99,8 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ id: 
           address: editAddress.trim() || null,
           postal_code: editPostalCode.trim() || null,
           status: editStatus,
+          sic_number_prefix: editSicPrefix.trim() || 'SIC-',
+          sic_number_next: editSicNext,
         }),
       })
       const json = await res.json()
@@ -244,6 +252,40 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ id: 
               <option value="active">Active</option>
               <option value="archived">Archived</option>
             </select>
+          </div>
+          <div className="border-t border-gray-200 pt-4 mt-4">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">SIC Number Settings</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="edit-sic-prefix" className="block text-sm font-medium text-gray-700 mb-1">
+                  SIC Number Prefix
+                </label>
+                <input
+                  id="edit-sic-prefix"
+                  type="text"
+                  value={editSicPrefix}
+                  onChange={(e) => setEditSicPrefix(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g. SIC-, PTW-"
+                />
+              </div>
+              <div>
+                <label htmlFor="edit-sic-next" className="block text-sm font-medium text-gray-700 mb-1">
+                  Next SIC Number
+                </label>
+                <input
+                  id="edit-sic-next"
+                  type="number"
+                  min={1}
+                  value={editSicNext}
+                  onChange={(e) => setEditSicNext(parseInt(e.target.value) || 1)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            <p className="mt-1 text-xs text-gray-500">
+              Auto-generated SIC numbers will use this prefix followed by a padded number (e.g. {editSicPrefix}{String(editSicNext).padStart(4, '0')})
+            </p>
           </div>
           <button
             type="submit"
