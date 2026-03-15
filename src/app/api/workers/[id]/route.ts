@@ -3,10 +3,17 @@ import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supab
 import { getCurrentUser } from '@/lib/auth/get-user'
 import { isOrgAdmin } from '@/lib/auth/check-admin'
 import { success, error } from '@/lib/api/response'
+import { encrypt } from '@/lib/crypto'
 
 function maskPhone(phone: string | null): string | null {
   if (!phone || phone.length < 4) return phone
   return '****' + phone.slice(-4)
+}
+
+const NRIC_REGEX = /^[STFGM]\d{7}[A-Z]$/i
+function validateNricFormat(value: string, type: string): boolean {
+  if (type === 'nric' || type === 'fin') return NRIC_REGEX.test(value)
+  return value.length >= 4
 }
 
 export async function GET(
@@ -20,7 +27,7 @@ export async function GET(
   const supabase = await createServerSupabaseClient()
   const { data, error: dbError } = await supabase
     .from('workers')
-    .select('id, name, phone, company, trade, cert_number, cert_expiry, is_active, created_at, project_id, company_id')
+    .select('id, name, phone, company, trade, cert_number, cert_expiry, is_active, created_at, project_id, company_id, nric_fin_type, nric_fin_last4, consent_given')
     .eq('id', id)
     .eq('organization_id', user.organization_id)
     .single()
@@ -29,6 +36,7 @@ export async function GET(
 
   if (!isOrgAdmin(user)) {
     data.phone = maskPhone(data.phone)
+    if (data.nric_fin_last4) data.nric_fin_last4 = '****'
   }
 
   return success(data)
@@ -73,6 +81,25 @@ export async function PATCH(
   if (typeof body.project_id === 'string') updates.project_id = body.project_id
   if (typeof body.company_id === 'string') updates.company_id = body.company_id
 
+  // NRIC/FIN update
+  if (typeof body.nric_fin_full === 'string' && body.nric_fin_full) {
+    const nricType = typeof body.nric_fin_type === 'string' ? body.nric_fin_type : 'nric'
+    if (!['nric', 'fin', 'work_permit'].includes(nricType)) {
+      return error('nric_fin_type must be nric, fin, or work_permit', 400)
+    }
+    if (!validateNricFormat(body.nric_fin_full, nricType)) {
+      return error('Invalid NRIC/FIN format', 400)
+    }
+    if (body.consent_given !== true) {
+      return error('Consent is required when providing NRIC/FIN data', 400)
+    }
+    updates.nric_fin_type = nricType
+    updates.nric_fin_last4 = body.nric_fin_full.slice(-4)
+    updates.nric_fin_encrypted = encrypt(body.nric_fin_full)
+    updates.consent_given = true
+    updates.consent_at = new Date().toISOString()
+  }
+
   // If company_id changed, update company name and trade from company record
   if (typeof body.company_id === 'string' && body.company_id) {
     const { data: companyRow } = await supabase
@@ -91,7 +118,7 @@ export async function PATCH(
     .update(updates)
     .eq('id', id)
     .eq('organization_id', user.organization_id)
-    .select('id, name, phone, company, trade, cert_number, cert_expiry, is_active, created_at, project_id, company_id')
+    .select('id, name, phone, company, trade, cert_number, cert_expiry, is_active, created_at, project_id, company_id, nric_fin_type, nric_fin_last4, consent_given')
     .single()
 
   if (dbError) return error(dbError.message, 500)

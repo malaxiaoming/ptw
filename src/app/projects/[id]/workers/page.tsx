@@ -25,6 +25,9 @@ interface Worker {
   cert_expiry: string | null
   project_id: string | null
   company_id: string | null
+  nric_fin_type: string | null
+  nric_fin_last4: string | null
+  consent_given: boolean | null
 }
 
 export default function ProjectWorkersPage({ params }: { params: Promise<{ id: string }> }) {

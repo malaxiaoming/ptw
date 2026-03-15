@@ -3,10 +3,18 @@ import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supab
 import { getCurrentUser } from '@/lib/auth/get-user'
 import { isOrgAdmin } from '@/lib/auth/check-admin'
 import { success, error } from '@/lib/api/response'
+import { encrypt } from '@/lib/crypto'
 
 function maskPhone(phone: string | null): string | null {
   if (!phone || phone.length < 4) return phone
   return '****' + phone.slice(-4)
+}
+
+const NRIC_REGEX = /^[STFGM]\d{7}[A-Z]$/i
+function validateNricFormat(value: string, type: string): boolean {
+  if (type === 'nric' || type === 'fin') return NRIC_REGEX.test(value)
+  // work_permit: basic non-empty check
+  return value.length >= 4
 }
 
 export async function GET(request: NextRequest) {
@@ -19,7 +27,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from('workers')
-    .select('id, name, phone, company, trade, cert_number, cert_expiry, is_active, created_at, project_id, company_id')
+    .select('id, name, phone, company, trade, cert_number, cert_expiry, is_active, created_at, project_id, company_id, nric_fin_type, nric_fin_last4, consent_given')
     .eq('organization_id', user.organization_id)
     .eq('is_active', true)
     .order('name')
@@ -65,7 +73,9 @@ export async function GET(request: NextRequest) {
   if (dbError) return error(dbError.message, 500)
 
   const admin = isOrgAdmin(user)
-  const masked = admin ? data : data?.map((w) => ({ ...w, phone: maskPhone(w.phone) }))
+  const masked = admin
+    ? data
+    : data?.map((w) => ({ ...w, phone: maskPhone(w.phone), nric_fin_last4: w.nric_fin_last4 ? '****' : null }))
 
   return success(masked)
 }
@@ -103,6 +113,31 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // NRIC/FIN handling
+  const nricFinType = typeof body.nric_fin_type === 'string' ? body.nric_fin_type : null
+  const nricFinFull = typeof body.nric_fin_full === 'string' ? body.nric_fin_full : null
+  const consentGiven = body.consent_given === true
+
+  let nricFields: Record<string, unknown> = {}
+  if (nricFinFull && nricFinType) {
+    if (!['nric', 'fin', 'work_permit'].includes(nricFinType)) {
+      return error('nric_fin_type must be nric, fin, or work_permit', 400)
+    }
+    if (!validateNricFormat(nricFinFull, nricFinType)) {
+      return error('Invalid NRIC/FIN format', 400)
+    }
+    if (!consentGiven) {
+      return error('Consent is required when providing NRIC/FIN data', 400)
+    }
+    nricFields = {
+      nric_fin_type: nricFinType,
+      nric_fin_last4: nricFinFull.slice(-4),
+      nric_fin_encrypted: encrypt(nricFinFull),
+      consent_given: true,
+      consent_at: new Date().toISOString(),
+    }
+  }
+
   const { data, error: dbError } = await supabase
     .from('workers')
     .insert({
@@ -115,8 +150,9 @@ export async function POST(request: NextRequest) {
       cert_expiry: typeof body.cert_expiry === 'string' && body.cert_expiry ? body.cert_expiry : null,
       project_id: typeof body.project_id === 'string' ? body.project_id : null,
       company_id: typeof body.company_id === 'string' ? body.company_id : null,
+      ...nricFields,
     })
-    .select('id, name, phone, company, trade, cert_number, cert_expiry, is_active, created_at, project_id, company_id')
+    .select('id, name, phone, company, trade, cert_number, cert_expiry, is_active, created_at, project_id, company_id, nric_fin_type, nric_fin_last4, consent_given')
     .single()
 
   if (dbError) return error(dbError.message, 500)

@@ -11,6 +11,9 @@ interface WorkerFormData {
   cert_expiry: string
   project_id: string
   company_id: string
+  nric_fin_type: string
+  nric_fin_full: string
+  consent_given: boolean
 }
 
 interface Project {
@@ -45,6 +48,9 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
     cert_expiry: initialData?.cert_expiry ?? '',
     project_id: projectId ?? initialData?.project_id ?? '',
     company_id: initialData?.company_id ?? '',
+    nric_fin_type: initialData?.nric_fin_type ?? '',
+    nric_fin_full: initialData?.nric_fin_full ?? '',
+    consent_given: initialData?.consent_given ?? false,
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -191,6 +197,53 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
           onChange={(e) => handleChange('phone', e.target.value)}
           className={inputClass}
         />
+      </div>
+      <div className="border-t border-gray-200 pt-4 mt-4">
+        <p className="text-sm font-medium text-gray-700 mb-2">NRIC / FIN / Work Permit</p>
+        <p className="text-xs text-gray-500 mb-3">Encrypted and stored securely. Only last 4 digits shown in daily operations.</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="worker-nric-type" className="block text-sm font-medium text-gray-700">ID Type</label>
+            <select
+              id="worker-nric-type"
+              value={form.nric_fin_type}
+              onChange={(e) => handleChange('nric_fin_type', e.target.value)}
+              className={inputClass}
+            >
+              <option value="">Not provided</option>
+              <option value="nric">NRIC</option>
+              <option value="fin">FIN</option>
+              <option value="work_permit">Work Permit</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="worker-nric-number" className="block text-sm font-medium text-gray-700">ID Number</label>
+            <input
+              id="worker-nric-number"
+              type="text"
+              value={form.nric_fin_full}
+              onChange={(e) => handleChange('nric_fin_full', e.target.value)}
+              className={inputClass}
+              placeholder={form.nric_fin_type === 'nric' || form.nric_fin_type === 'fin' ? 'e.g. S1234567A' : 'ID number'}
+              disabled={!form.nric_fin_type}
+            />
+          </div>
+        </div>
+        {form.nric_fin_type && form.nric_fin_full && (
+          <div className="mt-3">
+            <label className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                checked={form.consent_given}
+                onChange={(e) => setForm((prev) => ({ ...prev, consent_given: e.target.checked }))}
+                className="mt-0.5"
+              />
+              <span className="text-xs text-gray-600">
+                I consent to the collection and encrypted storage of my identification data for workplace safety management under MOM WSH regulations.
+              </span>
+            </label>
+          </div>
+        )}
       </div>
       <div>
         <label htmlFor="worker-cert" className="block text-sm font-medium text-gray-700">Cert Number</label>
