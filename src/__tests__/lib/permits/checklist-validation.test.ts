@@ -603,6 +603,69 @@ describe('validateChecklist', () => {
     })
   })
 
+  describe('Piling Work (OCP-16) template validation', () => {
+    const pwYesNoFields = ['swp_briefed', 'safety_rules_briefed', 'ppe_issued']
+
+    const pwTemplate: ChecklistTemplate = {
+      sections: [
+        {
+          title: 'Safety Conditions',
+          fields: [
+            ...pwYesNoFields.map((id) => ({
+              id,
+              type: 'yes_no' as const,
+              label: id.replace(/_/g, ' '),
+              required: true,
+            })),
+            { id: 'site_photo', type: 'photo' as const, label: 'Piling work site photos', required: true, max: 5 },
+          ],
+        },
+      ],
+      personnel: [
+        { role: 'worker', label: 'Workers', min: 1, max: 20, fields: ['name'] },
+      ],
+    }
+
+    function makeValidPWData(): Record<string, unknown> {
+      const data: Record<string, unknown> = {}
+      for (const f of pwYesNoFields) data[f] = 'yes'
+      data['site_photo'] = ['photo1.jpg']
+      return data
+    }
+
+    const validPersonnel: PersonnelEntry[] = [
+      { role: 'worker', name: 'Worker A' },
+    ]
+
+    it('passes with all 3 safety conditions answered yes and site photo', () => {
+      const result = validateChecklist(pwTemplate, makeValidPWData(), validPersonnel)
+      expect(result.valid).toBe(true)
+      expect(result.errors).toHaveLength(0)
+    })
+
+    it('fails when a required yes_no field is missing', () => {
+      const data = makeValidPWData()
+      delete data['ppe_issued']
+      const result = validateChecklist(pwTemplate, data, validPersonnel)
+      expect(result.valid).toBe(false)
+      expect(result.errors.some((e) => e.includes('ppe issued'))).toBe(true)
+    })
+
+    it('fails when site photo is empty', () => {
+      const data = makeValidPWData()
+      data['site_photo'] = []
+      const result = validateChecklist(pwTemplate, data, validPersonnel)
+      expect(result.valid).toBe(false)
+      expect(result.errors).toContain('Piling work site photos is required')
+    })
+
+    it('fails when no workers provided', () => {
+      const result = validateChecklist(pwTemplate, makeValidPWData(), [])
+      expect(result.valid).toBe(false)
+      expect(result.errors).toContain('At least 1 Workers required')
+    })
+  })
+
   describe('Excavation (OCP-10) template validation', () => {
     const exTemplate: ChecklistTemplate = {
       sections: [

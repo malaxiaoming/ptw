@@ -218,23 +218,17 @@ insert into permit_types (organization_id, name, code, checklist_template) value
 ('00000000-0000-0000-0000-000000000001', 'Piling Work', 'PW', '{
   "sections": [
     {
-      "title": "Piling Work Safety Checks",
+      "title": "Safety Conditions",
       "fields": [
-        { "id": "pile_type", "type": "select", "label": "Type of piling", "required": true, "options": ["Bored Pile", "Driven Pile", "Sheet Pile", "Micro Pile"] },
-        { "id": "pile_depth", "type": "text", "label": "Design pile depth (metres)", "required": true },
-        { "id": "underground_services", "type": "checkbox", "label": "Underground services detection completed?", "required": true },
-        { "id": "piling_rig_inspected", "type": "checkbox", "label": "Piling rig inspected and certified?", "required": true },
-        { "id": "exclusion_zone", "type": "checkbox", "label": "Exclusion zone established?", "required": true },
-        { "id": "noise_control", "type": "checkbox", "label": "Noise and vibration control measures in place?", "required": true },
-        { "id": "adjacent_structures", "type": "checkbox", "label": "Adjacent structures surveyed and monitored?", "required": true },
-        { "id": "spoil_management", "type": "checkbox", "label": "Spoil management plan in place?", "required": true },
-        { "id": "site_photo", "type": "photo", "label": "Piling site photos", "required": true, "max": 5 }
+        { "id": "swp_briefed", "type": "yes_no", "label": "SWP briefed to workers involved?", "required": true },
+        { "id": "safety_rules_briefed", "type": "yes_no", "label": "In-house Safety Rules & Regulations briefed to workers?", "required": true },
+        { "id": "ppe_issued", "type": "yes_no", "label": "Has the required PPE issued to workers?", "required": true },
+        { "id": "site_photo", "type": "photo", "label": "Piling work site photos (max 5, required)", "required": true, "max": 5 }
       ]
     }
   ],
   "personnel": [
-    { "role": "operator", "label": "Piling Rig Operator", "min": 1, "max": 2, "fields": ["name", "cert_number"] },
-    { "role": "worker", "label": "Workers", "min": 1, "max": 15, "fields": ["name", "trade"] }
+    { "role": "worker", "label": "Workers", "min": 1, "max": 20, "fields": ["name"] }
   ]
 }')
 on conflict (organization_id, code) do nothing;
