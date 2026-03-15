@@ -157,26 +157,37 @@ insert into permit_types (organization_id, name, code, checklist_template) value
 ('00000000-0000-0000-0000-000000000001', 'Lifting Work', 'LW', '{
   "sections": [
     {
-      "title": "Lifting Operation Checks",
+      "title": "Safety Conditions",
       "fields": [
-        { "id": "lift_description", "type": "text", "label": "Description of lifting operation", "required": true },
-        { "id": "load_weight", "type": "text", "label": "Load weight (tonnes)", "required": true },
-        { "id": "crane_type", "type": "text", "label": "Crane type and model", "required": true },
-        { "id": "crane_capacity", "type": "text", "label": "Crane SWL (tonnes)", "required": true },
-        { "id": "lifting_plan", "type": "checkbox", "label": "Lifting plan reviewed and approved?", "required": true },
-        { "id": "exclusion_zone", "type": "checkbox", "label": "Exclusion zone barricaded?", "required": true },
-        { "id": "slings_inspected", "type": "checkbox", "label": "Slings and rigging gear inspected?", "required": true },
-        { "id": "ground_condition", "type": "checkbox", "label": "Ground condition suitable for crane setup?", "required": true },
-        { "id": "wind_speed_checked", "type": "checkbox", "label": "Wind speed within safe limits?", "required": true },
-        { "id": "site_photo", "type": "photo", "label": "Setup photos", "required": true, "max": 5 }
+        { "id": "valid_lm_cert", "type": "yes_no", "label": "Valid LM certificate for crane", "required": true },
+        { "id": "valid_maintenance_report", "type": "yes_no", "label": "Valid periodic maintenance report", "required": true },
+        { "id": "operator_daily_check", "type": "yes_no", "label": "Crane operator''s daily check completed", "required": true },
+        { "id": "supervisor_daily_check", "type": "yes_no", "label": "Lifting supervisor''s daily check completed", "required": true },
+        { "id": "crane_firm_ground", "type": "yes_no", "label": "Crane has been set up on firm ground with its access being in accordance with PE design", "required": true },
+        { "id": "safe_distance_excavation", "type": "yes_no", "label": "Crane is at a safe distance from excavations / trenches", "required": true },
+        { "id": "lifting_gears_condition", "type": "yes_no", "label": "Lifting gears are in good condition with number tags, and traceable to valid LG certificates", "required": true },
+        { "id": "warning_signs_barriers", "type": "yes_no", "label": "Warning signs and barriers provided within hoisting radius", "required": true },
+        { "id": "others", "type": "text", "label": "Others", "required": false }
+      ]
+    },
+    {
+      "title": "Crane Certificate",
+      "fields": [
+        { "id": "crane_lm_no", "type": "text", "label": "Crane LM No.", "required": true },
+        { "id": "crane_lm_expiry", "type": "date", "label": "Crane LM Expiry Date", "required": true }
+      ]
+    },
+    {
+      "title": "Site Photos",
+      "fields": [
+        { "id": "site_photo", "type": "photo", "label": "Lifting operation site photos (max 5, required)", "required": true, "max": 5 }
       ]
     }
   ],
   "personnel": [
-    { "role": "crane_operator", "label": "Crane Operator", "min": 1, "max": 2, "fields": ["name", "license_number"] },
-    { "role": "rigger", "label": "Rigger", "min": 1, "max": 4, "fields": ["name", "cert_number"] },
-    { "role": "signalman", "label": "Signalman", "min": 1, "max": 2, "fields": ["name", "cert_number"] },
-    { "role": "banksman", "label": "Banksman", "min": 0, "max": 2, "fields": ["name"] }
+    { "role": "crane_operator", "label": "Crane Operator", "min": 1, "max": 2, "fields": ["name"] },
+    { "role": "rigger", "label": "Rigger", "min": 1, "max": 4, "fields": ["name"] },
+    { "role": "signalman", "label": "Signalman", "min": 1, "max": 2, "fields": ["name"] }
   ]
 }'),
 

@@ -470,6 +470,139 @@ describe('validateChecklist', () => {
     })
   })
 
+  describe('Lifting Work (OCP-12) template validation', () => {
+    const lwYesNoFields = [
+      'valid_lm_cert', 'valid_maintenance_report', 'operator_daily_check',
+      'supervisor_daily_check', 'crane_firm_ground', 'safe_distance_excavation',
+      'lifting_gears_condition', 'warning_signs_barriers',
+    ]
+
+    const lwTemplate: ChecklistTemplate = {
+      sections: [
+        {
+          title: 'Safety Conditions',
+          fields: [
+            ...lwYesNoFields.map((id) => ({
+              id,
+              type: 'yes_no' as const,
+              label: id.replace(/_/g, ' '),
+              required: true,
+            })),
+            { id: 'others', type: 'text' as const, label: 'Others', required: false },
+          ],
+        },
+        {
+          title: 'Crane Certificate',
+          fields: [
+            { id: 'crane_lm_no', type: 'text' as const, label: 'Crane LM No.', required: true },
+            { id: 'crane_lm_expiry', type: 'date' as const, label: 'Crane LM Expiry Date', required: true },
+          ],
+        },
+        {
+          title: 'Site Photos',
+          fields: [
+            { id: 'site_photo', type: 'photo' as const, label: 'Lifting operation site photos', required: true, max: 5 },
+          ],
+        },
+      ],
+      personnel: [
+        { role: 'crane_operator', label: 'Crane Operator', min: 1, max: 2, fields: ['name'] },
+        { role: 'rigger', label: 'Rigger', min: 1, max: 4, fields: ['name'] },
+        { role: 'signalman', label: 'Signalman', min: 1, max: 2, fields: ['name'] },
+      ],
+    }
+
+    function makeValidLWData(): Record<string, unknown> {
+      const data: Record<string, unknown> = {}
+      for (const f of lwYesNoFields) data[f] = 'yes'
+      data['crane_lm_no'] = 'LM-2026-001'
+      data['crane_lm_expiry'] = '2027-03-15'
+      data['site_photo'] = ['photo1.jpg']
+      return data
+    }
+
+    const validPersonnel: PersonnelEntry[] = [
+      { role: 'crane_operator', name: 'Operator A' },
+      { role: 'rigger', name: 'Rigger B' },
+      { role: 'signalman', name: 'Signal C' },
+    ]
+
+    it('passes with all 8 safety conditions answered yes and valid data', () => {
+      const result = validateChecklist(lwTemplate, makeValidLWData(), validPersonnel)
+      expect(result.valid).toBe(true)
+      expect(result.errors).toHaveLength(0)
+    })
+
+    it('fails when a required yes_no field is missing', () => {
+      const data = makeValidLWData()
+      delete data['crane_firm_ground']
+      const result = validateChecklist(lwTemplate, data, validPersonnel)
+      expect(result.valid).toBe(false)
+      expect(result.errors.some((e) => e.includes('crane firm ground'))).toBe(true)
+    })
+
+    it('fails when crane LM number is empty', () => {
+      const data = makeValidLWData()
+      data['crane_lm_no'] = ''
+      const result = validateChecklist(lwTemplate, data, validPersonnel)
+      expect(result.valid).toBe(false)
+      expect(result.errors).toContain('Crane LM No. is required')
+    })
+
+    it('fails when crane LM expiry date is empty', () => {
+      const data = makeValidLWData()
+      data['crane_lm_expiry'] = ''
+      const result = validateChecklist(lwTemplate, data, validPersonnel)
+      expect(result.valid).toBe(false)
+      expect(result.errors).toContain('Crane LM Expiry Date is required')
+    })
+
+    it('fails when site photo is empty', () => {
+      const data = makeValidLWData()
+      data['site_photo'] = []
+      const result = validateChecklist(lwTemplate, data, validPersonnel)
+      expect(result.valid).toBe(false)
+      expect(result.errors).toContain('Lifting operation site photos is required')
+    })
+
+    it('others field is optional', () => {
+      const data = makeValidLWData()
+      // others not set — should still pass
+      const result = validateChecklist(lwTemplate, data, validPersonnel)
+      expect(result.valid).toBe(true)
+    })
+
+    it('fails when no crane operator provided', () => {
+      const personnel = [
+        { role: 'rigger', name: 'Rigger B' },
+        { role: 'signalman', name: 'Signal C' },
+      ]
+      const result = validateChecklist(lwTemplate, makeValidLWData(), personnel)
+      expect(result.valid).toBe(false)
+      expect(result.errors).toContain('At least 1 Crane Operator required')
+    })
+
+    it('fails when no rigger provided', () => {
+      const personnel = [
+        { role: 'crane_operator', name: 'Operator A' },
+        { role: 'signalman', name: 'Signal C' },
+      ]
+      const result = validateChecklist(lwTemplate, makeValidLWData(), personnel)
+      expect(result.valid).toBe(false)
+      expect(result.errors).toContain('At least 1 Rigger required')
+    })
+
+    it('fails when no signalman provided', () => {
+      const personnel = [
+        { role: 'crane_operator', name: 'Operator A' },
+        { role: 'rigger', name: 'Rigger B' },
+      ]
+      const result = validateChecklist(lwTemplate, makeValidLWData(), personnel)
+      expect(result.valid).toBe(false)
+      expect(result.errors).toContain('At least 1 Signalman required')
+    })
+  })
+
   describe('Excavation (OCP-10) template validation', () => {
     const exTemplate: ChecklistTemplate = {
       sections: [
