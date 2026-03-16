@@ -8,8 +8,6 @@ interface Worker {
   name: string
   company: string | null
   trade: string | null
-  cert_number: string | null
-  cert_expiry: string | null
 }
 
 interface PersonnelPickerProps {
@@ -51,7 +49,7 @@ export function PersonnelPicker({ requirements, personnel, onChange, disabled, c
 
   function selectFromRegistry(index: number, workerId: string) {
     if (!workerId) {
-      updatePerson(index, { worker_id: undefined, name: '', cert_number: '' })
+      updatePerson(index, { worker_id: undefined, name: '' })
       return
     }
     const worker = workers.find((w) => w.id === workerId)
@@ -59,7 +57,6 @@ export function PersonnelPicker({ requirements, personnel, onChange, disabled, c
     updatePerson(index, {
       worker_id: worker.id,
       name: worker.name,
-      cert_number: worker.cert_number ?? '',
     })
   }
 
