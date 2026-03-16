@@ -16,8 +16,29 @@ export function ChecklistForm({ template, data, onChange, permitId, disabled }: 
     onChange({ ...data, [fieldId]: value })
   }
 
+  const allYesNoFields = template.sections.flatMap((s) =>
+    s.fields.filter((f) => f.type === 'yes_no')
+  )
+  const hasGlobalYesNo = allYesNoFields.length > 1
+
+  function tickAllGlobal(value: 'yes' | 'no' | 'na') {
+    const updates = { ...data }
+    for (const f of allYesNoFields) {
+      updates[f.id] = value
+    }
+    onChange(updates)
+  }
+
   return (
     <div className="space-y-6">
+      {hasGlobalYesNo && !disabled && (
+        <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <span className="text-sm font-medium text-blue-800">Select all checklist items:</span>
+          <button type="button" onClick={() => tickAllGlobal('yes')} className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 font-medium">All Yes</button>
+          <button type="button" onClick={() => tickAllGlobal('no')} className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 font-medium">All No</button>
+          <button type="button" onClick={() => tickAllGlobal('na')} className="px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 font-medium">All N.A.</button>
+        </div>
+      )}
       {template.sections.map((section) => {
         const yesNoFields = section.fields.filter((f) => f.type === 'yes_no')
         const hasYesNo = yesNoFields.length > 1

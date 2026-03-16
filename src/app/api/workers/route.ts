@@ -47,20 +47,22 @@ export async function GET(request: NextRequest) {
   // Server-side enforcement: SC users can only query workers from their own company
   if (projectId && !isOrgAdmin(user)) {
     const serviceClient = await createServiceRoleClient()
-    const { data: roleData } = await serviceClient
+    const { data: roleData, error: roleError } = await serviceClient
       .from('user_project_roles')
-      .select('company_id, project_companies(role)')
+      .select('company_id, role, project_companies(role)')
       .eq('user_id', user.id)
       .eq('project_id', projectId)
       .eq('is_active', true)
 
-    const userCompanyId = roleData?.find((r: { company_id: string | null }) => r.company_id)?.company_id ?? null
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userCompanyRole = (roleData as any[])?.find((r) => r.project_companies)?.project_companies?.role ?? null
+    if (!roleError && roleData) {
+      const userCompanyId = roleData.find((r: { company_id: string | null }) => r.company_id)?.company_id ?? null
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const userCompanyRole = (roleData as any[])?.find((r) => r.project_companies)?.project_companies?.role ?? null
 
-    // SC users must be restricted to their own company
-    if (userCompanyRole !== 'main_contractor' && userCompanyId) {
-      companyId = userCompanyId
+      // SC users must be restricted to their own company
+      if (userCompanyRole !== 'main_contractor' && userCompanyId) {
+        companyId = userCompanyId
+      }
     }
   }
 
