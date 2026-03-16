@@ -9,6 +9,7 @@ import { STATUS_CONFIG, ALL_STATUSES } from '@/lib/permits/status-display'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/input'
 import { PermitCardSkeleton } from '@/components/ui/skeleton'
+import { BilingualText } from '@/components/ui/bilingual'
 
 interface Project {
   id: string
@@ -101,9 +102,9 @@ export default function PermitsPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Permits</h1>
+        <h1 className="text-2xl font-bold text-gray-900"><BilingualText en="Permits" /></h1>
         <Link href="/permits/new">
-          <Button size="md">+ New Permit</Button>
+          <Button size="md"><BilingualText en="+ New Permit" /></Button>
         </Link>
       </div>
 
@@ -112,12 +113,12 @@ export default function PermitsPage() {
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-[160px]">
             <Select
-              label="Project"
+              label="Project 项目"
               id="project-filter"
               value={projectFilter}
               onChange={(e) => setProjectFilter(e.target.value)}
             >
-              <option value="">All Projects</option>
+              <option value="">All Projects 所有项目</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
@@ -126,12 +127,12 @@ export default function PermitsPage() {
 
           <div className="flex-1 min-w-[160px]">
             <Select
-              label="Permit Type"
+              label="Permit Type 许可证类型"
               id="type-filter"
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
             >
-              <option value="">All Types</option>
+              <option value="">All Types 所有类型</option>
               {permitTypes.map((t) => (
                 <option key={t.id} value={t.id}>{t.name}</option>
               ))}
@@ -140,12 +141,12 @@ export default function PermitsPage() {
 
           <div className="flex-1 min-w-[160px]">
             <Select
-              label="Status"
+              label="Status 状态"
               id="status-filter"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
-              <option value="">All Statuses</option>
+              <option value="">All Statuses 所有状态</option>
               {ALL_STATUSES.map((s) => (
                 <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
               ))}
@@ -178,9 +179,9 @@ export default function PermitsPage() {
       ) : displayedPermits.length === 0 ? (
         <div className="text-center py-16">
           <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500 mb-4">No permits found.</p>
+          <p className="text-gray-500 mb-4"><BilingualText en="No permits found." /></p>
           <Link href="/permits/new">
-            <Button>Create your first permit</Button>
+            <Button><BilingualText en="Create your first permit" /></Button>
           </Link>
         </div>
       ) : (

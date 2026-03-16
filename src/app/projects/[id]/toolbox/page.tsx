@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/toast'
 import { TableSkeleton } from '@/components/ui/skeleton'
+import { BilingualText } from '@/components/ui/bilingual'
 
 interface Project {
   id: string
@@ -146,15 +147,15 @@ export default function ProjectToolboxPage({ params }: { params: Promise<{ id: s
 
       <div className="max-w-5xl">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-lg font-semibold text-gray-900">Toolbox Meetings</h2>
+          <h2 className="text-lg font-semibold text-gray-900"><BilingualText en="Toolbox Meetings" /></h2>
           <Button onClick={() => { setShowForm(true); setSelectedMeeting(null) }}>
-            New Meeting
+            <BilingualText en="New Meeting" />
           </Button>
         </div>
 
         {showForm && !selectedMeeting && (
           <div className="mb-6 p-6 border border-gray-200 rounded-lg bg-white">
-            <h3 className="text-lg font-medium mb-4">New Toolbox Meeting</h3>
+            <h3 className="text-lg font-medium mb-4"><BilingualText en="New Toolbox Meeting" /></h3>
             <ToolboxMeetingForm
               projectId={id}
               onSubmit={handleCreate}
@@ -212,19 +213,19 @@ export default function ProjectToolboxPage({ params }: { params: Promise<{ id: s
         ) : filteredMeetings.length === 0 ? (
           <div className="text-center py-12 text-gray-400">
             {meetings.length === 0
-              ? 'No toolbox meetings yet. Create one to get started.'
-              : 'No meetings match the selected date range.'}
+              ? <BilingualText en="No toolbox meetings yet. Create one to get started." />
+              : <BilingualText en="No meetings match the selected date range." />}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200 text-left text-gray-500">
-                  <th className="pb-2 font-medium">Date</th>
-                  <th className="pb-2 font-medium">Location</th>
-                  <th className="pb-2 font-medium">Conducted By</th>
-                  <th className="pb-2 font-medium">Attendance</th>
-                  <th className="pb-2 font-medium">Sign-off</th>
+                  <th className="pb-2 font-medium"><BilingualText en="Date" /></th>
+                  <th className="pb-2 font-medium"><BilingualText en="Location" /></th>
+                  <th className="pb-2 font-medium"><BilingualText en="Conducted By" /></th>
+                  <th className="pb-2 font-medium"><BilingualText en="Attendance" /></th>
+                  <th className="pb-2 font-medium"><BilingualText en="Sign-off" /></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -241,11 +242,11 @@ export default function ProjectToolboxPage({ params }: { params: Promise<{ id: s
                     <td className="py-3">
                       {m.signed_off ? (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Signed off
+                          <BilingualText en="Signed off" />
                         </span>
                       ) : (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                          Pending
+                          <BilingualText en="Pending" />
                         </span>
                       )}
                     </td>

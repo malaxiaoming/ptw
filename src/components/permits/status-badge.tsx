@@ -12,6 +12,7 @@ export function StatusBadge({ status, size = 'md' }: StatusBadgeProps) {
   const textClass = config?.textClass ?? 'text-gray-600'
   const dotColor = config?.dotColor ?? 'bg-gray-400'
   const label = config?.label ?? status
+  const labelZh = config?.label_zh
 
   const sizeClasses = size === 'sm'
     ? 'px-2 py-0.5 text-xs'
@@ -20,7 +21,7 @@ export function StatusBadge({ status, size = 'md' }: StatusBadgeProps) {
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full font-medium ${bgClass} ${textClass} ${sizeClasses}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${dotColor}`} />
-      {label}
+      {label}{labelZh && <span className="ml-1 opacity-75">{labelZh}</span>}
     </span>
   )
 }

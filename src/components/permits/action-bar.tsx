@@ -74,7 +74,7 @@ export function ActionBar({ permit, userRoles, userId, onAction }: ActionBarProp
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4">
-      <h3 className="text-sm font-medium text-gray-700 mb-3">Available Actions</h3>
+      <h3 className="text-sm font-medium text-gray-700 mb-3">Available Actions <span className="text-xs text-gray-500 font-normal">可用操作</span></h3>
 
       {error && (
         <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-md">
@@ -198,6 +198,7 @@ export function ActionBar({ permit, userRoles, userId, onAction }: ActionBarProp
               className={`px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${VARIANT_STYLES[ACTION_CONFIG[action].variant]}`}
             >
               {ACTION_CONFIG[action].label}
+              <span className="block text-xs opacity-75">{ACTION_CONFIG[action].label_zh}</span>
             </button>
           ))}
         </div>

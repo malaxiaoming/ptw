@@ -8,6 +8,7 @@ import { validateChecklist } from '@/lib/permits/checklist-validation'
 import type { ChecklistTemplate, PersonnelEntry } from '@/lib/permits/checklist-validation'
 import { compressImage } from '@/lib/utils/image-compression'
 import { defaultScheduledStart, defaultScheduledEnd, datetimeLocalToISO } from '@/lib/utils/date-defaults'
+import { BilingualText } from '@/components/ui/bilingual'
 
 interface Project {
   id: string
@@ -211,7 +212,7 @@ export default function NewPermitPage() {
         >
           &larr; Back to Permits
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">New Permit</h1>
+        <h1 className="text-2xl font-bold text-gray-900"><BilingualText en="New Permit" /></h1>
       </div>
 
       {/* Error */}
@@ -224,7 +225,7 @@ export default function NewPermitPage() {
       {/* Section 1: Select Project */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Select Project <span className="text-red-500">*</span></h2>
+          <h2 className="text-lg font-semibold text-gray-900"><BilingualText en="Select Project" /> <span className="text-red-500">*</span></h2>
           {loadingProjects ? (
             <p className="text-gray-500 text-sm">Loading projects...</p>
           ) : projects.length === 0 ? (
@@ -269,7 +270,7 @@ export default function NewPermitPage() {
       {selectedProjectId && isApplicant && (
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">Select Permit Type <span className="text-red-500">*</span></h2>
+            <h2 className="text-lg font-semibold text-gray-900"><BilingualText en="Select Permit Type" /> <span className="text-red-500">*</span></h2>
             {loadingTypes ? (
               <p className="text-gray-500 text-sm">Loading permit types...</p>
             ) : permitTypes.length === 0 ? (
@@ -301,11 +302,11 @@ export default function NewPermitPage() {
       {selectedTypeId && (
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">Work Details</h2>
+            <h2 className="text-lg font-semibold text-gray-900"><BilingualText en="Work Details" /></h2>
 
             <div>
               <label htmlFor="work-location" className="block text-sm font-medium text-gray-700 mb-1">
-                Work Location <span className="text-red-500">*</span>
+                <BilingualText en="Work Location" /> <span className="text-red-500">*</span>
               </label>
               <input
                 id="work-location"
@@ -319,7 +320,7 @@ export default function NewPermitPage() {
 
             <div>
               <label htmlFor="work-description" className="block text-sm font-medium text-gray-700 mb-1">
-                Work Description <span className="text-red-500">*</span>
+                <BilingualText en="Work Description" /> <span className="text-red-500">*</span>
               </label>
               <textarea
                 id="work-description"
@@ -334,7 +335,7 @@ export default function NewPermitPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="scheduled-start" className="block text-sm font-medium text-gray-700 mb-1">
-                  Scheduled Start
+                  <BilingualText en="Scheduled Start" />
                 </label>
                 <input
                   id="scheduled-start"
@@ -346,7 +347,7 @@ export default function NewPermitPage() {
               </div>
               <div>
                 <label htmlFor="scheduled-end" className="block text-sm font-medium text-gray-700 mb-1">
-                  Scheduled End
+                  <BilingualText en="Scheduled End" />
                 </label>
                 <input
                   id="scheduled-end"
@@ -365,11 +366,11 @@ export default function NewPermitPage() {
       {selectedType && (
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="space-y-6">
-            <h2 className="text-lg font-semibold text-gray-900">Checklist & Personnel</h2>
+            <h2 className="text-lg font-semibold text-gray-900"><BilingualText en="Checklist & Personnel" /></h2>
 
             {selectedType.checklist_template.sections.length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Checklist</h3>
+                <h3 className="text-sm font-semibold text-gray-700 mb-3"><BilingualText en="Checklist" /></h3>
                 <ChecklistForm
                   template={selectedType.checklist_template}
                   data={checklistData}
@@ -380,7 +381,7 @@ export default function NewPermitPage() {
 
             {selectedType.checklist_template.personnel.length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Personnel</h3>
+                <h3 className="text-sm font-semibold text-gray-700 mb-3"><BilingualText en="Personnel" /></h3>
                 <PersonnelPicker
                   requirements={selectedType.checklist_template.personnel}
                   personnel={personnel}
@@ -421,7 +422,7 @@ export default function NewPermitPage() {
           disabled={submitting || !canSubmit}
           className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {submitting ? 'Creating permit...' : 'Create Permit'}
+          {submitting ? 'Creating permit...' : <BilingualText en="Create Permit" />}
         </button>
       </div>
     </div>

@@ -46,7 +46,7 @@ export function ToolboxMeetingDetail({ meeting, onClose }: ToolboxMeetingDetailP
 
       {/* Checklist */}
       <div>
-        <h4 className="text-sm font-semibold text-gray-900 mb-2">Safety Checklist</h4>
+        <h4 className="text-sm font-semibold text-gray-900 mb-2"><BilingualText en="Safety Checklist" /></h4>
         <div className="space-y-1.5">
           {TOOLBOX_CHECKLIST_ITEMS.map((item) => {
             const checked = meeting.checklist?.[item.key] === true
@@ -67,7 +67,7 @@ export function ToolboxMeetingDetail({ meeting, onClose }: ToolboxMeetingDetailP
       {/* Attendance */}
       <div>
         <h4 className="text-sm font-semibold text-gray-900 mb-2">
-          Attendance ({meeting.attendance?.length ?? 0})
+          <BilingualText en="Attendance" /> ({meeting.attendance?.length ?? 0})
         </h4>
         {meeting.attendance?.length > 0 ? (
           <div className="flex flex-wrap gap-2">
@@ -85,7 +85,7 @@ export function ToolboxMeetingDetail({ meeting, onClose }: ToolboxMeetingDetailP
       {/* Notes */}
       {meeting.notes && (
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 mb-2">Notes</h4>
+          <h4 className="text-sm font-semibold text-gray-900 mb-2"><BilingualText en="Notes" /></h4>
           <p className="text-sm text-gray-700 whitespace-pre-wrap">{meeting.notes}</p>
         </div>
       )}
@@ -94,7 +94,7 @@ export function ToolboxMeetingDetail({ meeting, onClose }: ToolboxMeetingDetailP
       <div className="pt-3 border-t border-gray-200">
         {meeting.signed_off ? (
           <p className="text-sm text-green-700 font-medium">
-            Signed off
+            <BilingualText en="Signed off" />
             {meeting.signed_off_at && (
               <span className="font-normal text-gray-500">
                 {' '}on {new Date(meeting.signed_off_at).toLocaleString()}
@@ -102,7 +102,7 @@ export function ToolboxMeetingDetail({ meeting, onClose }: ToolboxMeetingDetailP
             )}
           </p>
         ) : (
-          <p className="text-sm text-amber-600 font-medium">Not signed off</p>
+          <p className="text-sm text-amber-600 font-medium"><BilingualText en="Not signed off" /></p>
         )}
       </div>
     </div>

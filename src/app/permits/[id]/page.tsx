@@ -14,6 +14,7 @@ import { useToast } from '@/components/ui/toast'
 import type { PermitStatus, PermitAction } from '@/lib/permits/state-machine'
 import type { Role } from '@/lib/auth/permissions'
 import { validateChecklist, type ChecklistTemplate, type PersonnelEntry } from '@/lib/permits/checklist-validation'
+import { BilingualText } from '@/components/ui/bilingual'
 
 interface UserProfile {
   id: string
@@ -223,7 +224,7 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
   if (error || !permit) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Permit Details</h1>
+        <h1 className="text-2xl font-bold text-gray-900"><BilingualText en="Permit Details" /></h1>
         <p className="text-red-600">{error ?? 'Permit not found'}</p>
         <Link href="/permits" className="text-sm text-primary-600 hover:underline">
           &larr; Back to Permits
@@ -256,7 +257,7 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
             <StatusBadge status={permit.status} />
             {permit.scheduled_end && new Date(permit.scheduled_end) < new Date() && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
-                Expired
+                Expired 已过期
               </span>
             )}
             {permit.permit_types && (
@@ -274,7 +275,7 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
               loading={duplicateLoading}
               onClick={handleDuplicate}
             >
-              Duplicate for Today
+              Duplicate for Today 复制为今天
             </Button>
             {isDraft && isApplicant && (
               <Link href={`/permits/${id}/edit`}>
@@ -331,110 +332,110 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
       {/* Permit Details */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Permit Details</h2>
+          <h2 className="text-lg font-semibold text-gray-900"><BilingualText en="Permit Details" /></h2>
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Permit Number</dt>
+              <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Permit Number 许可证编号</dt>
               <dd className="mt-1 text-sm text-gray-900">{permit.permit_number}</dd>
             </div>
             <div>
-              <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Status</dt>
+              <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Status 状态</dt>
               <dd className="mt-1"><StatusBadge status={permit.status} /></dd>
             </div>
             {permit.project && (
               <div>
-                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project</dt>
+                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project 项目</dt>
                 <dd className="mt-1 text-sm text-gray-900">{permit.project.name}</dd>
               </div>
             )}
             {permit.permit_types && (
               <div>
-                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Permit Type</dt>
+                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Permit Type 许可证类型</dt>
                 <dd className="mt-1 text-sm text-gray-900">{permit.permit_types.name}</dd>
               </div>
             )}
             <div>
-              <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Work Location</dt>
+              <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Work Location 工作地点</dt>
               <dd className="mt-1 text-sm text-gray-900">{permit.work_location}</dd>
             </div>
             {permit.gps_lat != null && permit.gps_lng != null && (
               <div>
-                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">GPS Coordinates</dt>
+                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">GPS Coordinates GPS 坐标</dt>
                 <dd className="mt-1 text-sm text-gray-900">{permit.gps_lat}, {permit.gps_lng}</dd>
               </div>
             )}
             {permit.scheduled_start && (
               <div>
-                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Scheduled Start</dt>
+                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Scheduled Start 计划开始</dt>
                 <dd className="mt-1 text-sm text-gray-900">{new Date(permit.scheduled_start).toLocaleString()}</dd>
               </div>
             )}
             {permit.scheduled_end && (
               <div>
-                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Scheduled End</dt>
+                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Scheduled End 计划结束</dt>
                 <dd className="mt-1 text-sm text-gray-900">{new Date(permit.scheduled_end).toLocaleString()}</dd>
               </div>
             )}
             {permit.applicant && (
               <div>
-                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Applicant</dt>
+                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Applicant 申请人</dt>
                 <dd className="mt-1 text-sm text-gray-900">{permit.applicant.name}</dd>
               </div>
             )}
             {permit.verifier && (
               <div>
-                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Verifier</dt>
+                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Verifier 审核人</dt>
                 <dd className="mt-1 text-sm text-gray-900">{permit.verifier.name}</dd>
               </div>
             )}
             {permit.approver && (
               <div>
-                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Approver</dt>
+                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Approver 批准人</dt>
                 <dd className="mt-1 text-sm text-gray-900">{permit.approver.name}</dd>
               </div>
             )}
             <div>
-              <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Created</dt>
+              <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Created 创建时间</dt>
               <dd className="mt-1 text-sm text-gray-900">{new Date(permit.created_at).toLocaleString()}</dd>
             </div>
             {permit.submitted_at && (
               <div>
-                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Submitted</dt>
+                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Submitted 提交时间</dt>
                 <dd className="mt-1 text-sm text-gray-900">{new Date(permit.submitted_at).toLocaleString()}</dd>
               </div>
             )}
             {permit.verified_at && (
               <div>
-                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Verified</dt>
+                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Verified 审核时间</dt>
                 <dd className="mt-1 text-sm text-gray-900">{new Date(permit.verified_at).toLocaleString()}</dd>
               </div>
             )}
             {permit.approved_at && (
               <div>
-                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Approved</dt>
+                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Approved 批准时间</dt>
                 <dd className="mt-1 text-sm text-gray-900">{new Date(permit.approved_at).toLocaleString()}</dd>
               </div>
             )}
             {permit.closed_at && (
               <div>
-                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Closed</dt>
+                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Closed 关闭时间</dt>
                 <dd className="mt-1 text-sm text-gray-900">{new Date(permit.closed_at).toLocaleString()}</dd>
               </div>
             )}
           </dl>
           <div>
-            <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Work Description</dt>
+            <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Work Description 工作描述</dt>
             <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{permit.work_description}</dd>
           </div>
           {permit.rejection_reason && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-xs font-medium text-red-700 uppercase tracking-wide mb-1">Rejection Reason</p>
+              <p className="text-xs font-medium text-red-700 uppercase tracking-wide mb-1">Rejection Reason 拒绝原因</p>
               <p className="text-sm text-red-700">{permit.rejection_reason}</p>
             </div>
           )}
           {permit.revocation_reason && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-xs font-medium text-red-700 uppercase tracking-wide mb-1">Revocation Reason</p>
+              <p className="text-xs font-medium text-red-700 uppercase tracking-wide mb-1">Revocation Reason 撤销原因</p>
               <p className="text-sm text-red-700">{permit.revocation_reason}</p>
             </div>
           )}
@@ -444,7 +445,7 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
       {/* Checklist */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Checklist</h2>
+          <h2 className="text-lg font-semibold text-gray-900"><BilingualText en="Checklist" /></h2>
           {permit.permit_types?.checklist_template?.sections?.length ? (
             <ChecklistForm
               template={permit.permit_types.checklist_template}
@@ -462,7 +463,7 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
       {/* Personnel */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Personnel</h2>
+          <h2 className="text-lg font-semibold text-gray-900"><BilingualText en="Personnel" /></h2>
           {permit.permit_types?.checklist_template?.personnel?.length ? (
             <PersonnelPicker
               requirements={permit.permit_types.checklist_template.personnel}
@@ -479,7 +480,7 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
       {/* Attachments */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Attachments</h2>
+          <h2 className="text-lg font-semibold text-gray-900"><BilingualText en="Attachments" /></h2>
           <FileUpload
             permitId={id}
             attachments={permit.permit_attachments ?? []}
@@ -492,7 +493,7 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
       {/* Activity Log */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Activity Log</h2>
+          <h2 className="text-lg font-semibold text-gray-900"><BilingualText en="Activity Log" /></h2>
           {!permit.permit_activity_log?.length ? (
             <p className="text-sm text-gray-500 italic">No activity recorded.</p>
           ) : (

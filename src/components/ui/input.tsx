@@ -1,7 +1,7 @@
-import { forwardRef } from 'react'
+import { forwardRef, type ReactNode } from 'react'
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  label?: string
+  label?: ReactNode
   error?: string
 }
 
@@ -32,7 +32,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
 Input.displayName = 'Input'
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
-  label?: string
+  label?: ReactNode
   error?: string
 }
 
@@ -63,7 +63,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
 Select.displayName = 'Select'
 
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
-  label?: string
+  label?: ReactNode
   error?: string
 }
 

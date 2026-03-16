@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { BilingualText } from '@/components/ui/bilingual'
 
 interface Permit {
   id: string
@@ -81,7 +82,7 @@ export default function ClosePermitPage({ params }: { params: Promise<{ id: stri
   if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Submit Closure Report</h1>
+        <h1 className="text-2xl font-bold text-gray-900"><BilingualText en="Submit Closure Report" /></h1>
         <p className="text-gray-500">Loading...</p>
       </div>
     )
@@ -90,7 +91,7 @@ export default function ClosePermitPage({ params }: { params: Promise<{ id: stri
   if (error && !permit) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Submit Closure Report</h1>
+        <h1 className="text-2xl font-bold text-gray-900"><BilingualText en="Submit Closure Report" /></h1>
         <p className="text-red-600">{error}</p>
         <Link href="/permits" className="text-sm text-blue-600 hover:underline">
           &larr; Back to Permits
@@ -102,7 +103,7 @@ export default function ClosePermitPage({ params }: { params: Promise<{ id: stri
   if (permit && permit.status !== 'active') {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Submit Closure Report</h1>
+        <h1 className="text-2xl font-bold text-gray-900"><BilingualText en="Submit Closure Report" /></h1>
         <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
           <p className="text-sm text-yellow-800">
             Closure can only be submitted for active permits. This permit is in{' '}
@@ -119,7 +120,7 @@ export default function ClosePermitPage({ params }: { params: Promise<{ id: stri
   if (permit && currentUserId !== permit.applicant_id) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Submit Closure Report</h1>
+        <h1 className="text-2xl font-bold text-gray-900"><BilingualText en="Submit Closure Report" /></h1>
         <div className="p-4 bg-red-50 border border-red-200 rounded-md">
           <p className="text-sm text-red-800">
             You are not authorized to submit a closure for this permit.
@@ -138,18 +139,18 @@ export default function ClosePermitPage({ params }: { params: Promise<{ id: stri
         <Link href={`/permits/${id}`} className="text-sm text-gray-500 hover:text-gray-700">
           &larr; Back to Permit
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">Submit Closure Report</h1>
+        <h1 className="text-2xl font-bold text-gray-900"><BilingualText en="Submit Closure Report" /></h1>
       </div>
 
       {permit && (
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <p className="text-sm text-gray-700">
-            Permit: <span className="font-medium">{permit.permit_number}</span>
+            <BilingualText en="Permit" />: <span className="font-medium">{permit.permit_number}</span>
             {permit.permit_types && (
               <span className="text-gray-500"> — {permit.permit_types.name}</span>
             )}
           </p>
-          <p className="text-sm text-gray-500 mt-1">Location: {permit.work_location}</p>
+          <p className="text-sm text-gray-500 mt-1"><BilingualText en="Location" />: {permit.work_location}</p>
         </div>
       )}
 
@@ -163,7 +164,7 @@ export default function ClosePermitPage({ params }: { params: Promise<{ id: stri
       <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
         <div>
           <label htmlFor="comments" className="block text-sm font-medium text-gray-700 mb-1">
-            Closure Comments
+            <BilingualText en="Closure Comments" />
             <span className="text-gray-500 font-normal ml-1">(optional)</span>
           </label>
           <textarea
@@ -195,7 +196,7 @@ export default function ClosePermitPage({ params }: { params: Promise<{ id: stri
             disabled={submitting}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {submitting ? 'Submitting...' : 'Submit Closure Report'}
+            {submitting ? 'Submitting...' : <BilingualText en="Submit Closure Report" />}
           </button>
         </div>
       </form>

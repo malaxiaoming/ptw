@@ -127,23 +127,23 @@ export function ToolboxMeetingForm({
 
       {/* Meeting Details */}
       <div>
-        <h4 className="text-sm font-semibold text-gray-900 mb-3">Meeting Details</h4>
+        <h4 className="text-sm font-semibold text-gray-900 mb-3"><BilingualText en="Meeting Details" /></h4>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Input
-            label="Date"
+            label={<BilingualText en="Date" />}
             type="date"
             value={meetingDate}
             onChange={(e) => setMeetingDate(e.target.value)}
             required
           />
           <Input
-            label="Time"
+            label={<BilingualText en="Time" />}
             type="time"
             value={meetingTime}
             onChange={(e) => setMeetingTime(e.target.value)}
           />
           <Input
-            label="Location / Zone"
+            label={<BilingualText en="Location / Zone" />}
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder="e.g. Block A Level 3"
@@ -154,13 +154,13 @@ export function ToolboxMeetingForm({
       {/* Safety Checklist */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h4 className="text-sm font-semibold text-gray-900">Safety Checklist</h4>
+          <h4 className="text-sm font-semibold text-gray-900"><BilingualText en="Safety Checklist" /></h4>
           <button
             type="button"
             onClick={toggleCheckAll}
             className="text-xs text-blue-600 hover:text-blue-800"
           >
-            {allChecked ? 'Uncheck All' : 'Check All'}
+            {allChecked ? <BilingualText en="Uncheck All" /> : <BilingualText en="Check All" />}
           </button>
         </div>
         <div className="space-y-2">
@@ -181,13 +181,13 @@ export function ToolboxMeetingForm({
       {/* Attendance */}
       <div>
         <h4 className="text-sm font-semibold text-gray-900 mb-3">
-          Attendance ({attendance.length})
+          <BilingualText en="Attendance" /> ({attendance.length})
         </h4>
 
         {/* Worker registry selection */}
         {workers.length > 0 && (
           <div className="mb-3">
-            <p className="text-xs text-gray-500 mb-2">Select from worker registry:</p>
+            <p className="text-xs text-gray-500 mb-2"><BilingualText en="Select from worker registry:" /></p>
             <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-md divide-y divide-gray-100">
               {workers.map((w) => {
                 const selected = attendance.some((a) => a.worker_id === w.id)
@@ -257,7 +257,7 @@ export function ToolboxMeetingForm({
 
       {/* Notes */}
       <Textarea
-        label="Notes"
+        label={<BilingualText en="Notes" />}
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         rows={3}
@@ -272,7 +272,7 @@ export function ToolboxMeetingForm({
           onChange={(e) => setSignedOff(e.target.checked)}
           className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
         />
-        I confirm this toolbox meeting was conducted
+        <BilingualText en="I confirm this toolbox meeting was conducted" />
       </label>
 
       {/* Actions */}

@@ -9,6 +9,7 @@ import { validateChecklist } from '@/lib/permits/checklist-validation'
 import type { ChecklistTemplate, PersonnelEntry } from '@/lib/permits/checklist-validation'
 import { createClient } from '@/lib/supabase/client'
 import { defaultScheduledStart, defaultScheduledEnd, toDatetimeLocal, datetimeLocalToISO } from '@/lib/utils/date-defaults'
+import { BilingualText } from '@/components/ui/bilingual'
 
 interface Permit {
   id: string
@@ -152,7 +153,7 @@ export default function EditPermitPage({ params }: { params: Promise<{ id: strin
   if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Edit Permit</h1>
+        <h1 className="text-2xl font-bold text-gray-900"><BilingualText en="Edit Permit" /></h1>
         <p className="text-gray-500">Loading...</p>
       </div>
     )
@@ -161,7 +162,7 @@ export default function EditPermitPage({ params }: { params: Promise<{ id: strin
   if (error || !permit) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Edit Permit</h1>
+        <h1 className="text-2xl font-bold text-gray-900"><BilingualText en="Edit Permit" /></h1>
         <p className="text-red-600">{error ?? 'Permit not found'}</p>
         <Link href="/permits" className="text-sm text-blue-600 hover:underline">
           &larr; Back to Permits
@@ -173,7 +174,7 @@ export default function EditPermitPage({ params }: { params: Promise<{ id: strin
   if (permit.status !== 'draft') {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Edit Permit</h1>
+        <h1 className="text-2xl font-bold text-gray-900"><BilingualText en="Edit Permit" /></h1>
         <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
           <p className="text-sm text-yellow-800">
             Only draft permits can be edited. This permit is in <strong>{permit.status}</strong> status.
@@ -189,7 +190,7 @@ export default function EditPermitPage({ params }: { params: Promise<{ id: strin
   if (currentUserId !== permit.applicant_id) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Edit Permit</h1>
+        <h1 className="text-2xl font-bold text-gray-900"><BilingualText en="Edit Permit" /></h1>
         <div className="p-4 bg-red-50 border border-red-200 rounded-md">
           <p className="text-sm text-red-800">
             You are not authorized to edit this permit.
@@ -220,11 +221,11 @@ export default function EditPermitPage({ params }: { params: Promise<{ id: strin
       <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-6">
         {/* Work Details */}
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Work Details</h2>
+          <h2 className="text-lg font-semibold text-gray-900"><BilingualText en="Work Details" /></h2>
 
           <div>
             <label htmlFor="work-location" className="block text-sm font-medium text-gray-700 mb-1">
-              Work Location <span className="text-red-500">*</span>
+              <BilingualText en="Work Location" /> <span className="text-red-500">*</span>
             </label>
             <input
               id="work-location"
@@ -237,7 +238,7 @@ export default function EditPermitPage({ params }: { params: Promise<{ id: strin
 
           <div>
             <label htmlFor="work-description" className="block text-sm font-medium text-gray-700 mb-1">
-              Work Description <span className="text-red-500">*</span>
+              <BilingualText en="Work Description" /> <span className="text-red-500">*</span>
             </label>
             <textarea
               id="work-description"
@@ -251,7 +252,7 @@ export default function EditPermitPage({ params }: { params: Promise<{ id: strin
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="scheduled-start" className="block text-sm font-medium text-gray-700 mb-1">
-                Scheduled Start
+                <BilingualText en="Scheduled Start" />
               </label>
               <input
                 id="scheduled-start"
@@ -263,7 +264,7 @@ export default function EditPermitPage({ params }: { params: Promise<{ id: strin
             </div>
             <div>
               <label htmlFor="scheduled-end" className="block text-sm font-medium text-gray-700 mb-1">
-                Scheduled End
+                <BilingualText en="Scheduled End" />
               </label>
               <input
                 id="scheduled-end"
@@ -279,7 +280,7 @@ export default function EditPermitPage({ params }: { params: Promise<{ id: strin
         {/* Checklist */}
         {permit.permit_types?.checklist_template?.sections?.length ? (
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">Checklist</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3"><BilingualText en="Checklist" /></h2>
             <ChecklistForm
               template={permit.permit_types.checklist_template}
               data={checklistData}
@@ -292,7 +293,7 @@ export default function EditPermitPage({ params }: { params: Promise<{ id: strin
         {/* Personnel */}
         {permit.permit_types?.checklist_template?.personnel?.length ? (
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">Personnel</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3"><BilingualText en="Personnel" /></h2>
             <PersonnelPicker
               requirements={permit.permit_types.checklist_template.personnel}
               personnel={personnel}
@@ -329,7 +330,7 @@ export default function EditPermitPage({ params }: { params: Promise<{ id: strin
           disabled={saving}
           className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {saving ? 'Saving...' : 'Save Changes'}
+          {saving ? 'Saving...' : <BilingualText en="Save Changes" />}
         </button>
       </div>
     </div>
