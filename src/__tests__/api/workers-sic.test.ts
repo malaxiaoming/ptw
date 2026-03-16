@@ -107,9 +107,29 @@ describe('POST /api/workers/[id]/sic', () => {
     expect(body.error).toBe('project_id is required')
   })
 
-  it('returns 400 if sic_number missing', async () => {
+  it('auto-generates sic_number when not provided', async () => {
     mockGetCurrentUser.mockResolvedValue(mockAdminUser)
     mockIsOrgAdmin.mockReturnValue(true)
+
+    const newSic = {
+      id: 'sic-auto', worker_id: 'w-1', project_id: 'p-1', sic_number: 'SIC-0001',
+      sic_issuer: null, issued_at: null, is_active: true, created_at: '2025-01-01T00:00:00Z',
+    }
+
+    let callCount = 0
+    const fromMock = vi.fn().mockImplementation(() => {
+      callCount++
+      if (callCount === 1) {
+        // Worker ownership check
+        return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: { id: 'w-1' }, error: null }) }
+      }
+      // Insert chain
+      return { insert: vi.fn().mockReturnThis(), select: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: newSic, error: null }) }
+    })
+    mockCreateServiceClient.mockResolvedValue({
+      from: fromMock,
+      rpc: vi.fn().mockResolvedValue({ data: 'SIC-0001', error: null }),
+    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
 
     const res = await POST(
       makeRequest('http://localhost/api/workers/w-1/sic', {
@@ -119,8 +139,8 @@ describe('POST /api/workers/[id]/sic', () => {
       makeParams('w-1')
     )
     const body = await res.json()
-    expect(res.status).toBe(400)
-    expect(body.error).toBe('sic_number is required')
+    expect(res.status).toBe(201)
+    expect(body.data.sic_number).toBe('SIC-0001')
   })
 
   it('creates SIC record and returns 201', async () => {

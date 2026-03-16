@@ -8,6 +8,7 @@ const { mockGetCurrentUser, mockSupabase } = vi.hoisted(() => ({
 vi.mock('@/lib/auth/get-user', () => ({ getCurrentUser: mockGetCurrentUser }))
 vi.mock('@/lib/supabase/server', () => ({
   createServerSupabaseClient: vi.fn(() => mockSupabase),
+  createServiceRoleClient: vi.fn(() => mockSupabase),
 }))
 vi.mock('@/lib/api/response', () => ({
   success: vi.fn((data) => ({ json: () => ({ data }), status: 200 })),

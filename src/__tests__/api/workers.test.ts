@@ -169,7 +169,7 @@ describe('GET /api/workers', () => {
 
     expect(res.status).toBe(200)
     expect(body.data).toEqual(workers)
-    expect(chain.or).toHaveBeenCalledWith('name.ilike.%Bob%,cert_number.ilike.%Bob%,company.ilike.%Bob%')
+    expect(chain.or).toHaveBeenCalledWith('name.ilike.%Bob%,company.ilike.%Bob%')
   })
 })
 
