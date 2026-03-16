@@ -153,8 +153,6 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
     })
   }
 
-  const selectedCompany = companies.find((c) => c.id === form.company_id)
-
   const inputClass = 'mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
 
   return (
@@ -216,18 +214,7 @@ export function WorkerForm({ initialData, onSubmit, onCancel, submitLabel = 'Sav
           />
         )}
       </div>
-      <div>
-        <label htmlFor="worker-trade" className="block text-sm font-medium text-gray-700">Trade</label>
-        {form.company_id && selectedCompany ? (
-          <p id="worker-trade" className="mt-1 px-3 py-2 text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-md">
-            {selectedCompany.trade || 'Not set on company'}
-          </p>
-        ) : (
-          <p id="worker-trade" className="mt-1 px-3 py-2 text-sm text-gray-400 bg-gray-50 border border-gray-200 rounded-md">
-            Select a company first
-          </p>
-        )}
-      </div>
+      {/* Trade is auto-populated from the selected company — no need to display */}
       <div>
         <label htmlFor="worker-phone" className="block text-sm font-medium text-gray-700">Phone</label>
         <input

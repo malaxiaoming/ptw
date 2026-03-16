@@ -18,26 +18,47 @@ export function ChecklistForm({ template, data, onChange, permitId, disabled }: 
 
   return (
     <div className="space-y-6">
-      {template.sections.map((section) => (
-        <fieldset key={section.title} className="border border-gray-200 rounded-lg p-4">
-          <legend className="text-lg font-semibold px-2">{section.title}</legend>
-          {section.description && (
-            <p className="text-sm text-gray-500 mt-1 px-2 whitespace-pre-line">{section.description}</p>
-          )}
-          <div className="space-y-4 mt-2">
-            {section.fields.map((field) => (
-              <ChecklistFieldInput
-                key={field.id}
-                field={field}
-                value={data[field.id]}
-                onChange={(value) => updateField(field.id, value)}
-                permitId={permitId}
-                disabled={disabled}
-              />
-            ))}
-          </div>
-        </fieldset>
-      ))}
+      {template.sections.map((section) => {
+        const yesNoFields = section.fields.filter((f) => f.type === 'yes_no')
+        const hasYesNo = yesNoFields.length > 1
+
+        function tickAll(value: 'yes' | 'no' | 'na') {
+          const updates = { ...data }
+          for (const f of yesNoFields) {
+            updates[f.id] = value
+          }
+          onChange(updates)
+        }
+
+        return (
+          <fieldset key={section.title} className="border border-gray-200 rounded-lg p-4">
+            <legend className="text-lg font-semibold px-2">{section.title}</legend>
+            {section.description && (
+              <p className="text-sm text-gray-500 mt-1 px-2 whitespace-pre-line">{section.description}</p>
+            )}
+            {hasYesNo && !disabled && (
+              <div className="flex gap-2 mt-2 px-2">
+                <span className="text-xs text-gray-500 self-center">Quick fill:</span>
+                <button type="button" onClick={() => tickAll('yes')} className="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200">All Yes</button>
+                <button type="button" onClick={() => tickAll('no')} className="px-2 py-0.5 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200">All No</button>
+                <button type="button" onClick={() => tickAll('na')} className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200">All N.A.</button>
+              </div>
+            )}
+            <div className="space-y-4 mt-2">
+              {section.fields.map((field) => (
+                <ChecklistFieldInput
+                  key={field.id}
+                  field={field}
+                  value={data[field.id]}
+                  onChange={(value) => updateField(field.id, value)}
+                  permitId={permitId}
+                  disabled={disabled}
+                />
+              ))}
+            </div>
+          </fieldset>
+        )
+      })}
     </div>
   )
 }
