@@ -268,6 +268,11 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
 
         {currentUser && (
           <div className="flex items-center gap-2">
+            {['active', 'closure_submitted', 'closed'].includes(permit.status) && (
+              <Link href={`/permits/${id}/print`} target="_blank">
+                <Button variant="outline" size="md">Print 打印</Button>
+              </Link>
+            )}
             <Button
               variant="outline"
               size="md"

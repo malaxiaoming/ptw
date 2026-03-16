@@ -103,6 +103,13 @@ export const zh: Record<string, string> = {
   'No meetings match the selected date range.': '没有符合所选日期范围的会议。',
   'This permit type has no checklist or personnel requirements.': '此许可证类型无检查清单或人员要求。',
 
+  // Print
+  'Print': '打印',
+  'Print Permit': '打印许可证',
+  'Authorization': '授权',
+  'Valid from': '有效期',
+  'Printed on': '打印于',
+
   // Misc
   'Expired': '已过期',
   'Permit': '许可证',
