@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest'
 import { getNotificationRecipients } from '@/lib/notifications/recipients'
 
 describe('getNotificationRecipients', () => {
@@ -61,6 +61,15 @@ describe('getNotificationRecipients', () => {
 vi.mock('@/lib/supabase/server', () => ({
   createServiceRoleClient: vi.fn(),
 }))
+
+const mockSend = vi.fn()
+vi.mock('resend', () => {
+  return {
+    Resend: class {
+      emails = { send: mockSend }
+    },
+  }
+})
 
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { sendPermitNotifications } from '@/lib/notifications/send'
@@ -227,5 +236,111 @@ describe('sendPermitNotifications', () => {
     // No recipients resolved, so insert must not be called
     expect(insertMock).not.toHaveBeenCalled()
     consoleErrorSpy.mockRestore()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Email notifications via Resend
+// ---------------------------------------------------------------------------
+
+describe('sendPermitNotifications — email', () => {
+  const originalEnv = process.env
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    process.env = { ...originalEnv }
+  })
+
+  afterAll(() => {
+    process.env = originalEnv
+  })
+
+  function mockSupabaseWithEmail(profiles: { id: string; email: string }[]) {
+    const insertMock = vi.fn().mockResolvedValue({ error: null })
+    const profilesInMock = vi.fn().mockResolvedValue({ data: profiles, error: null })
+    const profilesChain = {
+      select: vi.fn().mockReturnThis(),
+      in: profilesInMock,
+    }
+
+    let fromCallCount = 0
+    mockCreateServiceClient.mockResolvedValue({
+      from: vi.fn().mockImplementation(() => {
+        fromCallCount++
+        // 1st call: notifications insert
+        if (fromCallCount === 1) return { insert: insertMock }
+        // 2nd call: user_profiles select
+        return profilesChain
+      }),
+    } as unknown as Awaited<ReturnType<typeof createServiceRoleClient>>)
+
+    return { insertMock, profilesInMock }
+  }
+
+  it('sends emails when RESEND_API_KEY is set', async () => {
+    process.env.RESEND_API_KEY = 'test-api-key'
+    process.env.NEXT_PUBLIC_APP_URL = 'https://ptw.example.com'
+    mockSend.mockResolvedValue({ data: { id: 'email-1' }, error: null })
+
+    mockSupabaseWithEmail([{ id: 'user-1', email: 'applicant@example.com' }])
+
+    await sendPermitNotifications({ ...baseParams, newStatus: 'active' })
+
+    expect(mockSend).toHaveBeenCalledOnce()
+    expect(mockSend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from: 'onboarding@resend.dev',
+        to: 'applicant@example.com',
+        subject: 'Permit Approved & Active — PTW-2024-0001',
+        html: expect.stringContaining('https://ptw.example.com/permits/permit-1'),
+      })
+    )
+  })
+
+  it('skips email when RESEND_API_KEY is not set', async () => {
+    delete process.env.RESEND_API_KEY
+    mockSupabaseWithEmail([{ id: 'user-1', email: 'applicant@example.com' }])
+
+    await sendPermitNotifications({ ...baseParams, newStatus: 'active' })
+
+    expect(mockSend).not.toHaveBeenCalled()
+  })
+
+  it('logs error and does not throw when Resend call fails', async () => {
+    process.env.RESEND_API_KEY = 'test-api-key'
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockSend.mockRejectedValue(new Error('Rate limit exceeded'))
+
+    mockSupabaseWithEmail([{ id: 'user-1', email: 'applicant@example.com' }])
+
+    await expect(
+      sendPermitNotifications({ ...baseParams, newStatus: 'active' })
+    ).resolves.toBeUndefined()
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[sendPermitNotifications] Failed to send email to applicant@example.com:',
+      expect.any(Error)
+    )
+    consoleErrorSpy.mockRestore()
+  })
+
+  it('sends correct subject and body content', async () => {
+    process.env.RESEND_API_KEY = 'test-api-key'
+    process.env.NEXT_PUBLIC_APP_URL = 'https://ptw.example.com'
+    process.env.EMAIL_FROM = 'noreply@ptw.com'
+    mockSend.mockResolvedValue({ data: { id: 'email-1' }, error: null })
+
+    mockSupabaseWithEmail([{ id: 'user-1', email: 'applicant@example.com' }])
+
+    await sendPermitNotifications({ ...baseParams, newStatus: 'rejected' })
+
+    expect(mockSend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from: 'noreply@ptw.com',
+        to: 'applicant@example.com',
+        subject: 'Permit Rejected — PTW-2024-0001',
+        html: expect.stringContaining('Your permit has been rejected.'),
+      })
+    )
   })
 })

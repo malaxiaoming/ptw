@@ -1,3 +1,4 @@
+import { Resend } from 'resend'
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { getNotificationRecipients } from './recipients'
 import type { PermitStatus } from '@/lib/permits/state-machine'
@@ -74,5 +75,56 @@ export async function sendPermitNotifications(params: SendNotificationParams) {
     // Non-fatal: state transition has already occurred; log but don't throw
   }
 
-  // TODO: Send email notifications via Resend (future enhancement)
+  // Send email notifications via Resend
+  await sendEmailNotifications(recipientIds, permitId, permitNumber, template, supabase)
+}
+
+async function sendEmailNotifications(
+  recipientIds: string[],
+  permitId: string,
+  permitNumber: string,
+  template: { title: string; message: string },
+  supabase: Awaited<ReturnType<typeof createServiceRoleClient>>
+) {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) return
+
+  const { data: profiles, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('id, email')
+    .in('id', recipientIds)
+
+  if (profileError) {
+    console.error('[sendPermitNotifications] Failed to fetch user emails:', profileError.message)
+    return
+  }
+
+  const recipients = (profiles ?? []).filter((p: { id: string; email: string | null }) => p.email)
+  if (recipients.length === 0) return
+
+  const resend = new Resend(apiKey)
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const from = process.env.EMAIL_FROM || 'onboarding@resend.dev'
+  const subject = `${template.title} — ${permitNumber}`
+  const permitUrl = `${appUrl}/permits/${permitId}`
+
+  for (const recipient of recipients) {
+    try {
+      await resend.emails.send({
+        from,
+        to: recipient.email,
+        subject,
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #1a1a1a;">${template.title}</h2>
+            <p style="color: #333; font-size: 16px;">${template.message}</p>
+            <p style="color: #333; font-size: 16px;"><strong>Permit:</strong> ${permitNumber}</p>
+            <a href="${permitUrl}" style="display: inline-block; margin-top: 16px; padding: 10px 20px; background-color: #2563eb; color: #ffffff; text-decoration: none; border-radius: 6px;">View Permit</a>
+          </div>
+        `,
+      })
+    } catch (err) {
+      console.error(`[sendPermitNotifications] Failed to send email to ${recipient.email}:`, err)
+    }
+  }
 }

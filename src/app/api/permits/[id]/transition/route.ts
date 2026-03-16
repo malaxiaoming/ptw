@@ -6,6 +6,7 @@ import { validateTransition } from '@/lib/permits/transition'
 import { type PermitAction } from '@/lib/permits/state-machine'
 import { validateChecklist, type ChecklistTemplate, type PersonnelEntry } from '@/lib/permits/checklist-validation'
 import { success, error } from '@/lib/api/response'
+import { sendPermitNotifications } from '@/lib/notifications/send'
 
 export async function POST(
   request: NextRequest,
@@ -36,7 +37,7 @@ export async function POST(
   // Get current permit
   const { data: permit } = await supabase
     .from('permits')
-    .select('id, status, applicant_id, project_id, checklist_data, personnel, permit_types(checklist_template)')
+    .select('id, status, applicant_id, verifier_id, approver_id, project_id, permit_number, checklist_data, personnel, permit_types(checklist_template)')
     .eq('id', id)
     .single()
 
@@ -140,6 +141,19 @@ export async function POST(
     performed_by: user.id,
     comments,
   })
+
+  // Fire-and-forget notifications (don't block the response)
+  sendPermitNotifications({
+    permitId: id,
+    permitNumber: updated.permit_number,
+    projectId: permit.project_id,
+    newStatus: result.newStatus!,
+    parties: {
+      applicant_id: updated.applicant_id ?? permit.applicant_id,
+      verifier_id: updated.verifier_id ?? permit.verifier_id ?? null,
+      approver_id: updated.approver_id ?? permit.approver_id ?? null,
+    },
+  }).catch((err) => console.error('[transition] notification error:', err))
 
   return success(updated)
 }
