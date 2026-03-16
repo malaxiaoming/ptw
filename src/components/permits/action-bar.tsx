@@ -95,8 +95,8 @@ export function ActionBar({ permit, userRoles, userId, onAction }: ActionBarProp
               className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
             <span className="text-sm text-gray-700">
-              I fully understand the nature of the work and safety conditions that must be met.
-              I have inspected the safety conditions relating to the work to be performed.
+              <span>I fully understand the nature of the work and safety conditions that must be met. I have inspected the safety conditions relating to the work to be performed.</span>
+              <span className="block text-xs text-gray-500 mt-1">本人完全了解工作性质及必须满足的安全条件。本人已检查与所执行工作相关的安全状况。</span>
             </span>
           </label>
           <div className="flex gap-2">
@@ -130,7 +130,8 @@ export function ActionBar({ permit, userRoles, userId, onAction }: ActionBarProp
               className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
             <span className="text-sm text-gray-700">
-              I have evaluated the risks and hazards associated with the job, am satisfied that thorough assessment of the work area and its surroundings has been made, that all necessary safety measures have been undertaken, and have inspected and confirmed that the safety precautions/requirements are in place.
+              <span>I have evaluated the risks and hazards associated with the job, am satisfied that thorough assessment of the work area and its surroundings has been made, that all necessary safety measures have been undertaken, and have inspected and confirmed that the safety precautions/requirements are in place.</span>
+              <span className="block text-xs text-gray-500 mt-1">本人已评估与该工作相关的风险和危害，确认已对工作区域及其周围环境进行了全面评估，所有必要的安全措施均已落实，并已检查和确认安全预防措施／要求已到位。</span>
             </span>
           </label>
           <div className="flex gap-2">

@@ -2,6 +2,7 @@
 
 import { type ChecklistTemplate, type ChecklistField } from '@/lib/permits/checklist-validation'
 import { ChecklistPhotoField } from './checklist-photo-field'
+import { BilingualText } from '@/components/ui/bilingual'
 
 interface ChecklistFormProps {
   template: ChecklistTemplate
@@ -53,9 +54,13 @@ export function ChecklistForm({ template, data, onChange, permitId, disabled }: 
 
         return (
           <fieldset key={section.title} className="border border-gray-200 rounded-lg p-4">
-            <legend className="text-lg font-semibold px-2">{section.title}</legend>
+            <legend className="text-lg font-semibold px-2">
+              <BilingualText en={section.title} zh={section.title_zh} />
+            </legend>
             {section.description && (
-              <p className="text-sm text-gray-500 mt-1 px-2 whitespace-pre-line">{section.description}</p>
+              <div className="text-sm text-gray-500 mt-1 px-2 whitespace-pre-line">
+                <BilingualText en={section.description} zh={section.description_zh} />
+              </div>
             )}
             {hasYesNo && !disabled && (
               <div className="flex gap-2 mt-2 px-2">
@@ -106,7 +111,7 @@ function ChecklistFieldInput({ field, value, onChange, permitId, disabled }: Che
             className="h-4 w-4 rounded border-gray-300"
           />
           <span className="text-sm">
-            {field.label}
+            <BilingualText en={field.label} zh={field.label_zh} />
             {field.required && <span className="text-red-500 ml-1">*</span>}
           </span>
         </label>
@@ -116,7 +121,7 @@ function ChecklistFieldInput({ field, value, onChange, permitId, disabled }: Che
       return (
         <div>
           <label htmlFor={field.id} className="block text-sm font-medium text-gray-700 mb-1">
-            {field.label}
+            <BilingualText en={field.label} zh={field.label_zh} />
             {field.required && <span className="text-red-500 ml-1">*</span>}
           </label>
           <input
@@ -134,7 +139,7 @@ function ChecklistFieldInput({ field, value, onChange, permitId, disabled }: Che
       return (
         <div>
           <label htmlFor={field.id} className="block text-sm font-medium text-gray-700 mb-1">
-            {field.label}
+            <BilingualText en={field.label} zh={field.label_zh} />
             {field.required && <span className="text-red-500 ml-1">*</span>}
           </label>
           <input
@@ -152,7 +157,7 @@ function ChecklistFieldInput({ field, value, onChange, permitId, disabled }: Che
       return (
         <div>
           <label htmlFor={field.id} className="block text-sm font-medium text-gray-700 mb-1">
-            {field.label}
+            <BilingualText en={field.label} zh={field.label_zh} />
             {field.required && <span className="text-red-500 ml-1">*</span>}
           </label>
           <select
@@ -174,7 +179,7 @@ function ChecklistFieldInput({ field, value, onChange, permitId, disabled }: Che
       return (
         <div>
           <p className="text-sm font-medium text-gray-700 mb-1">
-            {field.label}
+            <BilingualText en={field.label} zh={field.label_zh} />
             {field.required && <span className="text-red-500 ml-1">*</span>}
           </p>
           <div className="flex gap-4">

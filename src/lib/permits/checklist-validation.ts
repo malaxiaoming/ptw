@@ -2,20 +2,25 @@ export interface ChecklistField {
   id: string
   type: 'checkbox' | 'text' | 'date' | 'photo' | 'select' | 'yes_no'
   label: string
+  label_zh?: string
   required: boolean
   max?: number
   options?: string[]
+  options_zh?: string[]
 }
 
 export interface ChecklistSection {
   title: string
+  title_zh?: string
   description?: string
+  description_zh?: string
   fields: ChecklistField[]
 }
 
 export interface PersonnelRequirement {
   role: string
   label: string
+  label_zh?: string
   min: number
   max: number
   fields: string[]

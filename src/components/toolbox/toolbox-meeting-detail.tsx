@@ -1,6 +1,7 @@
 'use client'
 
 import { TOOLBOX_CHECKLIST_ITEMS } from '@/lib/toolbox/checklist-items'
+import { BilingualText } from '@/components/ui/bilingual'
 
 interface ToolboxMeeting {
   id: string
@@ -54,7 +55,9 @@ export function ToolboxMeetingDetail({ meeting, onClose }: ToolboxMeetingDetailP
                 <span className={checked ? 'text-green-600' : 'text-red-400'}>
                   {checked ? '\u2713' : '\u2717'}
                 </span>
-                <span className={checked ? 'text-gray-700' : 'text-gray-400'}>{item.label}</span>
+                <span className={checked ? 'text-gray-700' : 'text-gray-400'}>
+                  <BilingualText en={item.label} zh={item.label_zh} />
+                </span>
               </div>
             )
           })}

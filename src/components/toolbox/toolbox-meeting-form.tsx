@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input, Textarea } from '@/components/ui/input'
 import { TOOLBOX_CHECKLIST_ITEMS } from '@/lib/toolbox/checklist-items'
+import { BilingualText } from '@/components/ui/bilingual'
 
 interface Worker {
   id: string
@@ -171,7 +172,7 @@ export function ToolboxMeetingForm({
                 onChange={(e) => setChecklist({ ...checklist, [item.key]: e.target.checked })}
                 className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
-              {item.label}
+              <BilingualText en={item.label} zh={item.label_zh} />
             </label>
           ))}
         </div>
