@@ -14,6 +14,8 @@ export type Action =
   | 'return_closure'
   | 'view_permits'
   | 'view_dashboard'
+  | 'create_toolbox_meeting'
+  | 'view_toolbox_meetings'
 
 export const ROLE_PERMISSIONS: Record<Role, Action[]> = {
   applicant: [
@@ -23,6 +25,8 @@ export const ROLE_PERMISSIONS: Record<Role, Action[]> = {
     'submit_closure',
     'view_permits',
     'view_dashboard',
+    'create_toolbox_meeting',
+    'view_toolbox_meetings',
   ],
   verifier: [
     'verify_permit',
@@ -31,6 +35,8 @@ export const ROLE_PERMISSIONS: Record<Role, Action[]> = {
     'return_closure',
     'view_permits',
     'view_dashboard',
+    'create_toolbox_meeting',
+    'view_toolbox_meetings',
   ],
   approver: [
     'approve_permit',
@@ -38,6 +44,8 @@ export const ROLE_PERMISSIONS: Record<Role, Action[]> = {
     'revoke_permit',
     'view_permits',
     'view_dashboard',
+    'create_toolbox_meeting',
+    'view_toolbox_meetings',
   ],
 }
 
