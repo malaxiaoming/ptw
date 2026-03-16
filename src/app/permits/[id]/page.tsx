@@ -66,6 +66,7 @@ interface Permit {
   verifier?: UserProfile | null
   approver?: UserProfile | null
   project?: { id: string; name: string; location?: string | null } | null
+  pdf_path?: string | null
   permit_attachments?: Attachment[]
   permit_activity_log?: ActivityEntry[]
 }
@@ -269,9 +270,16 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
         {currentUser && (
           <div className="flex items-center gap-2">
             {['active', 'closure_submitted', 'closed'].includes(permit.status) && (
-              <Link href={`/permits/${id}/print`} target="_blank">
-                <Button variant="outline" size="md">Print 打印</Button>
-              </Link>
+              <>
+                {permit.pdf_path && (
+                  <a href={`/api/permits/${id}/pdf`} target="_blank" rel="noopener noreferrer">
+                    <Button variant="outline" size="md">Download PDF 下载PDF</Button>
+                  </a>
+                )}
+                <Link href={`/permits/${id}/print`} target="_blank">
+                  <Button variant="outline" size="md">Print 打印</Button>
+                </Link>
+              </>
             )}
             <Button
               variant="outline"
