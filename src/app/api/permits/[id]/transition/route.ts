@@ -7,6 +7,7 @@ import { type PermitAction } from '@/lib/permits/state-machine'
 import { validateChecklist, type ChecklistTemplate, type PersonnelEntry } from '@/lib/permits/checklist-validation'
 import { success, error } from '@/lib/api/response'
 import { sendPermitNotifications } from '@/lib/notifications/send'
+import { generateAndStorePermitPdf } from '@/lib/permits/pdf-generate'
 
 export async function POST(
   request: NextRequest,
@@ -142,8 +143,8 @@ export async function POST(
     comments,
   })
 
-  // Fire-and-forget notifications (don't block the response)
-  sendPermitNotifications({
+  // Fire-and-forget post-processing (don't block the response)
+  const notificationParams = {
     permitId: id,
     permitNumber: updated.permit_number,
     projectId: permit.project_id,
@@ -153,7 +154,31 @@ export async function POST(
       verifier_id: updated.verifier_id ?? permit.verifier_id ?? null,
       approver_id: updated.approver_id ?? permit.approver_id ?? null,
     },
-  }).catch((err) => console.error('[transition] notification error:', err))
+  }
+
+  if (action === 'approve') {
+    // Generate PDF, then send notifications with attachment
+    (async () => {
+      let pdfBuffer: Buffer | undefined
+      try {
+        if (user.organization_id) {
+          const pdfResult = await generateAndStorePermitPdf(id, user.organization_id)
+          pdfBuffer = pdfResult?.buffer
+        }
+      } catch (err) {
+        console.error('[transition] PDF generation error (continuing with notification):', err)
+      }
+
+      try {
+        await sendPermitNotifications({ ...notificationParams, pdfBuffer })
+      } catch (err) {
+        console.error('[transition] notification error:', err)
+      }
+    })()
+  } else {
+    sendPermitNotifications(notificationParams)
+      .catch((err) => console.error('[transition] notification error:', err))
+  }
 
   return success(updated)
 }

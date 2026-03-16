@@ -13,6 +13,7 @@ interface SendNotificationParams {
     verifier_id: string | null
     approver_id: string | null
   }
+  pdfBuffer?: Buffer
 }
 
 const STATUS_MESSAGES: Partial<Record<PermitStatus, { title: string; message: string }>> = {
@@ -76,7 +77,7 @@ export async function sendPermitNotifications(params: SendNotificationParams) {
   }
 
   // Send email notifications via Resend
-  await sendEmailNotifications(recipientIds, permitId, permitNumber, template, supabase)
+  await sendEmailNotifications(recipientIds, permitId, permitNumber, template, supabase, params.pdfBuffer)
 }
 
 async function sendEmailNotifications(
@@ -84,7 +85,8 @@ async function sendEmailNotifications(
   permitId: string,
   permitNumber: string,
   template: { title: string; message: string },
-  supabase: Awaited<ReturnType<typeof createServiceRoleClient>>
+  supabase: Awaited<ReturnType<typeof createServiceRoleClient>>,
+  pdfBuffer?: Buffer
 ) {
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) return
@@ -122,6 +124,7 @@ async function sendEmailNotifications(
             <a href="${permitUrl}" style="display: inline-block; margin-top: 16px; padding: 10px 20px; background-color: #2563eb; color: #ffffff; text-decoration: none; border-radius: 6px;">View Permit</a>
           </div>
         `,
+        ...(pdfBuffer ? { attachments: [{ filename: `${permitNumber}.pdf`, content: pdfBuffer }] } : {}),
       })
     } catch (err) {
       console.error(`[sendPermitNotifications] Failed to send email to ${recipient.email}:`, err)

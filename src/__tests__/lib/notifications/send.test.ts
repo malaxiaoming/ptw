@@ -343,4 +343,30 @@ describe('sendPermitNotifications — email', () => {
       })
     )
   })
+
+  it('attaches PDF to email when pdfBuffer is provided', async () => {
+    process.env.RESEND_API_KEY = 'test-api-key'
+    mockSend.mockResolvedValue({ data: { id: 'email-1' }, error: null })
+    mockSupabaseWithEmail([{ id: 'user-1', email: 'applicant@example.com' }])
+
+    const pdfBuffer = Buffer.from('fake-pdf')
+    await sendPermitNotifications({ ...baseParams, newStatus: 'active', pdfBuffer })
+
+    expect(mockSend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attachments: [{ filename: 'PTW-2024-0001.pdf', content: pdfBuffer }],
+      })
+    )
+  })
+
+  it('sends email without attachment when pdfBuffer is not provided', async () => {
+    process.env.RESEND_API_KEY = 'test-api-key'
+    mockSend.mockResolvedValue({ data: { id: 'email-1' }, error: null })
+    mockSupabaseWithEmail([{ id: 'user-1', email: 'applicant@example.com' }])
+
+    await sendPermitNotifications({ ...baseParams, newStatus: 'active' })
+
+    const callArg = mockSend.mock.calls[0][0]
+    expect(callArg.attachments).toBeUndefined()
+  })
 })
