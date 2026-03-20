@@ -43,7 +43,7 @@ export async function Sidebar() {
               <p className="text-sm font-medium text-white truncate">{user.name ?? user.email}</p>
               <p className="text-xs text-gray-400 truncate">{user.email}</p>
             </div>
-            <NotificationBell />
+            <NotificationBell align="left" />
           </div>
           <LogoutButton className="flex items-center gap-3 px-0 py-2 mt-2 text-sm text-gray-400 hover:text-white transition-colors w-full" />
         </div>

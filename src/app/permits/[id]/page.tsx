@@ -302,7 +302,7 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
                     loading={pdfRegenerating}
                     onClick={handleRegeneratePdf}
                   >
-                    Generate PDF 生成PDF
+                    Download PDF 下载PDF
                   </Button>
                 )}
                 {permit.pdf_path && (currentUser.roles.includes('verifier') || currentUser.roles.includes('approver') || currentUser.isAdmin) && (

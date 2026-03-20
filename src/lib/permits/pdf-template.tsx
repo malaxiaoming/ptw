@@ -1,18 +1,18 @@
 import React from 'react'
+import path from 'path'
 import { Document, Page, View, Text, StyleSheet, Font } from '@react-pdf/renderer'
 import type { PermitStatus } from '@/lib/permits/state-machine'
 import type { ChecklistSection, ChecklistField, PersonnelEntry, PersonnelRequirement, ChecklistTemplate } from '@/lib/permits/checklist-validation'
 import { STATUS_CONFIG } from '@/lib/permits/status-display'
 
 // Register a CJK-capable font for bilingual rendering.
-// Using Noto Sans SC from Google Fonts CDN — the full chinese-simplified subset.
-// If these URLs stop working, download the .ttf files from
-// https://fonts.google.com/noto/specimen/Noto+Sans+SC and bundle locally in /public/fonts/.
+// Fonts are bundled locally in /public/fonts/ (Noto Sans SC, full chinese-simplified subset).
+// Source: https://fonts.google.com/noto/specimen/Noto+Sans+SC
 Font.register({
   family: 'NotoSansSC',
   fonts: [
-    { src: 'https://fonts.gstatic.com/s/notosanssc/v37/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaG9_FnYxNbPzS5HE.ttf', fontWeight: 400 },
-    { src: 'https://fonts.gstatic.com/s/notosanssc/v37/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaG9_Fn0JKbPzS5HE.ttf', fontWeight: 700 },
+    { src: path.join(process.cwd(), 'public/fonts/NotoSansSC-Regular.ttf'), fontWeight: 400 },
+    { src: path.join(process.cwd(), 'public/fonts/NotoSansSC-Bold.ttf'), fontWeight: 700 },
   ],
 })
 
