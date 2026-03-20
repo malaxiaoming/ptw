@@ -156,13 +156,13 @@ export async function POST(
     },
   }
 
-  if (action === 'approve') {
+  if (action === 'approve' || action === 'verify_closure') {
     // Generate PDF, then send notifications with attachment
     (async () => {
       let pdfBuffer: Buffer | undefined
       try {
         if (user.organization_id) {
-          const pdfResult = await generateAndStorePermitPdf(id, user.organization_id)
+          const pdfResult = await generateAndStorePermitPdf(id, user.organization_id, user.id)
           pdfBuffer = pdfResult?.buffer
         }
       } catch (err) {

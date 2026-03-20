@@ -90,6 +90,7 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
   const [duplicateLoading, setDuplicateLoading] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [pdfRegenerating, setPdfRegenerating] = useState(false)
 
   const loadPermit = useCallback(async () => {
     try {
@@ -199,6 +200,24 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
     }
   }
 
+  async function handleRegeneratePdf() {
+    setPdfRegenerating(true)
+    try {
+      const res = await fetch(`/api/permits/${id}/pdf`, { method: 'POST' })
+      const json = await res.json()
+      if (!res.ok) {
+        toast(json.error ?? 'Failed to generate PDF', 'error')
+        return
+      }
+      window.open(json.data.signed_url, '_blank')
+      await loadPermit()
+    } catch {
+      toast('Failed to generate PDF', 'error')
+    } finally {
+      setPdfRegenerating(false)
+    }
+  }
+
   async function handleDelete() {
     setDeleteLoading(true)
     try {
@@ -271,10 +290,31 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
           <div className="flex items-center gap-2">
             {['active', 'closure_submitted', 'closed'].includes(permit.status) && (
               <>
-                {permit.pdf_path && (
+                {permit.pdf_path ? (
                   <a href={`/api/permits/${id}/pdf`} target="_blank" rel="noopener noreferrer">
                     <Button variant="outline" size="md">Download PDF 下载PDF</Button>
                   </a>
+                ) : (currentUser.roles.includes('verifier') || currentUser.roles.includes('approver') || currentUser.isAdmin) && (
+                  <Button
+                    variant="outline"
+                    size="md"
+                    disabled={pdfRegenerating}
+                    loading={pdfRegenerating}
+                    onClick={handleRegeneratePdf}
+                  >
+                    Generate PDF 生成PDF
+                  </Button>
+                )}
+                {permit.pdf_path && (currentUser.roles.includes('verifier') || currentUser.roles.includes('approver') || currentUser.isAdmin) && (
+                  <Button
+                    variant="outline"
+                    size="md"
+                    disabled={pdfRegenerating}
+                    loading={pdfRegenerating}
+                    onClick={handleRegeneratePdf}
+                  >
+                    Regenerate PDF 重新生成
+                  </Button>
                 )}
                 <Link href={`/permits/${id}/print`} target="_blank">
                   <Button variant="outline" size="md">Print 打印</Button>
