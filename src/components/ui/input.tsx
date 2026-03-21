@@ -5,7 +5,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: string
 }
 
-const baseClasses = 'w-full px-3 py-2 border rounded-md text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500'
+const baseClasses = 'w-full px-3 py-2 border rounded-md text-base md:text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500'
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, id, className = '', ...props }, ref) => {
