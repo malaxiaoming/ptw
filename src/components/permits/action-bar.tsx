@@ -5,6 +5,7 @@ import { getAvailableTransitions, type PermitAction, type PermitStatus } from '@
 import { validateTransition, type PermitContext } from '@/lib/permits/transition'
 import type { Role } from '@/lib/auth/permissions'
 import { ACTION_CONFIG, type ActionVariant } from '@/lib/permits/status-display'
+import { SignaturePad } from '@/components/ui/signature-pad'
 
 const VARIANT_STYLES: Record<ActionVariant, string> = {
   primary: 'bg-primary-600 hover:bg-primary-700 text-white',
@@ -17,7 +18,7 @@ interface ActionBarProps {
   permit: PermitContext & { status: PermitStatus }
   userRoles: Role[]
   userId: string
-  onAction: (action: PermitAction, comments?: string) => Promise<void>
+  onAction: (action: PermitAction, comments?: string, signature?: string) => Promise<void>
 }
 
 export function ActionBar({ permit, userRoles, userId, onAction }: ActionBarProps) {
@@ -25,6 +26,7 @@ export function ActionBar({ permit, userRoles, userId, onAction }: ActionBarProp
   const [comment, setComment] = useState('')
   const [declarationChecked, setDeclarationChecked] = useState(false)
   const [verifierChecked, setVerifierChecked] = useState(false)
+  const [signature, setSignature] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -44,10 +46,16 @@ export function ActionBar({ permit, userRoles, userId, onAction }: ActionBarProp
     if (action === 'submit') {
       setPendingAction(action)
       setDeclarationChecked(false)
+      setSignature(null)
       setError(null)
     } else if (action === 'verify') {
       setPendingAction(action)
       setVerifierChecked(false)
+      setSignature(null)
+      setError(null)
+    } else if (action === 'approve') {
+      setPendingAction(action)
+      setSignature(null)
       setError(null)
     } else if (requiresComment) {
       setPendingAction(action)
@@ -62,9 +70,10 @@ export function ActionBar({ permit, userRoles, userId, onAction }: ActionBarProp
     setLoading(true)
     setError(null)
     try {
-      await onAction(action, comments || undefined)
+      await onAction(action, comments || undefined, signature || undefined)
       setPendingAction(null)
       setComment('')
+      setSignature(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Action failed')
     } finally {
@@ -99,18 +108,19 @@ export function ActionBar({ permit, userRoles, userId, onAction }: ActionBarProp
               <span className="block text-xs text-gray-500 mt-1">本人完全了解工作性质及必须满足的安全条件。本人已检查与所执行工作相关的安全状况。</span>
             </span>
           </label>
+          <SignaturePad onSignatureChange={setSignature} disabled={loading} />
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => submitAction(pendingAction, undefined)}
-              disabled={loading || !declarationChecked}
+              disabled={loading || !declarationChecked || !signature}
               className="px-4 py-2 text-sm font-medium rounded-md bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Processing...' : 'Confirm'}
             </button>
             <button
               type="button"
-              onClick={() => { setPendingAction(null); setDeclarationChecked(false); setError(null) }}
+              onClick={() => { setPendingAction(null); setDeclarationChecked(false); setSignature(null); setError(null) }}
               disabled={loading}
               className="px-4 py-2 text-sm font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
             >
@@ -134,18 +144,42 @@ export function ActionBar({ permit, userRoles, userId, onAction }: ActionBarProp
               <span className="block text-xs text-gray-500 mt-1">本人已评估与该工作相关的风险和危害，确认已对工作区域及其周围环境进行了全面评估，所有必要的安全措施均已落实，并已检查和确认安全预防措施／要求已到位。</span>
             </span>
           </label>
+          <SignaturePad onSignatureChange={setSignature} disabled={loading} />
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => submitAction(pendingAction, undefined)}
-              disabled={loading || !verifierChecked}
+              disabled={loading || !verifierChecked || !signature}
               className="px-4 py-2 text-sm font-medium rounded-md bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Processing...' : 'Confirm'}
             </button>
             <button
               type="button"
-              onClick={() => { setPendingAction(null); setVerifierChecked(false); setError(null) }}
+              onClick={() => { setPendingAction(null); setVerifierChecked(false); setSignature(null); setError(null) }}
+              disabled={loading}
+              className="px-4 py-2 text-sm font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+        ) : pendingAction === 'approve' ? (
+        <div className="space-y-3">
+          <p className="text-sm font-medium text-gray-700">Approver Confirmation <span className="text-xs text-gray-500 font-normal">批准人确认</span></p>
+          <SignaturePad onSignatureChange={setSignature} disabled={loading} />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => submitAction(pendingAction, undefined)}
+              disabled={loading || !signature}
+              className="px-4 py-2 text-sm font-medium rounded-md bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Processing...' : 'Confirm'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setPendingAction(null); setSignature(null); setError(null) }}
               disabled={loading}
               className="px-4 py-2 text-sm font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
             >

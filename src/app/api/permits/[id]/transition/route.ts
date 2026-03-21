@@ -31,6 +31,17 @@ export async function POST(
 
   const action = body.action as PermitAction
   const comments = typeof body.comments === 'string' ? body.comments : undefined
+  const signature = typeof body.signature === 'string' ? body.signature : undefined
+
+  // Validate signature format and size if provided
+  if (signature) {
+    if (!signature.startsWith('data:image/png;base64,')) {
+      return error('Invalid signature format', 400)
+    }
+    if (signature.length > 50000) {
+      return error('Signature too large', 400)
+    }
+  }
 
   const supabase = await createServerSupabaseClient()
   const serviceClient = await createServiceRoleClient()
@@ -100,15 +111,18 @@ export async function POST(
   switch (action) {
     case 'submit':
       updates.submitted_at = now
+      if (signature) updates.applicant_signature = signature
       break
     case 'verify':
       updates.verifier_id = user.id
       updates.verified_at = now
+      if (signature) updates.verifier_signature = signature
       break
     case 'approve':
       updates.approver_id = user.id
       updates.approved_at = now
       updates.activated_at = now
+      if (signature) updates.approver_signature = signature
       break
     case 'reject':
       updates.approver_id = user.id

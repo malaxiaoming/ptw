@@ -1,6 +1,6 @@
 import React from 'react'
 import path from 'path'
-import { Document, Page, View, Text, StyleSheet, Font } from '@react-pdf/renderer'
+import { Document, Page, View, Text, Image, StyleSheet, Font } from '@react-pdf/renderer'
 import type { PermitStatus } from '@/lib/permits/state-machine'
 import type { ChecklistSection, ChecklistField, PersonnelEntry, PersonnelRequirement, ChecklistTemplate } from '@/lib/permits/checklist-validation'
 import { STATUS_CONFIG } from '@/lib/permits/status-display'
@@ -39,6 +39,10 @@ export interface PermitPdfData {
   verifier?: { name: string } | null
   approver?: { name: string } | null
   project?: { name: string } | null
+  applicant_signature?: string | null
+  verifier_signature?: string | null
+  approver_signature?: string | null
+  photoUrls?: Record<string, string>
 }
 
 const s = StyleSheet.create({
@@ -57,6 +61,9 @@ const s = StyleSheet.create({
   authDate: { fontSize: 8, color: '#9ca3af' },
   sigLine: { borderBottomWidth: 1, borderBottomColor: '#9ca3af', marginTop: 20, marginBottom: 2 },
   sigLabel: { fontSize: 7, color: '#9ca3af' },
+  sigImage: { width: 100, height: 40, objectFit: 'contain' as const },
+  photoRow: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 6 },
+  photoImage: { width: 180, height: 135, objectFit: 'cover' as const },
   tableHeader: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#d1d5db', paddingBottom: 4, marginBottom: 4 },
   tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#f3f4f6', paddingVertical: 3 },
   tableCell: { width: '50%' },
@@ -77,7 +84,7 @@ function fmt(dateStr: string | null | undefined): string {
   return new Date(dateStr).toLocaleString()
 }
 
-function FieldValue({ field, value }: { field: ChecklistField; value: unknown }) {
+function FieldValue({ field, value, photoUrls }: { field: ChecklistField; value: unknown; photoUrls?: Record<string, string> }) {
   switch (field.type) {
     case 'yes_no':
       if (value === 'yes') return <Text style={s.green}>Yes</Text>
@@ -97,14 +104,25 @@ function FieldValue({ field, value }: { field: ChecklistField; value: unknown })
     }
     case 'photo': {
       const photos = Array.isArray(value) ? value : []
-      return <Text style={s.gray}>{photos.length > 0 ? `${photos.length} photo(s)` : '—'}</Text>
+      if (photos.length === 0) return <Text style={s.gray}>—</Text>
+      const resolvedPhotos = photoUrls ? photos.filter((id) => photoUrls[id as string]) : []
+      if (resolvedPhotos.length > 0) {
+        return (
+          <View style={s.photoRow}>
+            {resolvedPhotos.map((id) => (
+              <Image key={id as string} src={photoUrls![id as string]} style={s.photoImage} />
+            ))}
+          </View>
+        )
+      }
+      return <Text style={s.gray}>{photos.length} photo(s)</Text>
     }
     default:
       return <Text>{String(value ?? '—')}</Text>
   }
 }
 
-export function PermitPdfDocument({ data }: { data: PermitPdfData }) {
+export function PermitPdfDocument({ data, photoUrls }: { data: PermitPdfData; photoUrls?: Record<string, string> }) {
   const statusCfg = STATUS_CONFIG[data.status]
   const sections = data.permit_types?.checklist_template?.sections ?? []
   const personnelReqs = data.permit_types?.checklist_template?.personnel ?? []
@@ -156,6 +174,7 @@ export function PermitPdfDocument({ data }: { data: PermitPdfData }) {
             <Text style={s.authLabel}>Applicant 申请人</Text>
             <Text style={s.authName}>{data.applicant?.name ?? '—'}</Text>
             <Text style={s.authDate}>{fmt(data.submitted_at)}</Text>
+            {data.applicant_signature && <Image src={data.applicant_signature} style={s.sigImage} />}
             <View style={s.sigLine} />
             <Text style={s.sigLabel}>Signature 签名</Text>
           </View>
@@ -163,6 +182,7 @@ export function PermitPdfDocument({ data }: { data: PermitPdfData }) {
             <Text style={s.authLabel}>Verifier 审核人</Text>
             <Text style={s.authName}>{data.verifier?.name ?? '—'}</Text>
             <Text style={s.authDate}>{fmt(data.verified_at)}</Text>
+            {data.verifier_signature && <Image src={data.verifier_signature} style={s.sigImage} />}
             <View style={s.sigLine} />
             <Text style={s.sigLabel}>Signature 签名</Text>
           </View>
@@ -170,6 +190,7 @@ export function PermitPdfDocument({ data }: { data: PermitPdfData }) {
             <Text style={s.authLabel}>Approver 批准人</Text>
             <Text style={s.authName}>{data.approver?.name ?? '—'}</Text>
             <Text style={s.authDate}>{fmt(data.approved_at)}</Text>
+            {data.approver_signature && <Image src={data.approver_signature} style={s.sigImage} />}
             <View style={s.sigLine} />
             <Text style={s.sigLabel}>Signature 签名</Text>
           </View>
@@ -197,7 +218,7 @@ export function PermitPdfDocument({ data }: { data: PermitPdfData }) {
                       {field.label_zh && <Text style={{ color: '#9ca3af' }}> {field.label_zh}</Text>}
                     </Text>
                     <View style={s.fieldValue}>
-                      <FieldValue field={field} value={checklistData[field.id]} />
+                      <FieldValue field={field} value={checklistData[field.id]} photoUrls={photoUrls ?? data.photoUrls} />
                     </View>
                   </View>
                 ))}

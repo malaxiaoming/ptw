@@ -143,7 +143,7 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
     }
   }, [permit, loadCurrentUser])
 
-  async function handleAction(action: PermitAction, comments?: string) {
+  async function handleAction(action: PermitAction, comments?: string, signature?: string) {
     setActionError(null)
 
     // Frontend checklist validation before submit
@@ -165,7 +165,7 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
       const res = await fetch(`/api/permits/${id}/transition`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, comments }),
+        body: JSON.stringify({ action, comments, signature }),
       })
       const json = await res.json()
       if (!res.ok) {

@@ -25,6 +25,7 @@ export async function generateAndStorePermitPdf(
         checklist_data, personnel,
         submitted_at, verified_at, approved_at, activated_at, closed_at,
         created_at,
+        applicant_signature, verifier_signature, approver_signature,
         permit_types(name, code, checklist_template),
         applicant:user_profiles!applicant_id(name),
         verifier:user_profiles!verifier_id(name),
@@ -36,9 +37,45 @@ export async function generateAndStorePermitPdf(
 
     if (fetchError || !permit) return null
 
+    // Resolve photo attachment UUIDs to signed URLs
+    let photoUrls: Record<string, string> = {}
+    const template = (permit as Record<string, unknown>).permit_types as { checklist_template?: { sections?: Array<{ fields: Array<{ id: string; type: string }> }> } } | null
+    if (template?.checklist_template?.sections) {
+      const checklistData = (permit.checklist_data ?? {}) as Record<string, unknown>
+      const allUuids: string[] = []
+      for (const section of template.checklist_template.sections) {
+        for (const field of section.fields) {
+          if (field.type === 'photo') {
+            const val = checklistData[field.id]
+            if (Array.isArray(val)) {
+              allUuids.push(...(val as string[]))
+            }
+          }
+        }
+      }
+
+      if (allUuids.length > 0) {
+        const { data: attachments } = await supabase
+          .from('permit_attachments')
+          .select('id, file_url')
+          .in('id', allUuids)
+
+        if (attachments) {
+          for (const att of attachments) {
+            const { data: signed } = await supabase.storage
+              .from('permit-attachments')
+              .createSignedUrl(att.file_url, 3600)
+            if (signed?.signedUrl) {
+              photoUrls[att.id] = signed.signedUrl
+            }
+          }
+        }
+      }
+    }
+
     // Render PDF to buffer
     const rendered = await renderToBuffer(
-      PermitPdfDocument({ data: permit as unknown as PermitPdfData })
+      PermitPdfDocument({ data: permit as unknown as PermitPdfData, photoUrls })
     )
     const buffer = Buffer.from(rendered)
 
