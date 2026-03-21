@@ -60,6 +60,7 @@ const s = StyleSheet.create({
   authName: { fontWeight: 700, marginBottom: 2 },
   authDate: { fontSize: 8, color: '#9ca3af' },
   sigLine: { borderBottomWidth: 1, borderBottomColor: '#9ca3af', marginTop: 20, marginBottom: 2 },
+  sigLineWithSig: { borderBottomWidth: 1, borderBottomColor: '#9ca3af', marginTop: 4, marginBottom: 2 },
   sigLabel: { fontSize: 7, color: '#9ca3af' },
   sigImage: { width: 100, height: 40, objectFit: 'contain' as const },
   photoRow: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 6 },
@@ -175,7 +176,7 @@ export function PermitPdfDocument({ data, photoUrls }: { data: PermitPdfData; ph
             <Text style={s.authName}>{data.applicant?.name ?? '—'}</Text>
             <Text style={s.authDate}>{fmt(data.submitted_at)}</Text>
             {data.applicant_signature && <Image src={data.applicant_signature} style={s.sigImage} />}
-            <View style={s.sigLine} />
+            <View style={data.applicant_signature ? s.sigLineWithSig : s.sigLine} />
             <Text style={s.sigLabel}>Signature 签名</Text>
           </View>
           <View style={s.authCol}>
@@ -183,7 +184,7 @@ export function PermitPdfDocument({ data, photoUrls }: { data: PermitPdfData; ph
             <Text style={s.authName}>{data.verifier?.name ?? '—'}</Text>
             <Text style={s.authDate}>{fmt(data.verified_at)}</Text>
             {data.verifier_signature && <Image src={data.verifier_signature} style={s.sigImage} />}
-            <View style={s.sigLine} />
+            <View style={data.verifier_signature ? s.sigLineWithSig : s.sigLine} />
             <Text style={s.sigLabel}>Signature 签名</Text>
           </View>
           <View style={s.authCol}>
@@ -191,7 +192,7 @@ export function PermitPdfDocument({ data, photoUrls }: { data: PermitPdfData; ph
             <Text style={s.authName}>{data.approver?.name ?? '—'}</Text>
             <Text style={s.authDate}>{fmt(data.approved_at)}</Text>
             {data.approver_signature && <Image src={data.approver_signature} style={s.sigImage} />}
-            <View style={s.sigLine} />
+            <View style={data.approver_signature ? s.sigLineWithSig : s.sigLine} />
             <Text style={s.sigLabel}>Signature 签名</Text>
           </View>
         </View>
