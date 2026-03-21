@@ -146,16 +146,29 @@ export async function POST(
 
   if (dbError) return error(dbError.message, 500)
 
-  // Log activity
-  await serviceClient.from('permit_activity_log').insert({
+  // Action → activity log action mapping (must match CHECK constraint: past tense)
+  const LOG_ACTION: Record<string, string> = {
+    submit: 'submitted',
+    verify: 'verified',
+    return: 'returned',
+    approve: 'approved',
+    reject: 'rejected',
+    revoke: 'revoked',
+    submit_closure: 'closure_submitted',
+    verify_closure: 'closed',
+    return_closure: 'closure_returned',
+  }
+
+  const logAction = LOG_ACTION[action] ?? action
+  const { error: logError } = await serviceClient.from('permit_activity_log').insert({
     permit_id: id,
-    action: action === 'submit_closure' ? 'closure_submitted'
-      : action === 'verify_closure' ? 'closed'
-      : action === 'return_closure' ? 'closure_returned'
-      : action,
+    action: logAction,
     performed_by: user.id,
     comments,
   })
+  if (logError) {
+    console.error('[transition] activity log insert failed:', logAction, logError.message)
+  }
 
   // Fire-and-forget post-processing (don't block the response)
   const notificationParams = {
