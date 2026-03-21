@@ -265,7 +265,7 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Link href="/permits" className="text-sm text-gray-500 hover:text-gray-700">
@@ -287,7 +287,7 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
         </div>
 
         {currentUser && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {['active', 'closure_submitted', 'closed'].includes(permit.status) && (
               <>
                 {permit.pdf_path ? (
