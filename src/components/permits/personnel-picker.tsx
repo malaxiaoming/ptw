@@ -105,6 +105,30 @@ export function PersonnelPicker({ requirements, personnel, onChange, disabled, c
           </span>
         </h4>
 
+        {/* Read-only: show all personnel as a list */}
+        {disabled && rolePersonnel.length > 0 && (
+          <div className="divide-y divide-gray-100 border border-gray-200 rounded-md">
+            {rolePersonnel.map((entry, i) => {
+              const matchedWorker = entry.worker_id ? workers.find((w) => w.id === entry.worker_id) : null
+              return (
+                <div key={`${entry.worker_id ?? entry.name}-${i}`} className="flex items-center gap-3 px-3 py-2 text-sm">
+                  <span className="text-gray-400 w-5 text-right">{i + 1}.</span>
+                  <span className="font-medium text-gray-900">{entry.name}</span>
+                  {matchedWorker?.company && (
+                    <span className="text-gray-400">({matchedWorker.company})</span>
+                  )}
+                  {matchedWorker?.trade && (
+                    <span className="text-gray-400">· {matchedWorker.trade}</span>
+                  )}
+                  {!entry.worker_id && (
+                    <span className="text-xs text-gray-400 italic">manual entry</span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+
         {/* Registry checkbox list */}
         {workers.length > 0 && !disabled && (
           <div className="mb-3">
@@ -164,7 +188,7 @@ export function PersonnelPicker({ requirements, personnel, onChange, disabled, c
         )}
 
         {/* Manual entries list (registry workers show as checked above) */}
-        {manualEntries.length > 0 && (
+        {!disabled && manualEntries.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {manualEntries.map((entry, i) => {
               const roleIndex = rolePersonnel.filter((p) => !p.worker_id).indexOf(entry)
@@ -175,15 +199,13 @@ export function PersonnelPicker({ requirements, personnel, onChange, disabled, c
                   className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-sm"
                 >
                   {entry.name}
-                  {!disabled && (
-                    <button
-                      type="button"
-                      onClick={() => removeWorkerEntry(req.role, actualRoleIndex)}
-                      className="text-gray-400 hover:text-red-500"
-                    >
-                      &times;
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeWorkerEntry(req.role, actualRoleIndex)}
+                    className="text-gray-400 hover:text-red-500"
+                  >
+                    &times;
+                  </button>
                 </span>
               )
             })}
@@ -210,7 +232,7 @@ export function PersonnelPicker({ requirements, personnel, onChange, disabled, c
           <h4 className="font-medium">
             <BilingualText en={req.label} zh={req.label_zh} />
             <span className="text-sm text-gray-500 ml-2">
-              (min: {req.min}{req.max < 99 ? `, max: ${req.max}` : ''})
+              ({rolePersonnel.length}{req.max < 99 ? ` / max ${req.max}` : ''})
             </span>
           </h4>
           {!disabled && rolePersonnel.length < req.max && (
@@ -226,13 +248,49 @@ export function PersonnelPicker({ requirements, personnel, onChange, disabled, c
         {rolePersonnel.length === 0 && (
           <p className="text-sm text-gray-400 italic">No {req.label.toLowerCase()} added yet.</p>
         )}
-        {rolePersonnel.map((person) => (
+
+        {/* Read-only display */}
+        {disabled && rolePersonnel.length > 0 && (
+          <div className="divide-y divide-gray-100 border border-gray-200 rounded-md">
+            {rolePersonnel.map((person, i) => {
+              const matchedWorker = person.worker_id ? workers.find((w) => w.id === person.worker_id) : null
+              const fieldValues = req.fields
+                .map((field) => {
+                  const val = (person as Record<string, unknown>)[field]
+                  return val ? `${field.replace(/_/g, ' ')}: ${val}` : null
+                })
+                .filter(Boolean)
+              return (
+                <div key={person._index} className="px-3 py-2 text-sm">
+                  <div className="flex items-center gap-3">
+                    <span className="text-gray-400 w-5 text-right">{i + 1}.</span>
+                    <span className="font-medium text-gray-900">{person.name || '(unnamed)'}</span>
+                    {matchedWorker?.company && (
+                      <span className="text-gray-400">({matchedWorker.company})</span>
+                    )}
+                    {matchedWorker?.trade && (
+                      <span className="text-gray-400">· {matchedWorker.trade}</span>
+                    )}
+                    {!person.worker_id && person.name && (
+                      <span className="text-xs text-gray-400 italic">manual entry</span>
+                    )}
+                  </div>
+                  {fieldValues.length > 0 && (
+                    <p className="text-xs text-gray-500 ml-8 mt-0.5">{fieldValues.join(' · ')}</p>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Edit mode */}
+        {!disabled && rolePersonnel.map((person) => (
           <div key={person._index} className="flex gap-2 mb-2 items-start">
             <div className="flex-1 space-y-1">
               <select
                 value={person.worker_id ?? ''}
                 onChange={(e) => selectFromRegistry(person._index, e.target.value)}
-                disabled={disabled}
                 className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
                 aria-label="Select from worker registry"
               >
@@ -250,22 +308,19 @@ export function PersonnelPicker({ requirements, personnel, onChange, disabled, c
                   placeholder={field.replace(/_/g, ' ')}
                   value={String((person as Record<string, unknown>)[field] ?? '')}
                   onChange={(e) => updatePerson(person._index, { [field]: e.target.value })}
-                  disabled={disabled}
                   className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
                   aria-label={field.replace(/_/g, ' ')}
                 />
               ))}
             </div>
-            {!disabled && (
-              <button
-                type="button"
-                onClick={() => removePerson(person._index)}
-                className="text-red-500 text-sm px-2 py-1.5 hover:text-red-700"
-                aria-label="Remove person"
-              >
-                Remove
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => removePerson(person._index)}
+              className="text-red-500 text-sm px-2 py-1.5 hover:text-red-700"
+              aria-label="Remove person"
+            >
+              Remove
+            </button>
           </div>
         ))}
       </div>
