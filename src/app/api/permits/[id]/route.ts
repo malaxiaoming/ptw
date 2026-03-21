@@ -108,7 +108,7 @@ export async function DELETE(
 
   const { data: permit } = await supabase
     .from('permits')
-    .select('id, status, applicant_id, project_id, scheduled_end')
+    .select('id, status, applicant_id, project_id')
     .eq('id', id)
     .single()
 
@@ -119,7 +119,7 @@ export async function DELETE(
   if (roles.length === 0 && !isOrgAdmin(user)) return error('Permit not found', 404)
 
   const deleteCheck = canDeletePermit(
-    { status: permit.status, applicant_id: permit.applicant_id, scheduled_end: permit.scheduled_end },
+    { status: permit.status, applicant_id: permit.applicant_id },
     { userId: user.id, isAdmin: isOrgAdmin(user) }
   )
 

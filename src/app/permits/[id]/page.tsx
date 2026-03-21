@@ -255,12 +255,9 @@ export default function PermitDetailPage({ params }: { params: Promise<{ id: str
 
   const isDraft = permit.status === 'draft'
   const isApplicant = currentUser?.id === permit.applicant_id
-  const isDeletable = currentUser && (
-    (permit.status === 'draft' && (isApplicant || currentUser.isAdmin)) ||
-    (['submitted', 'verified'].includes(permit.status) &&
-     permit.scheduled_end && new Date(permit.scheduled_end) < new Date() &&
-     (isApplicant || currentUser.isAdmin))
-  )
+  const isDeletable = currentUser &&
+    ['draft', 'submitted', 'verified'].includes(permit.status) &&
+    (isApplicant || currentUser.isAdmin)
 
   return (
     <div className="space-y-6 animate-fade-in">
