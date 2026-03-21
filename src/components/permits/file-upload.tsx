@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { compressImage } from '@/lib/utils/image-compression'
 import { formatFileSize } from '@/lib/utils/format-file-size'
+import { AttachmentPreview } from './attachment-preview'
 
 interface Attachment {
   id: string
@@ -26,6 +27,7 @@ export function FileUpload({ permitId, attachments, onUploadComplete, disabled }
   const [error, setError] = useState<string | null>(null)
   const [fetchedAttachments, setFetchedAttachments] = useState<Attachment[] | null>(null)
   const [loadingAttachments, setLoadingAttachments] = useState(true)
+  const [previewAtt, setPreviewAtt] = useState<{ url: string; fileName: string; fileType: string } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const loadAttachments = useCallback(async () => {
@@ -111,7 +113,12 @@ export function FileUpload({ permitId, attachments, onUploadComplete, disabled }
             return (
               <div key={att.id} className="flex gap-3 p-3 border border-gray-200 rounded-lg">
                 {/* Thumbnail */}
-                <div className="w-16 h-16 flex-shrink-0 rounded-md overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center">
+                <button
+                  type="button"
+                  onClick={() => att.signed_url && setPreviewAtt({ url: att.signed_url, fileName: att.file_name, fileType: att.file_type })}
+                  disabled={!att.signed_url}
+                  className="w-16 h-16 flex-shrink-0 rounded-md overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center cursor-pointer disabled:cursor-default"
+                >
                   {isImage && att.signed_url ? (
                     <img src={att.signed_url} alt={att.file_name} className="w-full h-full object-cover" />
                   ) : (
@@ -120,7 +127,7 @@ export function FileUpload({ permitId, attachments, onUploadComplete, disabled }
                       <path d="M12.971 1.816A5.23 5.23 0 0 1 14.25 5.25v1.875c0 .207.168.375.375.375H16.5a5.23 5.23 0 0 1 3.434 1.279 9.768 9.768 0 0 0-6.963-6.963Z" />
                     </svg>
                   )}
-                </div>
+                </button>
                 {/* Details */}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">{att.file_name}</p>
@@ -129,14 +136,13 @@ export function FileUpload({ permitId, attachments, onUploadComplete, disabled }
                     {formatFileSize(att.file_size) && ` \u00B7 ${formatFileSize(att.file_size)}`}
                   </p>
                   {att.signed_url && (
-                    <a
-                      href={att.signed_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      type="button"
+                      onClick={() => setPreviewAtt({ url: att.signed_url!, fileName: att.file_name, fileType: att.file_type })}
                       className="text-xs text-blue-600 hover:underline"
                     >
-                      Download
-                    </a>
+                      View
+                    </button>
                   )}
                 </div>
               </div>
@@ -146,6 +152,8 @@ export function FileUpload({ permitId, attachments, onUploadComplete, disabled }
       ) : (
         <p className="text-sm text-gray-400 italic">No attachments yet.</p>
       )}
+
+      {previewAtt && <AttachmentPreview {...previewAtt} onClose={() => setPreviewAtt(null)} />}
     </div>
   )
 }

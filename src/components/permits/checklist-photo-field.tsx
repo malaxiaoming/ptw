@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { compressImage } from '@/lib/utils/image-compression'
 import { formatFileSize } from '@/lib/utils/format-file-size'
+import { AttachmentPreview } from './attachment-preview'
 import type { ChecklistField } from '@/lib/permits/checklist-validation'
 
 interface ChecklistPhotoFieldProps {
@@ -19,6 +20,7 @@ export function ChecklistPhotoField({ field, value, onChange, permitId, disabled
   const [error, setError] = useState<string | null>(null)
   const [previewUrls, setPreviewUrls] = useState<Map<File, string>>(new Map())
   const [signedUrls, setSignedUrls] = useState<Map<string, string>>(new Map())
+  const [previewAtt, setPreviewAtt] = useState<{ url: string; fileName: string; fileType: string } | null>(null)
 
   // Current value: either File[] (staged) or string[] (attachment IDs)
   const items: Array<File | string> = Array.isArray(value) ? value : []
@@ -136,13 +138,26 @@ export function ChecklistPhotoField({ field, value, onChange, permitId, disabled
             const src = getThumbnailSrc(item)
             return (
               <div key={i} className="relative group w-20 h-20 rounded-md overflow-hidden border border-gray-200 bg-gray-50">
-                {src ? (
-                  <img src={src} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
-                    {item instanceof File ? item.name.slice(0, 8) : 'Loading...'}
-                  </div>
-                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (src) {
+                      const name = item instanceof File ? item.name : 'Photo'
+                      const type = item instanceof File ? item.type : 'image/jpeg'
+                      setPreviewAtt({ url: src, fileName: name, fileType: type })
+                    }
+                  }}
+                  disabled={!src}
+                  className="w-full h-full cursor-pointer disabled:cursor-default"
+                >
+                  {src ? (
+                    <img src={src} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
+                      {item instanceof File ? item.name.slice(0, 8) : 'Loading...'}
+                    </div>
+                  )}
+                </button>
                 {item instanceof File && formatFileSize(item.size) && (
                   <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-center" style={{ fontSize: '10px', lineHeight: '16px' }}>
                     {formatFileSize(item.size)}
@@ -196,6 +211,8 @@ export function ChecklistPhotoField({ field, value, onChange, permitId, disabled
       )}
 
       {error && <p className="text-sm text-red-600 mt-1">{error}</p>}
+
+      {previewAtt && <AttachmentPreview {...previewAtt} onClose={() => setPreviewAtt(null)} />}
     </div>
   )
 }
