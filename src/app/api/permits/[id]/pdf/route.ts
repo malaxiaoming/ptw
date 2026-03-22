@@ -74,7 +74,13 @@ export async function POST(
     return error('Organization not found', 400)
   }
 
-  const pdfResult = await generateAndStorePermitPdf(id, user.organization_id, user.id)
+  let pdfResult: Awaited<ReturnType<typeof generateAndStorePermitPdf>>
+  try {
+    pdfResult = await generateAndStorePermitPdf(id, user.organization_id, user.id)
+  } catch (err) {
+    console.error('[POST /api/permits/[id]/pdf] PDF generation error:', err)
+    return error('Failed to generate PDF', 500)
+  }
   if (!pdfResult) {
     return error('Failed to generate PDF', 500)
   }

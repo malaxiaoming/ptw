@@ -182,7 +182,6 @@ const s = StyleSheet.create({
   },
   footnote: {
     fontSize: 7,
-    fontStyle: 'italic',
     marginTop: 2,
     marginBottom: 8,
   },
@@ -205,7 +204,6 @@ const s = StyleSheet.create({
   },
   sigItalic: {
     fontSize: 7,
-    fontStyle: 'italic',
     marginBottom: 6,
   },
   sigFieldRow: {
