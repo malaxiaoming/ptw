@@ -221,17 +221,23 @@ const s = StyleSheet.create({
     minWidth: 100,
     fontSize: 8,
   },
-  sigImageBox: {
-    width: 150,
-    height: 50,
-    marginTop: 4,
+  sigImageLabel: {
+    fontWeight: 700,
+    fontSize: 8,
     marginBottom: 2,
-    overflow: 'hidden',
   },
   sigImage: {
-    width: 150,
-    height: 50,
+    maxWidth: 150,
+    maxHeight: 50,
     objectFit: 'contain' as const,
+    marginBottom: 4,
+  },
+  sigBlankLine: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
+    width: 150,
+    marginBottom: 4,
+    marginTop: 20,
   },
 
   // Personnel table
@@ -566,21 +572,24 @@ export function PermitPdfDocument({ data }: { data: PermitPdfData }) {
           <Text style={s.sigItalic}>
             我保证已做到以上所提的所有安全措施与要求，同时确保该施工地点已可以安全开工。
           </Text>
-          <View style={s.sigFieldRow}>
-            <Text style={s.sigFieldLabel}>Name (姓名): </Text>
-            <Text style={s.sigFieldValue}>{data.applicant?.name ?? ''}</Text>
-          </View>
-          {data.applicant_signature && (
-            <View style={s.sigFieldRow}>
-              <Text style={s.sigFieldLabel}>Signature (签名): </Text>
-              <View style={s.sigImageBox}>
-                <Image src={data.applicant_signature} style={s.sigImage} />
+          <View style={{ flexDirection: 'row' as const }}>
+            <View style={{ width: '50%' }}>
+              <View style={s.sigFieldRow}>
+                <Text style={s.sigFieldLabel}>Name (姓名): </Text>
+                <Text style={s.sigFieldValue}>{data.applicant?.name ?? ''}</Text>
+              </View>
+              <View style={s.sigFieldRow}>
+                <Text style={s.sigFieldLabel}>Date / Time (日期/时间): </Text>
+                <Text style={s.sigFieldValue}>{fmtDateTime(data.submitted_at)}</Text>
               </View>
             </View>
-          )}
-          <View style={s.sigFieldRow}>
-            <Text style={s.sigFieldLabel}>Date / Time (日期/时间): </Text>
-            <Text style={s.sigFieldValue}>{fmtDateTime(data.submitted_at)}</Text>
+            <View style={{ width: '50%' }}>
+              <Text style={s.sigImageLabel}>Signature (签名):</Text>
+              {data.applicant_signature
+                ? <Image src={data.applicant_signature} style={s.sigImage} />
+                : <View style={s.sigBlankLine} />
+              }
+            </View>
           </View>
         </View>
 
@@ -606,19 +615,11 @@ export function PermitPdfDocument({ data }: { data: PermitPdfData }) {
               </View>
             </View>
             <View style={{ width: '50%' }}>
-              {data.verifier_signature ? (
-                <View>
-                  <Text style={s.sigFieldLabel}>Signature (签名):</Text>
-                  <View style={s.sigImageBox}>
-                    <Image src={data.verifier_signature} style={s.sigImage} />
-                  </View>
-                </View>
-              ) : (
-                <View style={s.sigFieldRow}>
-                  <Text style={s.sigFieldLabel}>Signature (签名): </Text>
-                  <Text style={s.sigFieldValue}>{' '}</Text>
-                </View>
-              )}
+              <Text style={s.sigImageLabel}>Signature (签名):</Text>
+              {data.verifier_signature
+                ? <Image src={data.verifier_signature} style={s.sigImage} />
+                : <View style={s.sigBlankLine} />
+              }
             </View>
           </View>
         </View>
@@ -655,19 +656,11 @@ export function PermitPdfDocument({ data }: { data: PermitPdfData }) {
               </View>
             </View>
             <View style={{ width: '50%' }}>
-              {data.approver_signature ? (
-                <View>
-                  <Text style={s.sigFieldLabel}>Signature (签名):</Text>
-                  <View style={s.sigImageBox}>
-                    <Image src={data.approver_signature} style={s.sigImage} />
-                  </View>
-                </View>
-              ) : (
-                <View style={s.sigFieldRow}>
-                  <Text style={s.sigFieldLabel}>Signature (签名): </Text>
-                  <Text style={s.sigFieldValue}>{' '}</Text>
-                </View>
-              )}
+              <Text style={s.sigImageLabel}>Signature (签名):</Text>
+              {data.approver_signature
+                ? <Image src={data.approver_signature} style={s.sigImage} />
+                : <View style={s.sigBlankLine} />
+              }
             </View>
           </View>
           {data.rejection_reason && (
