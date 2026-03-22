@@ -16,6 +16,13 @@ interface Permit {
 
 interface PermitBoardProps {
   permits: Permit[]
+  userRoles: string[]
+}
+
+const ROLE_ACTIONABLE_STATUSES: Record<string, PermitStatus[]> = {
+  applicant: ['draft', 'active'],
+  verifier: ['submitted'],
+  approver: ['verified', 'active', 'closure_submitted'],
 }
 
 const BOARD_COLUMNS: PermitStatus[] = [
@@ -27,7 +34,16 @@ const BOARD_COLUMNS: PermitStatus[] = [
   'closed',
 ]
 
-export function PermitBoard({ permits }: PermitBoardProps) {
+export function PermitBoard({ permits, userRoles }: PermitBoardProps) {
+  // Compute actionable statuses from user roles
+  const actionableStatuses = new Set<string>()
+  for (const role of userRoles) {
+    for (const status of ROLE_ACTIONABLE_STATUSES[role] ?? []) {
+      actionableStatuses.add(status)
+    }
+  }
+  const hasRoles = userRoles.length > 0
+
   // Group permits by status
   const grouped = new Map<string, Permit[]>()
   for (const p of permits) {
@@ -57,6 +73,8 @@ export function PermitBoard({ permits }: PermitBoardProps) {
               bgClass={config.bgClass}
               textClass={config.textClass}
               permits={columnPermits}
+              isActionable={!hasRoles || actionableStatuses.has(status)}
+              showTag={hasRoles && actionableStatuses.has(status)}
             />
           )
         })}
@@ -68,6 +86,8 @@ export function PermitBoard({ permits }: PermitBoardProps) {
             bgClass="bg-red-100"
             textClass="text-red-700"
             permits={rejectedRevoked}
+            isActionable={!hasRoles}
+            showTag={false}
           />
         )}
       </div>
@@ -82,6 +102,8 @@ function BoardColumn({
   bgClass,
   textClass,
   permits,
+  isActionable,
+  showTag,
 }: {
   label: string
   count: number
@@ -89,15 +111,22 @@ function BoardColumn({
   bgClass: string
   textClass: string
   permits: Permit[]
+  isActionable: boolean
+  showTag: boolean
 }) {
   return (
-    <div className="w-[220px] flex-shrink-0 flex flex-col">
+    <div className={`w-[220px] flex-shrink-0 flex flex-col${isActionable ? '' : ' opacity-50'}`}>
       {/* Column header */}
       <div className={`flex items-center gap-2 rounded-lg px-3 py-2 mb-2 ${bgClass}`}>
         <span className={`w-2 h-2 rounded-full ${dotColor}`} />
         <span className={`text-xs font-semibold ${textClass}`}>{label}</span>
         <span className={`ml-auto text-xs font-medium ${textClass} opacity-70`}>{count}</span>
       </div>
+      {showTag && (
+        <span className="text-[10px] font-medium text-primary-600 bg-primary-50 rounded px-1.5 py-0.5 self-start mb-2 ml-1">
+          Your action
+        </span>
+      )}
 
       {/* Column body */}
       <div className="flex-1 space-y-2 min-h-[200px]">

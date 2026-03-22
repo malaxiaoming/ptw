@@ -62,6 +62,7 @@ export default function ProjectPermitsPage({ params }: { params: Promise<{ id: s
   const [project, setProject] = useState<Project | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [isApplicant, setIsApplicant] = useState(false)
+  const [myRoles, setMyRoles] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
 
@@ -100,6 +101,7 @@ export default function ProjectPermitsPage({ params }: { params: Promise<{ id: s
         if (myRoleRes.ok) {
           const myRoleJson = await myRoleRes.json()
           const roles: string[] = myRoleJson.data?.roles ?? []
+          setMyRoles(roles)
           setIsApplicant(roles.includes('applicant'))
         }
       } catch {
@@ -392,7 +394,7 @@ export default function ProjectPermitsPage({ params }: { params: Promise<{ id: s
           )}
         </div>
       ) : viewMode === 'board' ? (
-        <PermitBoard permits={displayedPermits} />
+        <PermitBoard permits={displayedPermits} userRoles={myRoles} />
       ) : (
         <div className="space-y-3">
           <p className="text-sm text-gray-500">{displayedPermits.length} permit{displayedPermits.length !== 1 ? 's' : ''}</p>
