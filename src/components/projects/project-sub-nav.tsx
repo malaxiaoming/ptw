@@ -15,6 +15,7 @@ export default function ProjectSubNav({ projectId, projectName, isAdmin }: Proje
 
   const tabs = [
     { label: 'Overview', href: base, adminOnly: false },
+    { label: 'Permits', href: `${base}/permits`, adminOnly: false },
     { label: 'Toolbox', href: `${base}/toolbox`, adminOnly: false },
     { label: 'Team', href: `${base}/team`, adminOnly: true },
     { label: 'Companies', href: `${base}/companies`, adminOnly: true },

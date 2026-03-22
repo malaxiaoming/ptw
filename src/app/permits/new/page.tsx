@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ChecklistForm } from '@/components/permits/checklist-form'
 import { PersonnelPicker } from '@/components/permits/personnel-picker'
 import { validateChecklist } from '@/lib/permits/checklist-validation'
@@ -25,6 +25,8 @@ interface PermitType {
 
 export default function NewPermitPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const preselectedProject = searchParams.get('project')
 
   const [projects, setProjects] = useState<Project[]>([])
   const [permitTypes, setPermitTypes] = useState<PermitType[]>([])
@@ -60,6 +62,14 @@ export default function NewPermitPage() {
       .catch(() => setError('Failed to load projects'))
       .finally(() => setLoadingProjects(false))
   }, [])
+
+  // Pre-select project from query param
+  useEffect(() => {
+    if (preselectedProject && projects.length > 0 && !selectedProjectId) {
+      const match = projects.find((p) => p.id === preselectedProject)
+      if (match) handleProjectSelect(match.id)
+    }
+  }, [preselectedProject, projects])
 
   // Load permit types when project is selected
   useEffect(() => {
