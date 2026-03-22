@@ -294,7 +294,7 @@ function fmtDate(dateStr: string | null | undefined): string {
 
 function fmtTime(dateStr: string | null | undefined): string {
   if (!dateStr) return ''
-  return new Date(dateStr).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', hour12: false })
+  return new Date(dateStr).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', hour12: true })
 }
 
 function fmtDateTime(dateStr: string | null | undefined): string {
