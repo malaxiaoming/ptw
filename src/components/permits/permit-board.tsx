@@ -10,6 +10,7 @@ interface Permit {
   work_location: string
   work_description: string
   created_at: string
+  scheduled_end?: string | null
   permit_types?: { name: string; code: string } | null
   applicant?: { name: string } | null
 }
@@ -156,6 +157,11 @@ function BoardColumn({
               <p className="text-[10px] text-gray-400 mt-1">
                 {new Date(permit.created_at).toLocaleDateString()}
               </p>
+              {permit.status === 'active' && permit.scheduled_end && new Date(permit.scheduled_end) < new Date() && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-orange-100 text-orange-700 mt-1">
+                  Expired
+                </span>
+              )}
             </Link>
           ))
         )}
