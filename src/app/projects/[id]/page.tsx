@@ -3,6 +3,11 @@
 import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import ProjectSubNav from '@/components/projects/project-sub-nav'
+import { Card, CardHeader, CardContent } from '@/components/ui/card'
+import { StatusBadge } from '@/components/permits/status-badge'
+import { STATUS_CONFIG } from '@/lib/permits/status-display'
+import { DashboardSkeleton } from '@/components/ui/skeleton'
+import type { PermitStatus } from '@/lib/permits/state-machine'
 
 interface UserProfile {
   id: string
@@ -28,6 +33,28 @@ interface Project {
   created_at: string
 }
 
+interface PendingPermit {
+  id: string
+  permit_number: string
+  status: string
+  updated_at: string
+  permit_types?: { name: string; code: string } | null
+}
+
+interface RecentPermit {
+  id: string
+  permit_number: string
+  status: string
+  created_at: string
+  permit_types?: { name: string; code: string } | null
+}
+
+interface PermitSummary {
+  my_actions: PendingPermit[]
+  stats: Record<string, number>
+  recent_permits: RecentPermit[]
+}
+
 const ROLE_LABELS: Record<string, string> = {
   applicant: 'Applicant',
   verifier: 'Verifier',
@@ -43,6 +70,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
+  const [summary, setSummary] = useState<PermitSummary | null>(null)
+  const [summaryLoading, setSummaryLoading] = useState(true)
 
   useEffect(() => {
     async function load() {
@@ -75,8 +104,26 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     load()
   }, [id])
 
+  useEffect(() => {
+    async function loadSummary() {
+      setSummaryLoading(true)
+      try {
+        const res = await fetch(`/api/projects/${id}/permit-summary`)
+        if (res.ok) {
+          const json = await res.json()
+          setSummary(json.data)
+        }
+      } catch {
+        // Non-critical — just don't show summary
+      } finally {
+        setSummaryLoading(false)
+      }
+    }
+    loadSummary()
+  }, [id])
+
   if (loading) {
-    return <div className="text-center py-12 text-gray-500">Loading project...</div>
+    return <DashboardSkeleton />
   }
 
   if (fetchError) {
@@ -91,6 +138,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   }
 
   if (!project) return null
+
+  const totalPermits = summary
+    ? Object.entries(summary.stats)
+        .filter(([k]) => k !== 'expiring_soon')
+        .reduce((a, [, v]) => a + v, 0)
+    : 0
 
   return (
     <div className="space-y-6">
@@ -114,6 +167,112 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
       <ProjectSubNav projectId={id} projectName={project.name} isAdmin={isAdmin} />
 
+      {/* My Pending Actions */}
+      {!summaryLoading && summary && summary.my_actions.length > 0 && (
+        <Card className="border-l-4 border-l-primary-600">
+          <CardHeader action={<span className="text-sm text-gray-500">{summary.my_actions.length} items</span>}>
+            <h2 className="font-semibold text-gray-900">My Pending Actions</h2>
+          </CardHeader>
+          <ul className="divide-y divide-gray-100">
+            {summary.my_actions.map((permit) => (
+              <li key={permit.id} className="px-6 py-3 flex justify-between items-center hover:bg-gray-50 transition-colors">
+                <div>
+                  <Link href={`/permits/${permit.id}`} className="text-sm font-medium text-primary-600 hover:underline">
+                    {permit.permit_number}
+                  </Link>
+                  {permit.permit_types && (
+                    <span className="ml-2 text-xs text-gray-500">{permit.permit_types.name}</span>
+                  )}
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Updated {new Date(permit.updated_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <StatusBadge status={permit.status as PermitStatus} size="sm" />
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {/* Permit Stats */}
+      {!summaryLoading && summary && totalPermits > 0 && (
+        <Card>
+          <CardHeader>
+            <div>
+              <h2 className="font-semibold text-gray-900">Permit Stats</h2>
+              <p className="text-sm text-gray-500 mt-0.5">{totalPermits} total permits</p>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {Object.entries(STATUS_CONFIG).map(([status, config]) => {
+                const count = summary.stats[status] ?? 0
+                if (count === 0) return null
+                return (
+                  <div key={status} className={`rounded-lg px-4 py-3 ${config.bgClass} ${config.textClass}`}>
+                    <p className="text-2xl font-bold">{count}</p>
+                    <p className="text-xs font-medium mt-0.5 opacity-80">{config.label}</p>
+                  </div>
+                )
+              })}
+              {(summary.stats.expiring_soon ?? 0) > 0 && (
+                <div className="rounded-lg px-4 py-3 bg-orange-100 text-orange-700">
+                  <p className="text-2xl font-bold">{summary.stats.expiring_soon}</p>
+                  <p className="text-xs font-medium mt-0.5 opacity-80">Expiring Soon</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recent Permits */}
+      {!summaryLoading && summary && summary.recent_permits.length > 0 && (
+        <Card>
+          <CardHeader action={
+            <Link href={`/permits?project=${id}`} className="text-sm text-primary-600 hover:underline">
+              View all permits &rarr;
+            </Link>
+          }>
+            <h2 className="font-semibold text-gray-900">Recent Permits</h2>
+          </CardHeader>
+          <ul className="divide-y divide-gray-100">
+            {summary.recent_permits.map((permit) => (
+              <li key={permit.id} className="px-6 py-3 flex justify-between items-center hover:bg-gray-50 transition-colors">
+                <div>
+                  <Link href={`/permits/${permit.id}`} className="text-sm font-medium text-primary-600 hover:underline">
+                    {permit.permit_number}
+                  </Link>
+                  {permit.permit_types && (
+                    <span className="ml-2 text-xs text-gray-500">{permit.permit_types.code}</span>
+                  )}
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Created {new Date(permit.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <StatusBadge status={permit.status as PermitStatus} size="sm" />
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {summaryLoading && (
+        <div className="space-y-4">
+          {[1, 2].map((i) => (
+            <div key={i} className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="animate-skeleton-pulse bg-gray-200 rounded h-5 w-40 mb-4" />
+              <div className="space-y-3">
+                {[1, 2, 3].map((j) => (
+                  <div key={j} className="animate-skeleton-pulse bg-gray-200 rounded h-4 w-full" />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Project Details */}
       {(project.description || project.reference_number || project.address) && (
         <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
           {project.description && (
@@ -140,6 +299,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         </div>
       )}
 
+      {/* Team Members (admin only) */}
       {isAdmin && (
         <div className="bg-white border border-gray-200 rounded-lg">
           <div className="px-5 py-4 border-b border-gray-100">

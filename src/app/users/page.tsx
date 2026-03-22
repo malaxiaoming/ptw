@@ -167,7 +167,9 @@ export default function UsersPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium text-gray-900">
-                    {u.name}
+                    <Link href={`/users/${u.id}`} className="hover:text-primary-600 hover:underline">
+                      {u.name}
+                    </Link>
                     {u.is_active === false && (
                       <span className="ml-2 text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded">Disabled</span>
                     )}
