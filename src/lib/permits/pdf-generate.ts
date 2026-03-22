@@ -23,6 +23,7 @@ export async function generateAndStorePermitPdf(
         work_location, work_description, gps_lat, gps_lng,
         scheduled_start, scheduled_end,
         checklist_data, personnel,
+        rejection_reason, revocation_reason,
         submitted_at, verified_at, approved_at, activated_at, closed_at,
         created_at,
         applicant_signature, verifier_signature, approver_signature,
@@ -75,7 +76,7 @@ export async function generateAndStorePermitPdf(
 
     // Render PDF to buffer
     const rendered = await renderToBuffer(
-      PermitPdfDocument({ data: permit as unknown as PermitPdfData, photoUrls })
+      PermitPdfDocument({ data: permit as unknown as PermitPdfData })
     )
     const buffer = Buffer.from(rendered)
 

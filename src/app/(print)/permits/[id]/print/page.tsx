@@ -52,106 +52,181 @@ interface Permit {
 }
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleString()
+  return new Date(dateStr).toLocaleDateString('en-SG', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-function ChecklistValue({ field, value }: { field: ChecklistField; value: unknown }) {
+function formatTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', hour12: false })
+}
+
+function formatDateTime(dateStr: string): string {
+  return `${formatDate(dateStr)} ${formatTime(dateStr)}`
+}
+
+function calcDays(start: string, end: string): number {
+  const ms = new Date(end).getTime() - new Date(start).getTime()
+  return Math.max(1, Math.ceil(ms / (1000 * 60 * 60 * 24)))
+}
+
+function UnderlineValue({ value, minWidth = '200px' }: { value: string; minWidth?: string }) {
+  return (
+    <span
+      className="border-b border-black inline-block px-1 font-normal"
+      style={{ minWidth }}
+    >
+      {value || '\u00A0'}
+    </span>
+  )
+}
+
+function ChecklistValueText({ field, value }: { field: ChecklistField; value: unknown }): string {
   switch (field.type) {
     case 'yes_no':
-      if (value === 'yes') return <span className="text-green-700 font-medium">Yes ✓</span>
-      if (value === 'no') return <span className="text-red-700 font-medium">No ✗</span>
-      if (value === 'na') return <span className="text-gray-500">N.A.</span>
-      return <span className="text-gray-400">—</span>
+      if (value === 'yes') return 'Yes'
+      if (value === 'no') return 'No'
+      if (value === 'na') return 'N.A.'
+      return '—'
     case 'checkbox':
-      return value === true
-        ? <span className="text-green-700">✓</span>
-        : <span className="text-red-700">✗</span>
+      return value === true ? 'Yes' : 'No'
     case 'text':
-      return <span>{(value as string) || '—'}</span>
+      return (value as string) || '—'
     case 'date':
-      return <span>{value ? formatDate(value as string) : '—'}</span>
+      return value ? formatDateTime(value as string) : '—'
     case 'select': {
       const idx = field.options?.indexOf(value as string)
-      const zhLabel = idx !== undefined && idx >= 0 && field.options_zh?.[idx]
-        ? ` ${field.options_zh[idx]}`
-        : ''
-      return <span>{(value as string) ? `${value}${zhLabel}` : '—'}</span>
+      const zh = idx !== undefined && idx >= 0 && field.options_zh?.[idx] ? ` ${field.options_zh[idx]}` : ''
+      return value ? `${value}${zh}` : '—'
     }
     case 'photo': {
       const photos = Array.isArray(value) ? value : []
-      if (photos.length === 0) return <span className="text-gray-400">—</span>
-      return (
-        <span className="text-sm text-gray-600">
-          {photos.length} photo{photos.length !== 1 ? 's' : ''} attached
-        </span>
-      )
+      return photos.length > 0 ? `${photos.length} photo(s)` : '—'
     }
     default:
-      return <span>{String(value ?? '—')}</span>
+      return String(value ?? '—')
   }
 }
 
-function PrintChecklist({ sections, data }: { sections: ChecklistSection[]; data: Record<string, unknown> }) {
+/** Flatten all fields from all sections with sequential S/N */
+function flattenFields(sections: ChecklistSection[]): { sn: number; field: ChecklistField; sectionTitle: string; sectionTitleZh?: string }[] {
+  const result: { sn: number; field: ChecklistField; sectionTitle: string; sectionTitleZh?: string }[] = []
+  let sn = 1
+  for (const section of sections) {
+    for (const field of section.fields) {
+      result.push({ sn, field, sectionTitle: section.title, sectionTitleZh: section.title_zh })
+      sn++
+    }
+  }
+  return result
+}
+
+function ChecklistTable({ sections, data }: { sections: ChecklistSection[]; data: Record<string, unknown> }) {
+  const allFields = flattenFields(sections)
+  const half = Math.ceil(allFields.length / 2)
+  const leftCol = allFields.slice(0, half)
+  const rightCol = allFields.slice(half)
+  const rows = Math.max(leftCol.length, rightCol.length)
+
   return (
-    <div className="space-y-4">
-      {sections.map((section) => (
-        <div key={section.title} className="print-section">
-          <h3 className="text-sm font-semibold text-gray-800 border-b border-gray-300 pb-1 mb-2">
-            {section.title}
-            {section.title_zh && <span className="text-gray-500 font-normal ml-2">{section.title_zh}</span>}
-          </h3>
-          {section.description && (
-            <p className="text-xs text-gray-500 mb-2">
-              {section.description}
-              {section.description_zh && ` ${section.description_zh}`}
-            </p>
-          )}
-          <table className="w-full text-sm">
-            <tbody>
-              {section.fields.map((field) => (
-                <tr key={field.id} className="border-b border-gray-100">
-                  <td className="py-1.5 pr-4 text-gray-600 w-1/2">
-                    {field.label}
-                    {field.label_zh && <span className="text-gray-400 ml-1">{field.label_zh}</span>}
-                  </td>
-                  <td className="py-1.5 text-gray-900">
-                    <ChecklistValue field={field} value={data[field.id]} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ))}
+    <div className="print-section">
+      <h2 className="text-center font-bold text-sm mb-1">
+        SAFETY CONDITIONS TO BE COMPLIED WITH PRIOR TO PERMIT APPROVAL
+      </h2>
+      <p className="text-center text-xs mb-3">安全措施检查（施工前须符合以下安全条件）</p>
+
+      <table className="w-full border-collapse border border-black text-xs">
+        <thead>
+          <tr>
+            <th className="border border-black p-1 w-[30px]">S/N</th>
+            <th className="border border-black p-1">Safety Measures 安全措施</th>
+            <th className="border border-black p-1 w-[60px]">Yes/No</th>
+            <th className="border border-black p-1 w-[30px]">S/N</th>
+            <th className="border border-black p-1">Safety Measures 安全措施</th>
+            <th className="border border-black p-1 w-[60px]">Yes/No</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: rows }).map((_, i) => {
+            const left = leftCol[i]
+            const right = rightCol[i]
+            return (
+              <tr key={i}>
+                <td className="border border-black p-1 text-center">{left?.sn ?? ''}</td>
+                <td className="border border-black p-1">
+                  {left && (
+                    <>
+                      {left.field.label}
+                      {left.field.label_zh && <><br /><span className="text-[10px]">{left.field.label_zh}</span></>}
+                    </>
+                  )}
+                </td>
+                <td className="border border-black p-1 text-center">
+                  {left ? ChecklistValueText({ field: left.field, value: data[left.field.id] }) : ''}
+                </td>
+                <td className="border border-black p-1 text-center">{right?.sn ?? ''}</td>
+                <td className="border border-black p-1">
+                  {right && (
+                    <>
+                      {right.field.label}
+                      {right.field.label_zh && <><br /><span className="text-[10px]">{right.field.label_zh}</span></>}
+                    </>
+                  )}
+                </td>
+                <td className="border border-black p-1 text-center">
+                  {right ? ChecklistValueText({ field: right.field, value: data[right.field.id] }) : ''}
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+      <p className="text-[10px] mt-1 italic">*Indicate &quot;NA&quot; against conditions that are not required 不适用的条件请注明&quot;NA&quot;</p>
     </div>
   )
 }
 
-function PersonnelTable({ personnel, requirements }: { personnel: PersonnelEntry[]; requirements: PersonnelRequirement[] }) {
+function PersonnelTable20({ personnel, permitTypeName }: { personnel: PersonnelEntry[]; permitTypeName: string }) {
+  const totalSlots = 20
+  const leftSlots = 10
+  const rows = leftSlots
+
   return (
-    <table className="w-full text-sm border-collapse">
-      <thead>
-        <tr className="border-b border-gray-300">
-          <th className="text-left py-1.5 text-gray-600 font-medium">Name 姓名</th>
-          <th className="text-left py-1.5 text-gray-600 font-medium">Role 角色</th>
-        </tr>
-      </thead>
-      <tbody>
-        {requirements.map((req) => {
-          const entries = personnel.filter((p) => p.role === req.role)
-          if (entries.length === 0) return null
-          return entries.map((entry, i) => (
-            <tr key={`${req.role}-${i}`} className="border-b border-gray-100">
-              <td className="py-1.5 text-gray-900">{entry.name}</td>
-              <td className="py-1.5 text-gray-600">
-                {req.label}
-                {req.label_zh && <span className="text-gray-400 ml-1">{req.label_zh}</span>}
-              </td>
-            </tr>
-          ))
-        })}
-      </tbody>
-    </table>
+    <div className="print-section">
+      <h2 className="text-center font-bold text-sm mb-1">
+        List of Workmen involved in {permitTypeName}
+      </h2>
+      <p className="text-center text-xs mb-3">参与工作的工人名单</p>
+
+      <table className="w-full border-collapse border border-black text-xs">
+        <thead>
+          <tr>
+            <th className="border border-black p-1 w-[30px]">S/N</th>
+            <th className="border border-black p-1">Name of Worker 工人姓名</th>
+            <th className="border border-black p-1 w-[60px]">Role 角色</th>
+            <th className="border border-black p-1 w-[30px]">S/N</th>
+            <th className="border border-black p-1">Name of Worker 工人姓名</th>
+            <th className="border border-black p-1 w-[60px]">Role 角色</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: rows }).map((_, i) => {
+            const leftIdx = i
+            const rightIdx = i + leftSlots
+            const leftPerson = personnel[leftIdx]
+            const rightPerson = rightIdx < totalSlots ? personnel[rightIdx] : undefined
+            return (
+              <tr key={i}>
+                <td className="border border-black p-1 text-center">{leftIdx + 1}</td>
+                <td className="border border-black p-1">{leftPerson?.name ?? ''}</td>
+                <td className="border border-black p-1 text-center">{leftPerson?.role ?? ''}</td>
+                <td className="border border-black p-1 text-center">{rightIdx + 1}</td>
+                <td className="border border-black p-1">{rightPerson?.name ?? ''}</td>
+                <td className="border border-black p-1 text-center">{rightPerson?.role ?? ''}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
   )
 }
 
@@ -202,9 +277,12 @@ export default function PermitPrintPage({ params }: { params: Promise<{ id: stri
   }
 
   const statusCfg = STATUS_CONFIG[permit.status]
+  const sections = permit.permit_types?.checklist_template?.sections ?? []
+  const personnel = permit.personnel ?? []
+  const checklistData = (permit.checklist_data ?? {}) as Record<string, unknown>
 
   return (
-    <div className="max-w-[210mm] mx-auto px-8 py-6">
+    <div className="max-w-[210mm] mx-auto px-8 py-6 text-black text-sm" style={{ fontFamily: "'Noto Sans SC', 'Noto Sans', sans-serif" }}>
       {/* Print controls — hidden when printing */}
       <div className="no-print flex items-center gap-4 mb-6 pb-4 border-b border-gray-200">
         <button
@@ -221,131 +299,236 @@ export default function PermitPrintPage({ params }: { params: Promise<{ id: stri
         </Link>
       </div>
 
-      {/* A. Permit Header */}
+      {/* ===== PAGE 1 ===== */}
+
+      {/* A. Header Block */}
       <div className="print-section mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">{permit.permit_number}</h1>
-        <div className="flex items-center gap-3 mt-1">
-          {permit.permit_types && (
-            <span className="text-lg text-gray-700">{permit.permit_types.name}</span>
-          )}
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium ${statusCfg.bgClass} ${statusCfg.textClass}`}>
-            {statusCfg.label} {statusCfg.label_zh}
-          </span>
+        <div className="flex justify-between items-start text-xs mb-2">
+          <div>{permit.permit_types?.code ?? ''}</div>
+          <div>PTW Serial No (序列号): <span className="font-bold">{permit.permit_number}</span></div>
         </div>
-        {permit.project && (
-          <p className="text-sm text-gray-500 mt-1">
-            Project 项目: {permit.project.name}
-          </p>
-        )}
-      </div>
 
-      {/* B. Details Grid */}
-      <div className="print-section mb-6">
-        <h2 className="text-base font-semibold text-gray-900 border-b border-gray-300 pb-1 mb-3">
-          Permit Details 许可证详情
-        </h2>
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-          <div>
-            <dt className="text-gray-500">Work Location 工作地点</dt>
-            <dd className="text-gray-900 font-medium">{permit.work_location}</dd>
-          </div>
-          {permit.gps_lat != null && permit.gps_lng != null && (
-            <div>
-              <dt className="text-gray-500">GPS Coordinates GPS 坐标</dt>
-              <dd className="text-gray-900">{permit.gps_lat}, {permit.gps_lng}</dd>
-            </div>
-          )}
-          {permit.scheduled_start && (
-            <div>
-              <dt className="text-gray-500">Scheduled Start 计划开始</dt>
-              <dd className="text-gray-900">{formatDate(permit.scheduled_start)}</dd>
-            </div>
-          )}
-          {permit.scheduled_end && (
-            <div>
-              <dt className="text-gray-500">Scheduled End 计划结束</dt>
-              <dd className="text-gray-900">{formatDate(permit.scheduled_end)}</dd>
-            </div>
-          )}
-        </dl>
-        <div className="mt-3 text-sm">
-          <dt className="text-gray-500">Work Description 工作描述</dt>
-          <dd className="text-gray-900 whitespace-pre-wrap mt-1">{permit.work_description}</dd>
-        </div>
-      </div>
+        <h1 className="text-center text-lg font-bold mb-0">
+          PERMIT TO WORK 施工准许证
+          {permit.permit_types && <> — {permit.permit_types.name.toUpperCase()}</>}
+        </h1>
+        <div className="border-b-2 border-black mx-auto mt-1 mb-2" style={{ width: '80%' }} />
 
-      {/* C. Authorization Chain */}
-      <div className="print-section mb-6">
-        <h2 className="text-base font-semibold text-gray-900 border-b border-gray-300 pb-1 mb-3">
-          Authorization 授权
-        </h2>
-        <div className="grid grid-cols-3 gap-6 text-sm">
-          <div>
-            <p className="text-gray-500 mb-1">Applicant 申请人</p>
-            <p className="font-medium text-gray-900">{permit.applicant?.name ?? '—'}</p>
-            {permit.submitted_at && (
-              <p className="text-xs text-gray-400">{formatDate(permit.submitted_at)}</p>
-            )}
-            <div className="mt-4 border-b border-dotted border-gray-400 w-full" />
-            <p className="text-xs text-gray-400 mt-0.5">Signature 签名</p>
-          </div>
-          <div>
-            <p className="text-gray-500 mb-1">Verifier 审核人</p>
-            <p className="font-medium text-gray-900">{permit.verifier?.name ?? '—'}</p>
-            {permit.verified_at && (
-              <p className="text-xs text-gray-400">{formatDate(permit.verified_at)}</p>
-            )}
-            <div className="mt-4 border-b border-dotted border-gray-400 w-full" />
-            <p className="text-xs text-gray-400 mt-0.5">Signature 签名</p>
-          </div>
-          <div>
-            <p className="text-gray-500 mb-1">Approver 批准人</p>
-            <p className="font-medium text-gray-900">{permit.approver?.name ?? '—'}</p>
-            {permit.approved_at && (
-              <p className="text-xs text-gray-400">{formatDate(permit.approved_at)}</p>
-            )}
-            <div className="mt-4 border-b border-dotted border-gray-400 w-full" />
-            <p className="text-xs text-gray-400 mt-0.5">Signature 签名</p>
-          </div>
-        </div>
-      </div>
-
-      {/* D. Checklist */}
-      {permit.permit_types?.checklist_template?.sections?.length ? (
-        <div className="print-section mb-6">
-          <h2 className="text-base font-semibold text-gray-900 border-b border-gray-300 pb-1 mb-3">
-            Checklist 检查清单
-          </h2>
-          <PrintChecklist
-            sections={permit.permit_types.checklist_template.sections}
-            data={permit.checklist_data ?? {}}
-          />
-        </div>
-      ) : null}
-
-      {/* E. Personnel Table */}
-      {permit.permit_types?.checklist_template?.personnel?.length && permit.personnel?.length ? (
-        <div className="print-section mb-6">
-          <h2 className="text-base font-semibold text-gray-900 border-b border-gray-300 pb-1 mb-3">
-            Personnel 人员
-          </h2>
-          <PersonnelTable
-            personnel={permit.personnel}
-            requirements={permit.permit_types.checklist_template.personnel}
-          />
-        </div>
-      ) : null}
-
-      {/* F. Footer */}
-      <div className="print-section mt-8 pt-4 border-t border-gray-300 text-sm text-gray-500">
-        {permit.scheduled_start && permit.scheduled_end && (
-          <p>
-            Valid from 有效期: {formatDate(permit.scheduled_start)} — {formatDate(permit.scheduled_end)}
-          </p>
-        )}
-        <p>
-          Printed on 打印于: {new Date().toLocaleString()}
+        <p className="text-center text-xs mb-1">
+          (THIS COPY SHALL BE DISPLAYED AT PLACE OF WORK, AS APPROPRIATE)
         </p>
+        <p className="text-center text-xs mb-3">
+          此副本应在工作场所张贴展示
+        </p>
+
+        <p className="text-xs">
+          Status (状态): <span className="font-bold">{statusCfg.label.toUpperCase()} {statusCfg.label_zh}</span>
+        </p>
+      </div>
+
+      {/* B. Form Fields */}
+      <div className="print-section mb-6 space-y-2 text-xs">
+        <div>
+          <span className="font-bold">PROJECT TITLE (项目名称): </span>
+          <UnderlineValue value={permit.project?.name ?? ''} minWidth="350px" />
+        </div>
+        <div>
+          <span className="font-bold">NAME OF APPLICANT (申请人姓名): </span>
+          <UnderlineValue value={permit.applicant?.name ?? ''} minWidth="300px" />
+        </div>
+        <div>
+          <span className="font-bold">WORK TO BE PERFORMED (所申请的施工类型): </span>
+          <UnderlineValue value={permit.work_description} minWidth="250px" />
+        </div>
+        <div>
+          <span className="font-bold">DURATION OF WORK (施工历时): </span>
+          From (从) <UnderlineValue value={permit.scheduled_start ? formatDate(permit.scheduled_start) : ''} minWidth="80px" />
+          {' '}to (至) <UnderlineValue value={permit.scheduled_end ? formatDate(permit.scheduled_end) : ''} minWidth="80px" />
+          {' '}Total (共计): <UnderlineValue
+            value={permit.scheduled_start && permit.scheduled_end ? `${calcDays(permit.scheduled_start, permit.scheduled_end)}` : ''}
+            minWidth="30px"
+          /> days (天)
+        </div>
+        <div>
+          <span className="font-bold">LOCATION OF WORK (施工地点): </span>
+          <UnderlineValue value={permit.work_location} minWidth="300px" />
+        </div>
+        {permit.gps_lat != null && permit.gps_lng != null && (
+          <div>
+            <span className="font-bold">GPS COORDINATES (GPS 坐标): </span>
+            <UnderlineValue value={`${permit.gps_lat}, ${permit.gps_lng}`} minWidth="250px" />
+          </div>
+        )}
+      </div>
+
+      {/* C. Regulatory Notice */}
+      <div className="print-section mb-6 text-[10px] leading-relaxed border border-black p-3">
+        <p>
+          For each work, a new Permit-To-Work (PTW) form has to be processed and submitted.
+          A PTW shall be approved for a maximum of 7 days provided it is used for the same
+          type / scope of works declared in the permit application. The conditions of issue
+          of a PTW must be complied with throughout the duration of work, otherwise, this
+          PTW can be withdrawn at anytime. The applicant of this PTW shall be responsible
+          for maintaining a copy of this permit and must produce it upon request.
+        </p>
+        <p className="mt-2">
+          每项施工须重新办理施工准许证（PTW）。PTW 批准的最长有效期为 7 天，
+          前提是该 PTW 仅用于申请中声明的相同类型/范围的施工。PTW 的签发条件必须在整个施工期间得到遵守，
+          否则该 PTW 可随时被撤销。PTW 申请人有责任保存此许可证副本，并在要求时出示。
+        </p>
+      </div>
+
+      {/* D. Safety Checklist */}
+      {sections.length > 0 && (
+        <div className="mb-6">
+          <ChecklistTable sections={sections} data={checklistData} />
+        </div>
+      )}
+
+      {/* ===== PAGE BREAK ===== */}
+      <div style={{ pageBreakBefore: 'always' }} />
+
+      {/* E. Signature Blocks */}
+      <div className="print-section mb-6">
+        {/* Application */}
+        <div className="border border-black p-3 mb-4">
+          <h3 className="font-bold text-xs mb-2">
+            Permit Application by Foreman / Supervisor / Engineer in-charge
+          </h3>
+          <p className="text-[10px] mb-1">施工准许证申请（由工头/主管/工程师负责人填写）</p>
+          <p className="text-[10px] mb-3 italic">
+            I fully understand the nature of the work and safety conditions that must be met.
+            I have inspected the safety conditions relating to the work to be performed.
+          </p>
+          <p className="text-[10px] mb-3 italic">
+            我保证已做到以上所提的所有安全措施与要求，同时确保该施工地点已可以安全开工。
+          </p>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
+            <div>
+              <span className="font-bold">Name & Signature (姓名及签名): </span>
+              <UnderlineValue value={permit.applicant?.name ?? ''} minWidth="120px" />
+            </div>
+            <div>
+              <span className="font-bold">Date / Time (日期/时间): </span>
+              <UnderlineValue value={permit.submitted_at ? formatDateTime(permit.submitted_at) : ''} minWidth="120px" />
+            </div>
+          </div>
+        </div>
+
+        {/* Verification */}
+        <div className="border border-black p-3 mb-4">
+          <h3 className="font-bold text-xs mb-2">
+            Permit Verification by WSH Officer / Coordinator / Supervisor
+          </h3>
+          <p className="text-[10px] mb-3">施工准许证审核（由安全主任/协调员/主管填写）</p>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
+            <div>
+              <span className="font-bold">Name (姓名): </span>
+              <UnderlineValue value={permit.verifier?.name ?? ''} minWidth="120px" />
+            </div>
+            <div>
+              <span className="font-bold">Signature (签名): </span>
+              <UnderlineValue value="" minWidth="120px" />
+            </div>
+            <div>
+              <span className="font-bold">Date (日期): </span>
+              <UnderlineValue value={permit.verified_at ? formatDate(permit.verified_at) : ''} minWidth="120px" />
+            </div>
+            <div>
+              <span className="font-bold">Time (时间): </span>
+              <UnderlineValue value={permit.verified_at ? formatTime(permit.verified_at) : ''} minWidth="120px" />
+            </div>
+          </div>
+        </div>
+
+        {/* Approval */}
+        <div className="border border-black p-3 mb-4">
+          <h3 className="font-bold text-xs mb-2">
+            Permit Approval by Project Manager / Site Manager
+          </h3>
+          <p className="text-[10px] mb-3">施工准许证批准（由项目经理/工地经理填写）</p>
+          <div className="text-xs mb-3">
+            <span className="font-bold">Permit is (许可证): </span>
+            {permit.status === 'rejected'
+              ? <span className="font-bold">NOT APPROVED 不批准</span>
+              : permit.approved_at
+                ? <span className="font-bold">APPROVED 批准</span>
+                : <span>Pending 待定</span>
+            }
+          </div>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
+            <div>
+              <span className="font-bold">Name of PM/SM (姓名): </span>
+              <UnderlineValue value={permit.approver?.name ?? ''} minWidth="120px" />
+            </div>
+            <div>
+              <span className="font-bold">Signature (签名): </span>
+              <UnderlineValue value="" minWidth="120px" />
+            </div>
+            <div>
+              <span className="font-bold">Date (日期): </span>
+              <UnderlineValue value={permit.approved_at ? formatDate(permit.approved_at) : ''} minWidth="120px" />
+            </div>
+            <div>
+              <span className="font-bold">Time (时间): </span>
+              <UnderlineValue value={permit.approved_at ? formatTime(permit.approved_at) : ''} minWidth="120px" />
+            </div>
+          </div>
+          {permit.rejection_reason && (
+            <div className="mt-2 text-xs">
+              <span className="font-bold">Reason for rejection (拒绝原因): </span>
+              <UnderlineValue value={permit.rejection_reason} minWidth="250px" />
+            </div>
+          )}
+        </div>
+
+        {/* Completion / Closure */}
+        <div className="border border-black p-3 mb-4">
+          <h3 className="font-bold text-xs mb-2">
+            Notification of Works Completion 施工完成通知
+          </h3>
+          <p className="text-[10px] mb-3 italic">
+            (To be reported by Permit Applicant 由申请人填写)
+          </p>
+          <div className="text-xs mb-2">
+            The above mentioned work was completed on (以上施工已于以下日期完成):
+            <UnderlineValue value={permit.closed_at ? formatDateTime(permit.closed_at) : ''} minWidth="150px" />
+          </div>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
+            <div>
+              <span className="font-bold">Name (姓名): </span>
+              <UnderlineValue value={permit.closed_at ? (permit.applicant?.name ?? '') : ''} minWidth="120px" />
+            </div>
+            <div>
+              <span className="font-bold">Signature (签名): </span>
+              <UnderlineValue value="" minWidth="120px" />
+            </div>
+          </div>
+        </div>
+
+        {/* Revocation (if applicable) */}
+        {permit.revocation_reason && (
+          <div className="border border-black p-3 mb-4">
+            <h3 className="font-bold text-xs mb-2">
+              Permit Revocation 许可证撤销
+            </h3>
+            <div className="text-xs">
+              <span className="font-bold">Reason (原因): </span>
+              <UnderlineValue value={permit.revocation_reason} minWidth="300px" />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* F. Personnel Table */}
+      <PersonnelTable20
+        personnel={personnel}
+        permitTypeName={permit.permit_types?.name ?? 'Permit Works'}
+      />
+
+      {/* G. Footer */}
+      <div className="print-section mt-8 pt-4 border-t border-black text-xs">
+        <p>Printed on 打印于: {new Date().toLocaleString()}</p>
       </div>
     </div>
   )

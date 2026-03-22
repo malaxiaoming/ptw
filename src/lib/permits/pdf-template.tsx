@@ -1,13 +1,11 @@
 import React from 'react'
 import path from 'path'
-import { Document, Page, View, Text, Image, StyleSheet, Font } from '@react-pdf/renderer'
+import { Document, Page, View, Text, StyleSheet, Font } from '@react-pdf/renderer'
 import type { PermitStatus } from '@/lib/permits/state-machine'
 import type { ChecklistSection, ChecklistField, PersonnelEntry, PersonnelRequirement, ChecklistTemplate } from '@/lib/permits/checklist-validation'
 import { STATUS_CONFIG } from '@/lib/permits/status-display'
 
 // Register a CJK-capable font for bilingual rendering.
-// Fonts are bundled locally in /public/fonts/ (Noto Sans SC, full chinese-simplified subset).
-// Source: https://fonts.google.com/noto/specimen/Noto+Sans+SC
 Font.register({
   family: 'NotoSansSC',
   fonts: [
@@ -39,6 +37,8 @@ export interface PermitPdfData {
   verifier?: { name: string } | null
   approver?: { name: string } | null
   project?: { name: string } | null
+  rejection_reason?: string | null
+  revocation_reason?: string | null
   applicant_signature?: string | null
   verifier_signature?: string | null
   approver_signature?: string | null
@@ -46,217 +46,646 @@ export interface PermitPdfData {
 }
 
 const s = StyleSheet.create({
-  page: { padding: 40, fontSize: 10, fontFamily: 'NotoSansSC', color: '#1a1a1a' },
-  title: { fontSize: 20, fontWeight: 700, marginBottom: 2 },
-  subtitle: { fontSize: 13, color: '#374151', marginBottom: 2 },
-  badge: { fontSize: 9, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, alignSelf: 'flex-start', marginTop: 4 },
-  projectText: { fontSize: 9, color: '#6b7280', marginTop: 4 },
-  sectionTitle: { fontSize: 12, fontWeight: 700, borderBottomWidth: 1, borderBottomColor: '#d1d5db', paddingBottom: 4, marginBottom: 8, marginTop: 16 },
-  row: { flexDirection: 'row', marginBottom: 4 },
-  label: { color: '#6b7280', width: '40%' },
-  value: { color: '#1a1a1a', width: '60%', fontWeight: 500 },
-  authCol: { width: '33.3%', paddingRight: 12 },
-  authLabel: { fontSize: 9, color: '#6b7280', marginBottom: 4 },
-  authName: { fontWeight: 700, marginBottom: 2 },
-  authDate: { fontSize: 8, color: '#9ca3af' },
-  sigLine: { borderBottomWidth: 1, borderBottomColor: '#9ca3af', marginTop: 20, marginBottom: 2 },
-  sigLineWithSig: { borderBottomWidth: 1, borderBottomColor: '#9ca3af', marginTop: 4, marginBottom: 2 },
-  sigLabel: { fontSize: 7, color: '#9ca3af' },
-  sigImage: { width: 100, height: 40, objectFit: 'contain' as const },
-  photoRow: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 6 },
-  photoImage: { width: 180, height: 135, objectFit: 'cover' as const },
-  tableHeader: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#d1d5db', paddingBottom: 4, marginBottom: 4 },
-  tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#f3f4f6', paddingVertical: 3 },
-  tableCell: { width: '50%' },
-  tableCellLabel: { width: '50%', color: '#6b7280' },
-  checklistSectionTitle: { fontSize: 11, fontWeight: 700, borderBottomWidth: 1, borderBottomColor: '#d1d5db', paddingBottom: 3, marginBottom: 6, marginTop: 10 },
-  checklistZh: { color: '#6b7280', fontWeight: 400, marginLeft: 4 },
-  fieldRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#f3f4f6', paddingVertical: 3 },
-  fieldLabel: { width: '55%', color: '#4b5563' },
-  fieldValue: { width: '45%' },
-  footer: { marginTop: 24, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#d1d5db', fontSize: 9, color: '#6b7280' },
-  green: { color: '#15803d' },
-  red: { color: '#b91c1c' },
-  gray: { color: '#6b7280' },
+  page: {
+    padding: 40,
+    fontSize: 9,
+    fontFamily: 'NotoSansSC',
+    color: '#000000',
+  },
+  // Header
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  headerLeft: { fontSize: 8 },
+  headerRight: { fontSize: 8 },
+  title: {
+    fontSize: 14,
+    fontWeight: 700,
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  titleLine: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#000000',
+    width: '80%',
+    alignSelf: 'center',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 8,
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  statusText: { fontSize: 8, marginBottom: 8 },
+
+  // Form fields
+  formField: {
+    flexDirection: 'row',
+    marginBottom: 4,
+    flexWrap: 'wrap',
+  },
+  fieldLabel: {
+    fontWeight: 700,
+    fontSize: 9,
+  },
+  fieldValue: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
+    paddingHorizontal: 4,
+    minWidth: 150,
+    fontSize: 9,
+  },
+  fieldValueShort: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
+    paddingHorizontal: 4,
+    minWidth: 60,
+    fontSize: 9,
+  },
+
+  // Regulatory notice
+  noticeBox: {
+    borderWidth: 1,
+    borderColor: '#000000',
+    padding: 8,
+    marginBottom: 12,
+  },
+  noticeText: {
+    fontSize: 7,
+    lineHeight: 1.5,
+  },
+
+  // Checklist table
+  checklistTitle: {
+    fontSize: 10,
+    fontWeight: 700,
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  checklistSubtitle: {
+    fontSize: 8,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
+    minHeight: 20,
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
+    backgroundColor: '#f5f5f5',
+  },
+  cellSn: {
+    width: 22,
+    borderRightWidth: 1,
+    borderRightColor: '#000000',
+    padding: 2,
+    textAlign: 'center',
+    fontSize: 8,
+  },
+  cellMeasure: {
+    flex: 1,
+    borderRightWidth: 1,
+    borderRightColor: '#000000',
+    padding: 2,
+    fontSize: 8,
+  },
+  cellYesNo: {
+    width: 40,
+    borderRightWidth: 1,
+    borderRightColor: '#000000',
+    padding: 2,
+    textAlign: 'center',
+    fontSize: 8,
+  },
+  cellYesNoLast: {
+    width: 40,
+    padding: 2,
+    textAlign: 'center',
+    fontSize: 8,
+  },
+  cellSnLast: {
+    width: 22,
+    borderRightWidth: 1,
+    borderRightColor: '#000000',
+    borderLeftWidth: 1,
+    borderLeftColor: '#000000',
+    padding: 2,
+    textAlign: 'center',
+    fontSize: 8,
+  },
+  footnote: {
+    fontSize: 7,
+    fontStyle: 'italic',
+    marginTop: 2,
+    marginBottom: 8,
+  },
+
+  // Signature blocks
+  sigBlock: {
+    borderWidth: 1,
+    borderColor: '#000000',
+    padding: 8,
+    marginBottom: 8,
+  },
+  sigTitle: {
+    fontSize: 9,
+    fontWeight: 700,
+    marginBottom: 2,
+  },
+  sigSubtitle: {
+    fontSize: 7,
+    marginBottom: 4,
+  },
+  sigItalic: {
+    fontSize: 7,
+    fontStyle: 'italic',
+    marginBottom: 6,
+  },
+  sigFieldRow: {
+    flexDirection: 'row',
+    marginBottom: 3,
+  },
+  sigFieldLabel: {
+    fontWeight: 700,
+    fontSize: 8,
+  },
+  sigFieldValue: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
+    paddingHorizontal: 4,
+    minWidth: 100,
+    fontSize: 8,
+  },
+
+  // Personnel table
+  personnelTitle: {
+    fontSize: 10,
+    fontWeight: 700,
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  personnelSubtitle: {
+    fontSize: 8,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  pCellSn: {
+    width: 22,
+    borderRightWidth: 1,
+    borderRightColor: '#000000',
+    padding: 2,
+    textAlign: 'center',
+    fontSize: 8,
+  },
+  pCellName: {
+    flex: 1,
+    borderRightWidth: 1,
+    borderRightColor: '#000000',
+    padding: 2,
+    fontSize: 8,
+  },
+  pCellRole: {
+    width: 40,
+    padding: 2,
+    textAlign: 'center',
+    fontSize: 8,
+  },
+  pCellRoleMid: {
+    width: 40,
+    borderRightWidth: 1,
+    borderRightColor: '#000000',
+    padding: 2,
+    textAlign: 'center',
+    fontSize: 8,
+  },
+
+  // Footer
+  footer: {
+    marginTop: 16,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#000000',
+    fontSize: 8,
+  },
 })
 
-function fmt(dateStr: string | null | undefined): string {
-  if (!dateStr) return '—'
-  return new Date(dateStr).toLocaleString()
+function fmtDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return ''
+  return new Date(dateStr).toLocaleDateString('en-SG', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-function FieldValue({ field, value, photoUrls }: { field: ChecklistField; value: unknown; photoUrls?: Record<string, string> }) {
+function fmtTime(dateStr: string | null | undefined): string {
+  if (!dateStr) return ''
+  return new Date(dateStr).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', hour12: false })
+}
+
+function fmtDateTime(dateStr: string | null | undefined): string {
+  if (!dateStr) return ''
+  return `${fmtDate(dateStr)} ${fmtTime(dateStr)}`
+}
+
+function calcDays(start: string, end: string): number {
+  const ms = new Date(end).getTime() - new Date(start).getTime()
+  return Math.max(1, Math.ceil(ms / (1000 * 60 * 60 * 24)))
+}
+
+function checklistValueText(field: ChecklistField, value: unknown): string {
   switch (field.type) {
     case 'yes_no':
-      if (value === 'yes') return <Text style={s.green}>Yes</Text>
-      if (value === 'no') return <Text style={s.red}>No</Text>
-      if (value === 'na') return <Text style={s.gray}>N.A.</Text>
-      return <Text style={s.gray}>—</Text>
+      if (value === 'yes') return 'Yes'
+      if (value === 'no') return 'No'
+      if (value === 'na') return 'N.A.'
+      return '—'
     case 'checkbox':
-      return <Text style={value ? s.green : s.red}>{value ? '✓' : '✗'}</Text>
+      return value === true ? 'Yes' : 'No'
     case 'text':
-      return <Text>{(value as string) || '—'}</Text>
+      return (value as string) || '—'
     case 'date':
-      return <Text>{value ? fmt(value as string) : '—'}</Text>
+      return value ? fmtDateTime(value as string) : '—'
     case 'select': {
       const idx = field.options?.indexOf(value as string)
       const zh = idx !== undefined && idx >= 0 && field.options_zh?.[idx] ? ` ${field.options_zh[idx]}` : ''
-      return <Text>{value ? `${value}${zh}` : '—'}</Text>
+      return value ? `${value}${zh}` : '—'
     }
     case 'photo': {
       const photos = Array.isArray(value) ? value : []
-      if (photos.length === 0) return <Text style={s.gray}>—</Text>
-      const resolvedPhotos = photoUrls ? photos.filter((id) => photoUrls[id as string]) : []
-      if (resolvedPhotos.length > 0) {
-        return (
-          <View style={s.photoRow}>
-            {resolvedPhotos.map((id) => (
-              <Image key={id as string} src={photoUrls![id as string]} style={s.photoImage} />
-            ))}
-          </View>
-        )
-      }
-      return <Text style={s.gray}>{photos.length} photo(s)</Text>
+      return photos.length > 0 ? `${photos.length} photo(s)` : '—'
     }
     default:
-      return <Text>{String(value ?? '—')}</Text>
+      return String(value ?? '—')
   }
 }
 
-export function PermitPdfDocument({ data, photoUrls }: { data: PermitPdfData; photoUrls?: Record<string, string> }) {
+function flattenFields(sections: ChecklistSection[]): { sn: number; field: ChecklistField }[] {
+  const result: { sn: number; field: ChecklistField }[] = []
+  let sn = 1
+  for (const section of sections) {
+    for (const field of section.fields) {
+      result.push({ sn, field })
+      sn++
+    }
+  }
+  return result
+}
+
+function ChecklistTablePdf({ sections, data }: { sections: ChecklistSection[]; data: Record<string, unknown> }) {
+  const allFields = flattenFields(sections)
+  const half = Math.ceil(allFields.length / 2)
+  const leftCol = allFields.slice(0, half)
+  const rightCol = allFields.slice(half)
+  const rows = Math.max(leftCol.length, rightCol.length)
+
+  return (
+    <View>
+      <Text style={s.checklistTitle}>
+        SAFETY CONDITIONS TO BE COMPLIED WITH PRIOR TO PERMIT APPROVAL
+      </Text>
+      <Text style={s.checklistSubtitle}>安全措施检查（施工前须符合以下安全条件）</Text>
+
+      {/* Outer border */}
+      <View style={{ borderWidth: 1, borderColor: '#000000' }}>
+        {/* Header row */}
+        <View style={s.tableHeader}>
+          <Text style={s.cellSn}>S/N</Text>
+          <Text style={s.cellMeasure}>Safety Measures 安全措施</Text>
+          <Text style={s.cellYesNo}>Yes/No</Text>
+          <Text style={s.cellSnLast}>S/N</Text>
+          <Text style={s.cellMeasure}>Safety Measures 安全措施</Text>
+          <Text style={s.cellYesNoLast}>Yes/No</Text>
+        </View>
+
+        {/* Data rows */}
+        {Array.from({ length: rows }).map((_, i) => {
+          const left = leftCol[i]
+          const right = rightCol[i]
+          return (
+            <View key={i} style={s.tableRow}>
+              <Text style={s.cellSn}>{left?.sn ?? ''}</Text>
+              <View style={s.cellMeasure}>
+                {left && (
+                  <>
+                    <Text>{left.field.label}</Text>
+                    {left.field.label_zh && <Text style={{ fontSize: 7 }}>{left.field.label_zh}</Text>}
+                  </>
+                )}
+              </View>
+              <Text style={s.cellYesNo}>
+                {left ? checklistValueText(left.field, data[left.field.id]) : ''}
+              </Text>
+              <Text style={s.cellSnLast}>{right?.sn ?? ''}</Text>
+              <View style={s.cellMeasure}>
+                {right && (
+                  <>
+                    <Text>{right.field.label}</Text>
+                    {right.field.label_zh && <Text style={{ fontSize: 7 }}>{right.field.label_zh}</Text>}
+                  </>
+                )}
+              </View>
+              <Text style={s.cellYesNoLast}>
+                {right ? checklistValueText(right.field, data[right.field.id]) : ''}
+              </Text>
+            </View>
+          )
+        })}
+      </View>
+
+      <Text style={s.footnote}>
+        *Indicate &quot;NA&quot; against conditions that are not required 不适用的条件请注明&quot;NA&quot;
+      </Text>
+    </View>
+  )
+}
+
+function PersonnelTablePdf({ personnel, permitTypeName }: { personnel: PersonnelEntry[]; permitTypeName: string }) {
+  const totalSlots = 20
+  const leftSlots = 10
+  const rowCount = leftSlots
+
+  return (
+    <View>
+      <Text style={s.personnelTitle}>List of Workmen involved in {permitTypeName}</Text>
+      <Text style={s.personnelSubtitle}>参与工作的工人名单</Text>
+
+      <View style={{ borderWidth: 1, borderColor: '#000000' }}>
+        {/* Header */}
+        <View style={s.tableHeader}>
+          <Text style={s.pCellSn}>S/N</Text>
+          <Text style={s.pCellName}>Name of Worker 工人姓名</Text>
+          <Text style={s.pCellRoleMid}>Role</Text>
+          <Text style={s.pCellSn}>S/N</Text>
+          <Text style={s.pCellName}>Name of Worker 工人姓名</Text>
+          <Text style={s.pCellRole}>Role</Text>
+        </View>
+
+        {/* Data rows */}
+        {Array.from({ length: rowCount }).map((_, i) => {
+          const leftIdx = i
+          const rightIdx = i + leftSlots
+          const leftPerson = personnel[leftIdx]
+          const rightPerson = rightIdx < totalSlots ? personnel[rightIdx] : undefined
+          return (
+            <View key={i} style={s.tableRow}>
+              <Text style={s.pCellSn}>{leftIdx + 1}</Text>
+              <Text style={s.pCellName}>{leftPerson?.name ?? ''}</Text>
+              <Text style={s.pCellRoleMid}>{leftPerson?.role ?? ''}</Text>
+              <Text style={s.pCellSn}>{rightIdx + 1}</Text>
+              <Text style={s.pCellName}>{rightPerson?.name ?? ''}</Text>
+              <Text style={s.pCellRole}>{rightPerson?.role ?? ''}</Text>
+            </View>
+          )
+        })}
+      </View>
+    </View>
+  )
+}
+
+export function PermitPdfDocument({ data }: { data: PermitPdfData }) {
   const statusCfg = STATUS_CONFIG[data.status]
   const sections = data.permit_types?.checklist_template?.sections ?? []
-  const personnelReqs = data.permit_types?.checklist_template?.personnel ?? []
   const checklistData = (data.checklist_data ?? {}) as Record<string, unknown>
   const personnel = data.personnel ?? []
 
   return (
     <Document>
+      {/* ===== PAGE 1: Header, Form Fields, Regulatory Notice, Checklist ===== */}
       <Page size="A4" style={s.page}>
-        {/* A. Header */}
-        <Text style={s.title}>{data.permit_number}</Text>
-        {data.permit_types && <Text style={s.subtitle}>{data.permit_types.name}</Text>}
-        <Text style={s.badge}>{statusCfg.label} {statusCfg.label_zh}</Text>
-        {data.project && <Text style={s.projectText}>Project: {data.project.name}</Text>}
+        {/* A. Header Block */}
+        <View style={s.headerRow}>
+          <Text style={s.headerLeft}>{data.permit_types?.code ?? ''}</Text>
+          <Text style={s.headerRight}>
+            PTW Serial No (序列号): {data.permit_number}
+          </Text>
+        </View>
 
-        {/* B. Details */}
-        <Text style={s.sectionTitle}>Permit Details 许可证详情</Text>
-        <View style={s.row}>
-          <Text style={s.label}>Work Location 工作地点</Text>
-          <Text style={s.value}>{data.work_location}</Text>
+        <Text style={s.title}>
+          PERMIT TO WORK 施工准许证{data.permit_types ? ` — ${data.permit_types.name.toUpperCase()}` : ''}
+        </Text>
+        <View style={s.titleLine} />
+
+        <Text style={s.subtitle}>
+          (THIS COPY SHALL BE DISPLAYED AT PLACE OF WORK, AS APPROPRIATE)
+        </Text>
+        <Text style={s.subtitle}>此副本应在工作场所张贴展示</Text>
+
+        <Text style={s.statusText}>
+          Status (状态): {statusCfg.label.toUpperCase()} {statusCfg.label_zh}
+        </Text>
+
+        {/* B. Form Fields */}
+        <View style={s.formField}>
+          <Text style={s.fieldLabel}>PROJECT TITLE (项目名称): </Text>
+          <Text style={s.fieldValue}>{data.project?.name ?? ''}</Text>
+        </View>
+        <View style={s.formField}>
+          <Text style={s.fieldLabel}>NAME OF APPLICANT (申请人姓名): </Text>
+          <Text style={s.fieldValue}>{data.applicant?.name ?? ''}</Text>
+        </View>
+        <View style={s.formField}>
+          <Text style={s.fieldLabel}>WORK TO BE PERFORMED (所申请的施工类型): </Text>
+          <Text style={s.fieldValue}>{data.work_description}</Text>
+        </View>
+        <View style={s.formField}>
+          <Text style={s.fieldLabel}>DURATION OF WORK (施工历时): </Text>
+          <Text>From (从) </Text>
+          <Text style={s.fieldValueShort}>{fmtDate(data.scheduled_start)}</Text>
+          <Text> to (至) </Text>
+          <Text style={s.fieldValueShort}>{fmtDate(data.scheduled_end)}</Text>
+          <Text> Total (共计): </Text>
+          <Text style={s.fieldValueShort}>
+            {data.scheduled_start && data.scheduled_end
+              ? `${calcDays(data.scheduled_start, data.scheduled_end)}`
+              : ''}
+          </Text>
+          <Text> days (天)</Text>
+        </View>
+        <View style={s.formField}>
+          <Text style={s.fieldLabel}>LOCATION OF WORK (施工地点): </Text>
+          <Text style={s.fieldValue}>{data.work_location}</Text>
         </View>
         {data.gps_lat != null && data.gps_lng != null && (
-          <View style={s.row}>
-            <Text style={s.label}>GPS Coordinates</Text>
-            <Text style={s.value}>{data.gps_lat}, {data.gps_lng}</Text>
+          <View style={s.formField}>
+            <Text style={s.fieldLabel}>GPS COORDINATES (GPS 坐标): </Text>
+            <Text style={s.fieldValue}>{data.gps_lat}, {data.gps_lng}</Text>
           </View>
         )}
-        {data.scheduled_start && (
-          <View style={s.row}>
-            <Text style={s.label}>Scheduled Start 计划开始</Text>
-            <Text style={s.value}>{fmt(data.scheduled_start)}</Text>
-          </View>
-        )}
-        {data.scheduled_end && (
-          <View style={s.row}>
-            <Text style={s.label}>Scheduled End 计划结束</Text>
-            <Text style={s.value}>{fmt(data.scheduled_end)}</Text>
-          </View>
-        )}
-        <View style={[s.row, { marginTop: 4 }]}>
-          <Text style={s.label}>Work Description 工作描述</Text>
-          <Text style={s.value}>{data.work_description}</Text>
+
+        {/* C. Regulatory Notice */}
+        <View style={[s.noticeBox, { marginTop: 8 }]}>
+          <Text style={s.noticeText}>
+            For each work, a new Permit-To-Work (PTW) form has to be processed and submitted.
+            A PTW shall be approved for a maximum of 7 days provided it is used for the same
+            type / scope of works declared in the permit application. The conditions of issue
+            of a PTW must be complied with throughout the duration of work, otherwise, this
+            PTW can be withdrawn at anytime. The applicant of this PTW shall be responsible
+            for maintaining a copy of this permit and must produce it upon request.
+          </Text>
+          <Text style={[s.noticeText, { marginTop: 4 }]}>
+            每项施工须重新办理施工准许证（PTW）。PTW 批准的最长有效期为 7 天，
+            前提是该 PTW 仅用于申请中声明的相同类型/范围的施工。PTW 的签发条件必须在整个施工期间得到遵守，
+            否则该 PTW 可随时被撤销。PTW 申请人有责任保存此许可证副本，并在要求时出示。
+          </Text>
         </View>
 
-        {/* C. Authorization */}
-        <Text style={s.sectionTitle}>Authorization 授权</Text>
-        <View style={{ flexDirection: 'row' as const }}>
-          <View style={s.authCol}>
-            <Text style={s.authLabel}>Applicant 申请人</Text>
-            <Text style={s.authName}>{data.applicant?.name ?? '—'}</Text>
-            <Text style={s.authDate}>{fmt(data.submitted_at)}</Text>
-            {data.applicant_signature && <Image src={data.applicant_signature} style={s.sigImage} />}
-            <View style={data.applicant_signature ? s.sigLineWithSig : s.sigLine} />
-            <Text style={s.sigLabel}>Signature 签名</Text>
-          </View>
-          <View style={s.authCol}>
-            <Text style={s.authLabel}>Verifier 审核人</Text>
-            <Text style={s.authName}>{data.verifier?.name ?? '—'}</Text>
-            <Text style={s.authDate}>{fmt(data.verified_at)}</Text>
-            {data.verifier_signature && <Image src={data.verifier_signature} style={s.sigImage} />}
-            <View style={data.verifier_signature ? s.sigLineWithSig : s.sigLine} />
-            <Text style={s.sigLabel}>Signature 签名</Text>
-          </View>
-          <View style={s.authCol}>
-            <Text style={s.authLabel}>Approver 批准人</Text>
-            <Text style={s.authName}>{data.approver?.name ?? '—'}</Text>
-            <Text style={s.authDate}>{fmt(data.approved_at)}</Text>
-            {data.approver_signature && <Image src={data.approver_signature} style={s.sigImage} />}
-            <View style={data.approver_signature ? s.sigLineWithSig : s.sigLine} />
-            <Text style={s.sigLabel}>Signature 签名</Text>
-          </View>
-        </View>
-
-        {/* D. Checklist */}
+        {/* D. Safety Checklist */}
         {sections.length > 0 && (
-          <View>
-            <Text style={s.sectionTitle}>Checklist 检查清单</Text>
-            {sections.map((section: ChecklistSection) => (
-              <View key={section.title}>
-                <Text style={s.checklistSectionTitle}>
-                  {section.title}
-                  {section.title_zh && <Text style={s.checklistZh}> {section.title_zh}</Text>}
-                </Text>
-                {section.description && (
-                  <Text style={{ fontSize: 8, color: '#6b7280', marginBottom: 4 }}>
-                    {section.description}{section.description_zh ? ` ${section.description_zh}` : ''}
-                  </Text>
-                )}
-                {section.fields.map((field: ChecklistField) => (
-                  <View key={field.id} style={s.fieldRow}>
-                    <Text style={s.fieldLabel}>
-                      {field.label}
-                      {field.label_zh && <Text style={{ color: '#9ca3af' }}> {field.label_zh}</Text>}
-                    </Text>
-                    <View style={s.fieldValue}>
-                      <FieldValue field={field} value={checklistData[field.id]} photoUrls={photoUrls ?? data.photoUrls} />
-                    </View>
-                  </View>
-                ))}
+          <ChecklistTablePdf sections={sections} data={checklistData} />
+        )}
+      </Page>
+
+      {/* ===== PAGE 2: Signatures + Personnel ===== */}
+      <Page size="A4" style={s.page}>
+        {/* E. Signature Blocks */}
+
+        {/* Application */}
+        <View style={s.sigBlock}>
+          <Text style={s.sigTitle}>
+            Permit Application by Foreman / Supervisor / Engineer in-charge
+          </Text>
+          <Text style={s.sigSubtitle}>施工准许证申请（由工头/主管/工程师负责人填写）</Text>
+          <Text style={s.sigItalic}>
+            I fully understand the nature of the work and safety conditions that must be met.
+            I have inspected the safety conditions relating to the work to be performed.
+          </Text>
+          <Text style={s.sigItalic}>
+            我保证已做到以上所提的所有安全措施与要求，同时确保该施工地点已可以安全开工。
+          </Text>
+          <View style={s.sigFieldRow}>
+            <Text style={s.sigFieldLabel}>Name & Signature (姓名及签名): </Text>
+            <Text style={s.sigFieldValue}>{data.applicant?.name ?? ''}</Text>
+          </View>
+          <View style={s.sigFieldRow}>
+            <Text style={s.sigFieldLabel}>Date / Time (日期/时间): </Text>
+            <Text style={s.sigFieldValue}>{fmtDateTime(data.submitted_at)}</Text>
+          </View>
+        </View>
+
+        {/* Verification */}
+        <View style={s.sigBlock}>
+          <Text style={s.sigTitle}>
+            Permit Verification by WSH Officer / Coordinator / Supervisor
+          </Text>
+          <Text style={s.sigSubtitle}>施工准许证审核（由安全主任/协调员/主管填写）</Text>
+          <View style={{ flexDirection: 'row' as const }}>
+            <View style={{ width: '50%' }}>
+              <View style={s.sigFieldRow}>
+                <Text style={s.sigFieldLabel}>Name (姓名): </Text>
+                <Text style={s.sigFieldValue}>{data.verifier?.name ?? ''}</Text>
               </View>
-            ))}
-          </View>
-        )}
-
-        {/* E. Personnel */}
-        {personnelReqs.length > 0 && personnel.length > 0 && (
-          <View>
-            <Text style={s.sectionTitle}>Personnel 人员</Text>
-            <View style={s.tableHeader}>
-              <Text style={[s.tableCell, { fontWeight: 700 }]}>Name 姓名</Text>
-              <Text style={[s.tableCell, { fontWeight: 700 }]}>Role 角色</Text>
+              <View style={s.sigFieldRow}>
+                <Text style={s.sigFieldLabel}>Date (日期): </Text>
+                <Text style={s.sigFieldValue}>{fmtDate(data.verified_at)}</Text>
+              </View>
             </View>
-            {personnelReqs.map((req: PersonnelRequirement) =>
-              personnel
-                .filter((p: PersonnelEntry) => p.role === req.role)
-                .map((entry: PersonnelEntry, i: number) => (
-                  <View key={`${req.role}-${i}`} style={s.tableRow}>
-                    <Text style={s.tableCell}>{entry.name}</Text>
-                    <Text style={s.tableCellLabel}>
-                      {req.label}{req.label_zh ? ` ${req.label_zh}` : ''}
-                    </Text>
-                  </View>
-                ))
-            )}
+            <View style={{ width: '50%' }}>
+              <View style={s.sigFieldRow}>
+                <Text style={s.sigFieldLabel}>Signature (签名): </Text>
+                <Text style={s.sigFieldValue}>{' '}</Text>
+              </View>
+              <View style={s.sigFieldRow}>
+                <Text style={s.sigFieldLabel}>Time (时间): </Text>
+                <Text style={s.sigFieldValue}>{fmtTime(data.verified_at)}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Approval */}
+        <View style={s.sigBlock}>
+          <Text style={s.sigTitle}>
+            Permit Approval by Project Manager / Site Manager
+          </Text>
+          <Text style={s.sigSubtitle}>施工准许证批准（由项目经理/工地经理填写）</Text>
+          <View style={s.sigFieldRow}>
+            <Text style={s.sigFieldLabel}>Permit is (许可证): </Text>
+            <Text style={{ fontSize: 8, fontWeight: 700 }}>
+              {data.status === 'rejected'
+                ? 'NOT APPROVED 不批准'
+                : data.approved_at
+                  ? 'APPROVED 批准'
+                  : 'Pending 待定'}
+            </Text>
+          </View>
+          <View style={{ flexDirection: 'row' as const }}>
+            <View style={{ width: '50%' }}>
+              <View style={s.sigFieldRow}>
+                <Text style={s.sigFieldLabel}>Name of PM/SM (姓名): </Text>
+                <Text style={s.sigFieldValue}>{data.approver?.name ?? ''}</Text>
+              </View>
+              <View style={s.sigFieldRow}>
+                <Text style={s.sigFieldLabel}>Date (日期): </Text>
+                <Text style={s.sigFieldValue}>{fmtDate(data.approved_at)}</Text>
+              </View>
+            </View>
+            <View style={{ width: '50%' }}>
+              <View style={s.sigFieldRow}>
+                <Text style={s.sigFieldLabel}>Signature (签名): </Text>
+                <Text style={s.sigFieldValue}>{' '}</Text>
+              </View>
+              <View style={s.sigFieldRow}>
+                <Text style={s.sigFieldLabel}>Time (时间): </Text>
+                <Text style={s.sigFieldValue}>{fmtTime(data.approved_at)}</Text>
+              </View>
+            </View>
+          </View>
+          {data.rejection_reason && (
+            <View style={[s.sigFieldRow, { marginTop: 4 }]}>
+              <Text style={s.sigFieldLabel}>Reason for rejection (拒绝原因): </Text>
+              <Text style={s.sigFieldValue}>{data.rejection_reason}</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Completion / Closure */}
+        <View style={s.sigBlock}>
+          <Text style={s.sigTitle}>Notification of Works Completion 施工完成通知</Text>
+          <Text style={s.sigItalic}>(To be reported by Permit Applicant 由申请人填写)</Text>
+          <View style={s.sigFieldRow}>
+            <Text style={{ fontSize: 8 }}>The above mentioned work was completed on (以上施工已于以下日期完成): </Text>
+            <Text style={s.sigFieldValue}>{fmtDateTime(data.closed_at)}</Text>
+          </View>
+          <View style={{ flexDirection: 'row' as const }}>
+            <View style={{ width: '50%' }}>
+              <View style={s.sigFieldRow}>
+                <Text style={s.sigFieldLabel}>Name (姓名): </Text>
+                <Text style={s.sigFieldValue}>{data.closed_at ? (data.applicant?.name ?? '') : ''}</Text>
+              </View>
+            </View>
+            <View style={{ width: '50%' }}>
+              <View style={s.sigFieldRow}>
+                <Text style={s.sigFieldLabel}>Signature (签名): </Text>
+                <Text style={s.sigFieldValue}>{' '}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Revocation (if applicable) */}
+        {data.revocation_reason && (
+          <View style={s.sigBlock}>
+            <Text style={s.sigTitle}>Permit Revocation 许可证撤销</Text>
+            <View style={s.sigFieldRow}>
+              <Text style={s.sigFieldLabel}>Reason (原因): </Text>
+              <Text style={s.sigFieldValue}>{data.revocation_reason}</Text>
+            </View>
           </View>
         )}
 
-        {/* F. Footer */}
+        {/* F. Personnel Table */}
+        <PersonnelTablePdf
+          personnel={personnel}
+          permitTypeName={data.permit_types?.name ?? 'Permit Works'}
+        />
+
+        {/* G. Footer */}
         <View style={s.footer}>
-          {data.scheduled_start && data.scheduled_end && (
-            <Text>Valid from: {fmt(data.scheduled_start)} — {fmt(data.scheduled_end)}</Text>
-          )}
-          <Text>Generated on: {new Date().toLocaleString()}</Text>
+          <Text>Printed on 打印于: {new Date().toLocaleString()}</Text>
         </View>
       </Page>
     </Document>
