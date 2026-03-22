@@ -4,13 +4,14 @@ import { useState, useEffect, useCallback, use } from 'react'
 import Link from 'next/link'
 import ProjectSubNav from '@/components/projects/project-sub-nav'
 import { PermitCard } from '@/components/permits/permit-card'
+import { PermitBoard } from '@/components/permits/permit-board'
 import { StatusBadge } from '@/components/permits/status-badge'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/input'
 import { PermitCardSkeleton } from '@/components/ui/skeleton'
 import { STATUS_CONFIG, ALL_STATUSES } from '@/lib/permits/status-display'
-import { FileText } from 'lucide-react'
+import { FileText, List, LayoutGrid } from 'lucide-react'
 import type { PermitStatus } from '@/lib/permits/state-machine'
 
 interface Project {
@@ -74,6 +75,7 @@ export default function ProjectPermitsPage({ params }: { params: Promise<{ id: s
 
   const [statusFilter, setStatusFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
+  const [viewMode, setViewMode] = useState<'board' | 'list'>('board')
 
   // Load project + roles
   useEffect(() => {
@@ -167,6 +169,11 @@ export default function ProjectPermitsPage({ params }: { params: Promise<{ id: s
     setTypeFilter('')
   }, [statusFilter])
 
+  // Clear status filter when switching to board view (board shows all statuses as columns)
+  useEffect(() => {
+    if (viewMode === 'board') setStatusFilter('')
+  }, [viewMode])
+
   if (loading) {
     return <div className="text-center py-12 text-gray-500">Loading project...</div>
   }
@@ -216,9 +223,27 @@ export default function ProjectPermitsPage({ params }: { params: Promise<{ id: s
 
       <ProjectSubNav projectId={id} projectName={project.name} isAdmin={isAdmin} />
 
-      {/* Header with New Permit button */}
+      {/* Header with view toggle and New Permit button */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900">Permits</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-semibold text-gray-900">Permits</h2>
+          <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+            <button
+              onClick={() => setViewMode('board')}
+              className={`p-1.5 ${viewMode === 'board' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+              title="Board view"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-1.5 ${viewMode === 'list' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+              title="List view"
+            >
+              <List className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
         {isApplicant && (
           <Link href={`/permits/new?project=${id}`}>
             <Button size="md">+ New Permit</Button>
@@ -317,21 +342,23 @@ export default function ProjectPermitsPage({ params }: { params: Promise<{ id: s
             </Select>
           </div>
 
-          <div className="flex-1 min-w-[160px]">
-            <Select
-              label="Status"
-              id="status-filter"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="">All Statuses</option>
-              {ALL_STATUSES.map((s) => (
-                <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
-              ))}
-            </Select>
-          </div>
+          {viewMode === 'list' && (
+            <div className="flex-1 min-w-[160px]">
+              <Select
+                label="Status"
+                id="status-filter"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="">All Statuses</option>
+                {ALL_STATUSES.map((s) => (
+                  <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
+                ))}
+              </Select>
+            </div>
+          )}
 
-          {(typeFilter || statusFilter) && (
+          {(typeFilter || (viewMode === 'list' && statusFilter)) && (
             <div className="flex items-end">
               <Button
                 variant="outline"
@@ -345,7 +372,7 @@ export default function ProjectPermitsPage({ params }: { params: Promise<{ id: s
         </div>
       </div>
 
-      {/* Permit List */}
+      {/* Permit List / Board */}
       {permitsLoading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
@@ -364,6 +391,8 @@ export default function ProjectPermitsPage({ params }: { params: Promise<{ id: s
             </Link>
           )}
         </div>
+      ) : viewMode === 'board' ? (
+        <PermitBoard permits={displayedPermits} />
       ) : (
         <div className="space-y-3">
           <p className="text-sm text-gray-500">{displayedPermits.length} permit{displayedPermits.length !== 1 ? 's' : ''}</p>
