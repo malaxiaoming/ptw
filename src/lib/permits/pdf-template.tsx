@@ -221,12 +221,17 @@ const s = StyleSheet.create({
     minWidth: 100,
     fontSize: 8,
   },
-  sigImage: {
-    width: 120,
-    height: 48,
-    objectFit: 'contain' as const,
+  sigImageBox: {
+    width: 150,
+    height: 50,
     marginTop: 4,
     marginBottom: 2,
+    overflow: 'hidden',
+  },
+  sigImage: {
+    width: 150,
+    height: 50,
+    objectFit: 'contain' as const,
   },
 
   // Personnel table
@@ -568,7 +573,9 @@ export function PermitPdfDocument({ data }: { data: PermitPdfData }) {
           {data.applicant_signature && (
             <View style={s.sigFieldRow}>
               <Text style={s.sigFieldLabel}>Signature (签名): </Text>
-              <Image src={data.applicant_signature} style={s.sigImage} />
+              <View style={s.sigImageBox}>
+                <Image src={data.applicant_signature} style={s.sigImage} />
+              </View>
             </View>
           )}
           <View style={s.sigFieldRow}>
@@ -602,7 +609,9 @@ export function PermitPdfDocument({ data }: { data: PermitPdfData }) {
               {data.verifier_signature ? (
                 <View>
                   <Text style={s.sigFieldLabel}>Signature (签名):</Text>
-                  <Image src={data.verifier_signature} style={s.sigImage} />
+                  <View style={s.sigImageBox}>
+                    <Image src={data.verifier_signature} style={s.sigImage} />
+                  </View>
                 </View>
               ) : (
                 <View style={s.sigFieldRow}>
@@ -649,7 +658,9 @@ export function PermitPdfDocument({ data }: { data: PermitPdfData }) {
               {data.approver_signature ? (
                 <View>
                   <Text style={s.sigFieldLabel}>Signature (签名):</Text>
-                  <Image src={data.approver_signature} style={s.sigImage} />
+                  <View style={s.sigImageBox}>
+                    <Image src={data.approver_signature} style={s.sigImage} />
+                  </View>
                 </View>
               ) : (
                 <View style={s.sigFieldRow}>

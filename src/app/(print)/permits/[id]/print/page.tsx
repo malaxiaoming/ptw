@@ -418,7 +418,7 @@ export default function PermitPrintPage({ params }: { params: Promise<{ id: stri
             <div className="col-span-2">
               <span className="font-bold">Signature (签名): </span>
               {permit.applicant_signature
-                ? <img src={permit.applicant_signature} alt="Applicant signature" className="inline-block h-12 mt-1" />
+                ? <span className="inline-block w-[150px] h-[50px] overflow-hidden align-middle mt-1"><img src={permit.applicant_signature} alt="Applicant signature" className="w-full h-full object-contain" /></span>
                 : <UnderlineValue value="" minWidth="200px" />
               }
             </div>
@@ -447,7 +447,7 @@ export default function PermitPrintPage({ params }: { params: Promise<{ id: stri
             <div className="col-span-2">
               <span className="font-bold">Signature (签名): </span>
               {permit.verifier_signature
-                ? <img src={permit.verifier_signature} alt="Verifier signature" className="inline-block h-12 mt-1" />
+                ? <span className="inline-block w-[150px] h-[50px] overflow-hidden align-middle mt-1"><img src={permit.verifier_signature} alt="Verifier signature" className="w-full h-full object-contain" /></span>
                 : <UnderlineValue value="" minWidth="200px" />
               }
             </div>
@@ -485,7 +485,7 @@ export default function PermitPrintPage({ params }: { params: Promise<{ id: stri
             <div className="col-span-2">
               <span className="font-bold">Signature (签名): </span>
               {permit.approver_signature
-                ? <img src={permit.approver_signature} alt="Approver signature" className="inline-block h-12 mt-1" />
+                ? <span className="inline-block w-[150px] h-[50px] overflow-hidden align-middle mt-1"><img src={permit.approver_signature} alt="Approver signature" className="w-full h-full object-contain" /></span>
                 : <UnderlineValue value="" minWidth="200px" />
               }
             </div>
