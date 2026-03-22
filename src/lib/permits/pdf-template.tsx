@@ -225,6 +225,8 @@ const s = StyleSheet.create({
     width: 80,
     height: 30,
     objectFit: 'contain' as const,
+    marginTop: -22,
+    marginBottom: -2,
   },
   sigBlankLine: {
     borderBottomWidth: 1,
