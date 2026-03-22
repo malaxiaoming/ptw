@@ -48,6 +48,9 @@ interface Permit {
   verifier?: UserProfile | null
   approver?: UserProfile | null
   project?: { id: string; name: string; location?: string | null } | null
+  applicant_signature?: string | null
+  verifier_signature?: string | null
+  approver_signature?: string | null
   permit_attachments?: Attachment[]
 }
 
@@ -405,12 +408,19 @@ export default function PermitPrintPage({ params }: { params: Promise<{ id: stri
           </p>
           <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
             <div>
-              <span className="font-bold">Name & Signature (姓名及签名): </span>
+              <span className="font-bold">Name (姓名): </span>
               <UnderlineValue value={permit.applicant?.name ?? ''} minWidth="120px" />
             </div>
             <div>
               <span className="font-bold">Date / Time (日期/时间): </span>
               <UnderlineValue value={permit.submitted_at ? formatDateTime(permit.submitted_at) : ''} minWidth="120px" />
+            </div>
+            <div className="col-span-2">
+              <span className="font-bold">Signature (签名): </span>
+              {permit.applicant_signature
+                ? <img src={permit.applicant_signature} alt="Applicant signature" className="inline-block h-12 mt-1" />
+                : <UnderlineValue value="" minWidth="200px" />
+              }
             </div>
           </div>
         </div>
@@ -427,16 +437,19 @@ export default function PermitPrintPage({ params }: { params: Promise<{ id: stri
               <UnderlineValue value={permit.verifier?.name ?? ''} minWidth="120px" />
             </div>
             <div>
-              <span className="font-bold">Signature (签名): </span>
-              <UnderlineValue value="" minWidth="120px" />
-            </div>
-            <div>
               <span className="font-bold">Date (日期): </span>
               <UnderlineValue value={permit.verified_at ? formatDate(permit.verified_at) : ''} minWidth="120px" />
             </div>
             <div>
               <span className="font-bold">Time (时间): </span>
               <UnderlineValue value={permit.verified_at ? formatTime(permit.verified_at) : ''} minWidth="120px" />
+            </div>
+            <div className="col-span-2">
+              <span className="font-bold">Signature (签名): </span>
+              {permit.verifier_signature
+                ? <img src={permit.verifier_signature} alt="Verifier signature" className="inline-block h-12 mt-1" />
+                : <UnderlineValue value="" minWidth="200px" />
+              }
             </div>
           </div>
         </div>
@@ -462,16 +475,19 @@ export default function PermitPrintPage({ params }: { params: Promise<{ id: stri
               <UnderlineValue value={permit.approver?.name ?? ''} minWidth="120px" />
             </div>
             <div>
-              <span className="font-bold">Signature (签名): </span>
-              <UnderlineValue value="" minWidth="120px" />
-            </div>
-            <div>
               <span className="font-bold">Date (日期): </span>
               <UnderlineValue value={permit.approved_at ? formatDate(permit.approved_at) : ''} minWidth="120px" />
             </div>
             <div>
               <span className="font-bold">Time (时间): </span>
               <UnderlineValue value={permit.approved_at ? formatTime(permit.approved_at) : ''} minWidth="120px" />
+            </div>
+            <div className="col-span-2">
+              <span className="font-bold">Signature (签名): </span>
+              {permit.approver_signature
+                ? <img src={permit.approver_signature} alt="Approver signature" className="inline-block h-12 mt-1" />
+                : <UnderlineValue value="" minWidth="200px" />
+              }
             </div>
           </div>
           {permit.rejection_reason && (

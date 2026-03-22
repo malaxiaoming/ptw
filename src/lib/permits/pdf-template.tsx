@@ -1,6 +1,6 @@
 import React from 'react'
 import path from 'path'
-import { Document, Page, View, Text, StyleSheet, Font } from '@react-pdf/renderer'
+import { Document, Page, View, Text, Image, StyleSheet, Font } from '@react-pdf/renderer'
 import type { PermitStatus } from '@/lib/permits/state-machine'
 import type { ChecklistSection, ChecklistField, PersonnelEntry, PersonnelRequirement, ChecklistTemplate } from '@/lib/permits/checklist-validation'
 import { STATUS_CONFIG } from '@/lib/permits/status-display'
@@ -220,6 +220,13 @@ const s = StyleSheet.create({
     paddingHorizontal: 4,
     minWidth: 100,
     fontSize: 8,
+  },
+  sigImage: {
+    width: 120,
+    height: 48,
+    objectFit: 'contain' as const,
+    marginTop: 4,
+    marginBottom: 2,
   },
 
   // Personnel table
@@ -555,9 +562,15 @@ export function PermitPdfDocument({ data }: { data: PermitPdfData }) {
             我保证已做到以上所提的所有安全措施与要求，同时确保该施工地点已可以安全开工。
           </Text>
           <View style={s.sigFieldRow}>
-            <Text style={s.sigFieldLabel}>Name & Signature (姓名及签名): </Text>
+            <Text style={s.sigFieldLabel}>Name (姓名): </Text>
             <Text style={s.sigFieldValue}>{data.applicant?.name ?? ''}</Text>
           </View>
+          {data.applicant_signature && (
+            <View style={s.sigFieldRow}>
+              <Text style={s.sigFieldLabel}>Signature (签名): </Text>
+              <Image src={data.applicant_signature} style={s.sigImage} />
+            </View>
+          )}
           <View style={s.sigFieldRow}>
             <Text style={s.sigFieldLabel}>Date / Time (日期/时间): </Text>
             <Text style={s.sigFieldValue}>{fmtDateTime(data.submitted_at)}</Text>
@@ -580,16 +593,23 @@ export function PermitPdfDocument({ data }: { data: PermitPdfData }) {
                 <Text style={s.sigFieldLabel}>Date (日期): </Text>
                 <Text style={s.sigFieldValue}>{fmtDate(data.verified_at)}</Text>
               </View>
-            </View>
-            <View style={{ width: '50%' }}>
-              <View style={s.sigFieldRow}>
-                <Text style={s.sigFieldLabel}>Signature (签名): </Text>
-                <Text style={s.sigFieldValue}>{' '}</Text>
-              </View>
               <View style={s.sigFieldRow}>
                 <Text style={s.sigFieldLabel}>Time (时间): </Text>
                 <Text style={s.sigFieldValue}>{fmtTime(data.verified_at)}</Text>
               </View>
+            </View>
+            <View style={{ width: '50%' }}>
+              {data.verifier_signature ? (
+                <View>
+                  <Text style={s.sigFieldLabel}>Signature (签名):</Text>
+                  <Image src={data.verifier_signature} style={s.sigImage} />
+                </View>
+              ) : (
+                <View style={s.sigFieldRow}>
+                  <Text style={s.sigFieldLabel}>Signature (签名): </Text>
+                  <Text style={s.sigFieldValue}>{' '}</Text>
+                </View>
+              )}
             </View>
           </View>
         </View>
@@ -620,16 +640,23 @@ export function PermitPdfDocument({ data }: { data: PermitPdfData }) {
                 <Text style={s.sigFieldLabel}>Date (日期): </Text>
                 <Text style={s.sigFieldValue}>{fmtDate(data.approved_at)}</Text>
               </View>
-            </View>
-            <View style={{ width: '50%' }}>
-              <View style={s.sigFieldRow}>
-                <Text style={s.sigFieldLabel}>Signature (签名): </Text>
-                <Text style={s.sigFieldValue}>{' '}</Text>
-              </View>
               <View style={s.sigFieldRow}>
                 <Text style={s.sigFieldLabel}>Time (时间): </Text>
                 <Text style={s.sigFieldValue}>{fmtTime(data.approved_at)}</Text>
               </View>
+            </View>
+            <View style={{ width: '50%' }}>
+              {data.approver_signature ? (
+                <View>
+                  <Text style={s.sigFieldLabel}>Signature (签名):</Text>
+                  <Image src={data.approver_signature} style={s.sigImage} />
+                </View>
+              ) : (
+                <View style={s.sigFieldRow}>
+                  <Text style={s.sigFieldLabel}>Signature (签名): </Text>
+                  <Text style={s.sigFieldValue}>{' '}</Text>
+                </View>
+              )}
             </View>
           </View>
           {data.rejection_reason && (
