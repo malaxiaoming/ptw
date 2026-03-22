@@ -221,23 +221,16 @@ const s = StyleSheet.create({
     minWidth: 100,
     fontSize: 8,
   },
-  sigImageLabel: {
-    fontWeight: 700,
-    fontSize: 8,
-    marginBottom: 2,
-  },
   sigImage: {
-    maxWidth: 150,
-    maxHeight: 50,
+    width: 80,
+    height: 30,
     objectFit: 'contain' as const,
-    marginBottom: 4,
   },
   sigBlankLine: {
     borderBottomWidth: 1,
     borderBottomColor: '#000000',
-    width: 150,
-    marginBottom: 4,
-    marginTop: 20,
+    width: 80,
+    marginTop: 12,
   },
 
   // Personnel table
@@ -579,16 +572,22 @@ export function PermitPdfDocument({ data }: { data: PermitPdfData }) {
                 <Text style={s.sigFieldValue}>{data.applicant?.name ?? ''}</Text>
               </View>
               <View style={s.sigFieldRow}>
-                <Text style={s.sigFieldLabel}>Date / Time (日期/时间): </Text>
-                <Text style={s.sigFieldValue}>{fmtDateTime(data.submitted_at)}</Text>
+                <Text style={s.sigFieldLabel}>Signature (签名): </Text>
+                {data.applicant_signature
+                  ? <Image src={data.applicant_signature} style={s.sigImage} />
+                  : <View style={s.sigBlankLine} />
+                }
               </View>
             </View>
             <View style={{ width: '50%' }}>
-              <Text style={s.sigImageLabel}>Signature (签名):</Text>
-              {data.applicant_signature
-                ? <Image src={data.applicant_signature} style={s.sigImage} />
-                : <View style={s.sigBlankLine} />
-              }
+              <View style={s.sigFieldRow}>
+                <Text style={s.sigFieldLabel}>Date (日期): </Text>
+                <Text style={s.sigFieldValue}>{fmtDate(data.submitted_at)}</Text>
+              </View>
+              <View style={s.sigFieldRow}>
+                <Text style={s.sigFieldLabel}>Time (时间): </Text>
+                <Text style={s.sigFieldValue}>{fmtTime(data.submitted_at)}</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -606,6 +605,15 @@ export function PermitPdfDocument({ data }: { data: PermitPdfData }) {
                 <Text style={s.sigFieldValue}>{data.verifier?.name ?? ''}</Text>
               </View>
               <View style={s.sigFieldRow}>
+                <Text style={s.sigFieldLabel}>Signature (签名): </Text>
+                {data.verifier_signature
+                  ? <Image src={data.verifier_signature} style={s.sigImage} />
+                  : <View style={s.sigBlankLine} />
+                }
+              </View>
+            </View>
+            <View style={{ width: '50%' }}>
+              <View style={s.sigFieldRow}>
                 <Text style={s.sigFieldLabel}>Date (日期): </Text>
                 <Text style={s.sigFieldValue}>{fmtDate(data.verified_at)}</Text>
               </View>
@@ -613,13 +621,6 @@ export function PermitPdfDocument({ data }: { data: PermitPdfData }) {
                 <Text style={s.sigFieldLabel}>Time (时间): </Text>
                 <Text style={s.sigFieldValue}>{fmtTime(data.verified_at)}</Text>
               </View>
-            </View>
-            <View style={{ width: '50%' }}>
-              <Text style={s.sigImageLabel}>Signature (签名):</Text>
-              {data.verifier_signature
-                ? <Image src={data.verifier_signature} style={s.sigImage} />
-                : <View style={s.sigBlankLine} />
-              }
             </View>
           </View>
         </View>
@@ -647,6 +648,15 @@ export function PermitPdfDocument({ data }: { data: PermitPdfData }) {
                 <Text style={s.sigFieldValue}>{data.approver?.name ?? ''}</Text>
               </View>
               <View style={s.sigFieldRow}>
+                <Text style={s.sigFieldLabel}>Signature (签名): </Text>
+                {data.approver_signature
+                  ? <Image src={data.approver_signature} style={s.sigImage} />
+                  : <View style={s.sigBlankLine} />
+                }
+              </View>
+            </View>
+            <View style={{ width: '50%' }}>
+              <View style={s.sigFieldRow}>
                 <Text style={s.sigFieldLabel}>Date (日期): </Text>
                 <Text style={s.sigFieldValue}>{fmtDate(data.approved_at)}</Text>
               </View>
@@ -654,13 +664,6 @@ export function PermitPdfDocument({ data }: { data: PermitPdfData }) {
                 <Text style={s.sigFieldLabel}>Time (时间): </Text>
                 <Text style={s.sigFieldValue}>{fmtTime(data.approved_at)}</Text>
               </View>
-            </View>
-            <View style={{ width: '50%' }}>
-              <Text style={s.sigImageLabel}>Signature (签名):</Text>
-              {data.approver_signature
-                ? <Image src={data.approver_signature} style={s.sigImage} />
-                : <View style={s.sigBlankLine} />
-              }
             </View>
           </View>
           {data.rejection_reason && (
