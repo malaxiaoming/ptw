@@ -17,6 +17,7 @@ export default function ProjectSubNav({ projectId, projectName, isAdmin }: Proje
     { label: 'Overview', href: base, adminOnly: false },
     { label: 'Permits', href: `${base}/permits`, adminOnly: false },
     { label: 'Toolbox', href: `${base}/toolbox`, adminOnly: false },
+    { label: 'Water Parade', href: `${base}/water-parade`, adminOnly: false },
     { label: 'Team', href: `${base}/team`, adminOnly: true },
     { label: 'Companies', href: `${base}/companies`, adminOnly: true },
     { label: 'Workers', href: `${base}/workers`, adminOnly: true },
