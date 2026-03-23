@@ -25,9 +25,9 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password', '/auth/callback']
+  const PUBLIC_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password', '/auth/callback']
   const isPublicPath = PUBLIC_PATHS.includes(request.nextUrl.pathname)
-  const isLoginPage = request.nextUrl.pathname === '/login'
+  const isAuthPage = request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup'
 
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone()
@@ -35,7 +35,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (user && isLoginPage) {
+  if (user && isAuthPage) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { getCurrentUser } from '@/lib/auth/get-user'
-import { NAV_ITEMS, ADMIN_NAV_ITEMS, type NavItem } from '@/lib/nav-items'
+import { NAV_ITEMS, ADMIN_NAV_ITEMS, PLATFORM_NAV_ITEMS, type NavItem } from '@/lib/nav-items'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { LogoutButton } from './logout-button'
 
@@ -29,6 +29,16 @@ export async function Sidebar() {
           <div className="pt-4 mt-4 border-t border-gray-700">
             <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Admin</p>
             {ADMIN_NAV_ITEMS.map((item) => (
+              <SidebarLink key={item.href} item={item} />
+            ))}
+          </div>
+        )}
+
+        {/* Platform section */}
+        {user?.system_role && (
+          <div className="pt-4 mt-4 border-t border-gray-700">
+            <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Platform</p>
+            {PLATFORM_NAV_ITEMS.map((item) => (
               <SidebarLink key={item.href} item={item} />
             ))}
           </div>

@@ -10,6 +10,7 @@ export async function Header() {
       <div className="flex items-center gap-3">
         <MobileMenuButton
           isAdmin={!!user?.is_admin}
+          isPlatformAdmin={!!user?.system_role}
           userName={user?.name}
           userEmail={user?.email}
           organizationName={user?.organization_name}

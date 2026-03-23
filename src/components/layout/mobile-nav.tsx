@@ -4,17 +4,18 @@ import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Menu, X } from 'lucide-react'
-import { NAV_ITEMS, ADMIN_NAV_ITEMS } from '@/lib/nav-items'
+import { NAV_ITEMS, ADMIN_NAV_ITEMS, PLATFORM_NAV_ITEMS } from '@/lib/nav-items'
 import { LogoutButton } from './logout-button'
 
 interface MobileMenuButtonProps {
   isAdmin?: boolean
+  isPlatformAdmin?: boolean
   userName?: string | null
   userEmail?: string | null
   organizationName?: string | null
 }
 
-export function MobileMenuButton({ isAdmin = false, userName, userEmail, organizationName }: MobileMenuButtonProps) {
+export function MobileMenuButton({ isAdmin = false, isPlatformAdmin = false, userName, userEmail, organizationName }: MobileMenuButtonProps) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
 
@@ -97,6 +98,26 @@ export function MobileMenuButton({ isAdmin = false, userName, userEmail, organiz
             <div className="pt-4 mt-4 border-t border-gray-700">
               <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Admin</p>
               {ADMIN_NAV_ITEMS.map((item) => {
+                const Icon = item.icon
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
+                  >
+                    <Icon className="h-5 w-5 flex-shrink-0" />
+                    {item.label}
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+
+          {isPlatformAdmin && (
+            <div className="pt-4 mt-4 border-t border-gray-700">
+              <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Platform</p>
+              {PLATFORM_NAV_ITEMS.map((item) => {
                 const Icon = item.icon
                 return (
                   <Link

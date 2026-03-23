@@ -10,6 +10,7 @@ export interface UserProfile {
   organization_name: string | null
   is_admin: boolean
   is_active: boolean
+  system_role: 'super_admin' | 'regional_admin' | null
   created_at: string
 }
 
@@ -21,7 +22,7 @@ export const getCurrentUser = cache(async (): Promise<UserProfile | null> => {
 
   const { data: profile, error } = await supabase
     .from('user_profiles')
-    .select('id, email, phone, name, organization_id, is_admin, is_active, created_at, organizations(name)')
+    .select('id, email, phone, name, organization_id, is_admin, is_active, system_role, created_at, organizations(name)')
     .eq('id', user.id)
     .single()
 
